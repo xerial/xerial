@@ -2,7 +2,7 @@ package xerial.core
 
 import org.scalatest.fixture.WordSpec
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
-import org.scalatest.{OptionValues, GivenWhenThen}
+import org.scalatest._
 
 //--------------------------------------
 //

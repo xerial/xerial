@@ -7,8 +7,10 @@
 
 package xerial.core.util
 
+import collection.mutable
+
 /**
- *
+ * log level
  *
  * @author Taro L. Saito
  */
@@ -34,15 +36,17 @@ object LogLevel {
     else
       lv.get
   }
-
-
 }
 
-sealed abstract class LogLevel(order: Int) extends Ordered[LogLevel] {
+sealed abstract class LogLevel(val order: Int) extends Ordered[LogLevel] {
   val name = this.getClass.getSimpleName.toLowerCase
+
   def compare(other: LogLevel) = this.order - other.order
 }
 
+/**
+ * Adding log functions to your class.
+ */
 trait Logging {
 
   protected val _logger: Logger = Logger(this.getClass)
@@ -70,55 +74,38 @@ trait Logging {
 
 object Logger {
 
-  def apply(cl: Class[_]): Logger = {
+  private def defaultLogLevel: LogLevel = LogLevel(Option(System.getProperty("loglevel")).getOrElse("info"))
 
-
-  }
-
-  val rootLoggerName = "_root_"
-  val rootLogger = {
-    val l = new StandardLogger(rootLoggerName)
-    def getDefaultLogLevel: LogLevel = {
-
-      val logLevel = LogLevel(Option(System.getProperty("loglevel")).getOrElse("info"))
-    }
-    l.logLevel = Some(getDefaultLogLevel)
-    l
-  }
+  private val rootLoggerName = "_root_"
+  val rootLogger = new StandardLogger(rootLoggerName, defaultLogLevel)
 
   /**
    * Hold logger instances in weakly referenced hash map to allow releasing instances when necessary
    */
-  protected val loggerHolder = Cache[String, LogWriter](createLogWriter)
-
-  def apply(cl: Class[_]): LogWriter = getLogWriter(cl)
+  private val loggerHolder = new mutable.WeakHashMap[String, Logger]
 
 
-  def getLogWriter(cl: Class[_]): LogWriter = {
-    getLogWriter(cl.getName())
+  def apply(cl: Class[_]): Logger = getLogger(cl)
+
+  def getLogger(cl: Class[_]): Logger = {
+    getLogger(cl.getName())
   }
 
   /**
    * Get the logger of the specified name. LogWriter names are
    * dot-separated list of package names. LogWriter naming should be the same with java package/class naming convention.
    */
-  def getLogWriter(name: String): LogWriter = {
+  def getLogger(name: String): Logger = {
     if (name.isEmpty)
       rootLogger
     else
       loggerHolder(name)
   }
-  private def createLogWriter(name: String): LogWriter = {
-    if (LogConfig.enableColor)
-      new LogWriter(name, new ConsoleLogOutput with ANSIColor)
-    else
-      new LogWriter(name, new ConsoleLogOutput)
-  }
 
-  private def parentName(name: String): String = {
-    val p = name.split("""\.""")
+  private def parentLoggerName(name: String): String = {
+    val p = name.split( """\.""")
     if (p.isEmpty)
-      LogWriter.rootLoggerName
+      Logger.rootLoggerName
     else
       p.slice(0, p.length - 1).mkString(".")
   }
@@ -131,21 +118,22 @@ object Logger {
  */
 trait Logger {
 
-  protected val name = this.getClass.getName
+  val name : String
+  val shortName = name.split( """\.""").last
   protected var logLevel: LogLevel
 
   def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
 
-  def log(level: LogLevel, message: => Any): Boolean
+  def log(level: LogLevel, message: => Any): Unit
 
 }
 
 
-class StandardLogger(name: String, var logLevel:LogLevel) extends Logger {
+class StandardLogger(val name: String, var logLevel: LogLevel) extends Logger {
 
   import LogLevel._
 
-  val colorPrefix = Map[LogLevel, String](
+  protected val colorPrefix = Map[LogLevel, String](
     ALL -> "",
     TRACE -> Console.GREEN,
     DEBUG -> Console.WHITE,
@@ -156,19 +144,28 @@ class StandardLogger(name: String, var logLevel:LogLevel) extends Logger {
     OFF -> "")
 
 
-  def log (level: LogLevel, message: => Any) = {
-    def isMultiLine(str:String) = str.contains("\n")
+  def log(level: LogLevel, message: => Any) {
+    def isMultiLine(str: String) = str.contains("\n")
+    val s = new StringBuilder
 
-    val m = {
-      val m = message.toString
-      if (isMultiLine(m))
-        "\n" + m
-      else
-        m
+    def wrap(body:  => Unit) = {
+      s.append(colorPrefix(level))
+      body
+      s.append(Console.RESET)
     }
 
-    Console.err.println("%s[%s] %s%s".format(colorPrefix(level), name, m, Console.RESET))
-    true
+    wrap {
+      s.append("[")
+      s.append(name)
+      s.append("] ")
+
+      val m = message.toString
+      if (isMultiLine(m))
+        s.append("\n")
+      s.append(m)
+    }
+
+    Console.err.println(s.toString)
   }
 }
 
