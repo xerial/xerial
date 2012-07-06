@@ -1,5 +1,10 @@
+*~
 *.class
 *.log
+
+# IntelliJ
+.idea
+.idea_modules
 
 # sbt specific
 dist/*
@@ -11,3 +16,4 @@ project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
+
