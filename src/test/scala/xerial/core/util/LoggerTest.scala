@@ -8,6 +8,8 @@
 package xerial.core.util
 
 import xerial.core.XerialSpec
+import annotation.tailrec
+
 
 /**
  * @author leo
@@ -16,7 +18,44 @@ class LoggerTest extends XerialSpec {
 
   "Logger" should {
     "be used as an trait" in {
+      true
+    }
 
+    "have root logger" in {
+      val l = LoggerFactory.rootLogger
+      l.log(LogLevel.INFO, "root logger")
+    }
+
+
+    "support nested logging" in {
+      log('sub) {
+        debug("hello sub logger")
+      }
+    }
+
+    "support logging in recursion" in {
+      def loop(i: Int): Unit = {
+        if (i >= 0) {
+          log('loop) {
+            debug("recursion: %d", i)
+            loop(i - 1)
+          }
+        }
+      }
+      loop(3)
+    }
+
+
+    "create helper method" in {
+      val p = Seq("fatal", "error", "warn", "info", "debug", "trace").flatMap(l =>
+        for (i <- 1 to 4) yield {
+          val varList = (1 to i).map("a%d".format(_)).mkString(", ")
+          val argList = (1 to i).map("a%d: => Any".format(_)).mkString(", ")
+          val s = "protected def %s(format:String, %s) : Boolean = %s(format.format(%s))".format(l, argList, l, varList)
+          s
+        }
+      )
+      trace(p.mkString("\n"))
     }
 
   }
