@@ -8,7 +8,6 @@
 package xerial.core.util
 
 import collection.mutable
-import mutable.Stack
 
 
 /**
@@ -42,128 +41,87 @@ object LogLevel {
 }
 
 sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered[LogLevel] {
-
   def compare(other: LogLevel) = this.order - other.order
-}
-
-
-trait LoggerHolder {
-  def current: Logger
-  def push(symbol: Symbol): LoggerHolder
-  def pop: LoggerHolder
-}
-
-class LoggerHolder0(val current: Logger) extends LoggerHolder {
-  def this(loggerName: String) = this(LoggerFactory(loggerName))
-  def push(symbol: Symbol) = {
-    new LoggerHolder1(current, symbol)
-  }
-  def pop = sys.error("cannot pop from empty logger holder: %s".format(current.name))
-}
-
-
-class LoggerHolder1(logger: Logger, symbol: Symbol) extends LoggerHolder {
-  private val stack = Stack[Logger]()
-  stack.push(logger)
-  stack.push(LoggerFactory(logger, symbol))
-
-  def push(symbol: Symbol) = {
-    stack.push(LoggerFactory(current, symbol))
-    this
-  }
-  def pop = {
-    stack.pop
-    if (stack.size == 1)
-      new LoggerHolder0(logger)
-    else
-      this
-  }
-
-  protected def path: String = {
-    if (stack.isEmpty)
-      "/"
-    else
-      stack.reverse.mkString("/")
-  }
-
-  def current: Logger = stack.top
-
 }
 
 
 /**
  * Adding log functions to your class.
  */
-trait Logging {
+trait Logging extends LogHelper {
 
-  import LogLevel._
+  private val logger = Logger(this.getClass)
 
-  private var _loggerHolder: LoggerHolder = new LoggerHolder0(this.getClass.getName)
-
-  protected def log(logLevel: LogLevel, message: => Any): Boolean = {
-    val current = _loggerHolder.current
-    if (current.isEnabled(logLevel)) {
-      current.log(logLevel, message)
+  def log(logLevel: LogLevel, message: => Any): Boolean = {
+    if (logger.isEnabled(logLevel)) {
+      logger.log(logLevel, message)
       true
     }
     else
       false
   }
 
-  protected def log(tag: Symbol)(body: => Unit) {
-    val currentTag = _loggerHolder.current.tag
-    if(currentTag == tag)
-      body
-    else {
-      _loggerHolder = _loggerHolder.push(tag)
-      try
-        body
-      finally
-        _loggerHolder = _loggerHolder.pop
-    }
-  }
+  /**
+   * Create a sub logger with a tag name
+   * @param tag
+   * @return
+   */
+  protected def logger(tag:Symbol) : Logger = Logger(logger, tag)
 
-  protected def fatal(message: => Any): Boolean = log(FATAL, message)
-  protected def error(message: => Any): Boolean = log(ERROR, message)
-  protected def warn(message: => Any): Boolean = log(WARN, message)
-  protected def info(message: => Any): Boolean = log(INFO, message)
-  protected def debug(message: => Any): Boolean = log(DEBUG, message)
-  protected def trace(message: => Any): Boolean = log(TRACE, message)
+  /**
+   * Create a sub logger with a given tag name
+   * @param tag
+   * @return
+   */
+  protected def logger(tag:String) : Logger = logger(Symbol(tag))
 
-  protected def fatal(format: String, a1: => Any): Boolean = fatal(format.format(a1))
-  protected def fatal(format: String, a1: => Any, a2: => Any): Boolean = fatal(format.format(a1, a2))
-  protected def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = fatal(format.format(a1, a2, a3))
-  protected def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = fatal(format.format(a1, a2, a3, a4))
-  protected def error(format: String, a1: => Any): Boolean = error(format.format(a1))
-  protected def error(format: String, a1: => Any, a2: => Any): Boolean = error(format.format(a1, a2))
-  protected def error(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = error(format.format(a1, a2, a3))
-  protected def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = error(format.format(a1, a2, a3, a4))
-  protected def warn(format: String, a1: => Any): Boolean = warn(format.format(a1))
-  protected def warn(format: String, a1: => Any, a2: => Any): Boolean = warn(format.format(a1, a2))
-  protected def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = warn(format.format(a1, a2, a3))
-  protected def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = warn(format.format(a1, a2, a3, a4))
-  protected def info(format: String, a1: => Any): Boolean = info(format.format(a1))
-  protected def info(format: String, a1: => Any, a2: => Any): Boolean = info(format.format(a1, a2))
-  protected def info(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = info(format.format(a1, a2, a3))
-  protected def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = info(format.format(a1, a2, a3, a4))
-  protected def debug(format: String, a1: => Any): Boolean = debug(format.format(a1))
-  protected def debug(format: String, a1: => Any, a2: => Any): Boolean = debug(format.format(a1, a2))
-  protected def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = debug(format.format(a1, a2, a3))
-  protected def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = debug(format.format(a1, a2, a3, a4))
-  protected def trace(format: String, a1: => Any): Boolean = trace(format.format(a1))
-  protected def trace(format: String, a1: => Any, a2: => Any): Boolean = trace(format.format(a1, a2))
-  protected def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = trace(format.format(a1, a2, a3))
-  protected def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = trace(format.format(a1, a2, a3, a4))
+}
+
+trait LogHelper {
+  import LogLevel._
+  def log(logLevel: LogLevel, message: => Any): Boolean
+
+  def fatal(message: => Any): Boolean = log(FATAL, message)
+  def error(message: => Any): Boolean = log(ERROR, message)
+  def warn(message: => Any): Boolean = log(WARN, message)
+  def info(message: => Any): Boolean = log(INFO, message)
+  def debug(message: => Any): Boolean = log(DEBUG, message)
+  def trace(message: => Any): Boolean = log(TRACE, message)
+
+  def fatal(format: String, a1: => Any): Boolean = fatal(format.format(a1))
+  def fatal(format: String, a1: => Any, a2: => Any): Boolean = fatal(format.format(a1, a2))
+  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = fatal(format.format(a1, a2, a3))
+  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = fatal(format.format(a1, a2, a3, a4))
+  def error(format: String, a1: => Any): Boolean = error(format.format(a1))
+  def error(format: String, a1: => Any, a2: => Any): Boolean = error(format.format(a1, a2))
+  def error(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = error(format.format(a1, a2, a3))
+  def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = error(format.format(a1, a2, a3, a4))
+  def warn(format: String, a1: => Any): Boolean = warn(format.format(a1))
+  def warn(format: String, a1: => Any, a2: => Any): Boolean = warn(format.format(a1, a2))
+  def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = warn(format.format(a1, a2, a3))
+  def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = warn(format.format(a1, a2, a3, a4))
+  def info(format: String, a1: => Any): Boolean = info(format.format(a1))
+  def info(format: String, a1: => Any, a2: => Any): Boolean = info(format.format(a1, a2))
+  def info(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = info(format.format(a1, a2, a3))
+  def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = info(format.format(a1, a2, a3, a4))
+  def debug(format: String, a1: => Any): Boolean = debug(format.format(a1))
+  def debug(format: String, a1: => Any, a2: => Any): Boolean = debug(format.format(a1, a2))
+  def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = debug(format.format(a1, a2, a3))
+  def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = debug(format.format(a1, a2, a3, a4))
+  def trace(format: String, a1: => Any): Boolean = trace(format.format(a1))
+  def trace(format: String, a1: => Any, a2: => Any): Boolean = trace(format.format(a1, a2))
+  def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = trace(format.format(a1, a2, a3))
+  def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = trace(format.format(a1, a2, a3, a4))
 
 }
 
 
-object LoggerFactory {
+object Logger {
 
-  private def defaultLogLevel: LogLevel = LogLevel(Option(System.getProperty("loglevel")).getOrElse("info"))
+  private def defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
 
   private val rootLoggerName = "_"
-  val rootLogger = new StandardLogger(None, rootLoggerName, defaultLogLevel)
+  val rootLogger = new ConsoleLogger(None, rootLoggerName, defaultLogLevel)
 
   /**
    * Hold logger instances in weakly referenced hash map to allow releasing instances when necessary
@@ -183,7 +141,7 @@ object LoggerFactory {
     if (name.isEmpty)
       rootLogger
     else
-      loggerHolder.getOrElseUpdate(name, new StandardLogger(loggerHolder.get(parentLoggerName(name)), name, defaultLogLevel))
+      loggerHolder.getOrElseUpdate(name, new ConsoleLogger(loggerHolder.get(parentLoggerName(name)), name, defaultLogLevel))
   }
   
 
@@ -198,10 +156,14 @@ object LoggerFactory {
 }
 
 
+
+
+
 /**
+ * Logger
  * @author leo
  */
-trait Logger {
+trait Logger extends LogHelper {
 
   val name: String
   val shortName = name.split("""[\.]""").last
@@ -218,12 +180,33 @@ trait Logger {
 
   def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
 
-  def log(level: LogLevel, message: => Any): Unit
+  /**
+   * Generate log message
+   * @param level
+   * @param message
+   * @return true if log is generated, or false when log is suppressed
+   */
+  def log(level: LogLevel, message: => Any): Boolean =  {
+    if(isEnabled(level)) {
+      write(level, message)
+      true
+    }
+    else
+      false
+  }
 
+
+  def write(level:LogLevel, message: Any)
 }
 
 
-class StandardLogger(protected val parent: Option[Logger], val name: String, var logLevel: LogLevel) extends Logger {
+trait StringLogger extends Logger {
+  def write(level:LogLevel, message:Any) = write(level, message.toString)
+  def write(level:LogLevel, message:String)
+}
+
+
+class ConsoleLogger(protected val parent: Option[Logger], val name: String, var logLevel: LogLevel) extends StringLogger {
 
   import LogLevel._
 
@@ -238,7 +221,8 @@ class StandardLogger(protected val parent: Option[Logger], val name: String, var
     OFF -> "")
 
 
-  def log(level: LogLevel, message: => Any) {
+  def write(level: LogLevel, message: String) = {
+
     def isMultiLine(str: String) = str.contains("\n")
     val s = new StringBuilder
 

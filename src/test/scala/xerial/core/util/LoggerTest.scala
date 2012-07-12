@@ -22,24 +22,22 @@ class LoggerTest extends XerialSpec {
     }
 
     "have root logger" in {
-      val l = LoggerFactory.rootLogger
+      val l = Logger.rootLogger
       l.log(LogLevel.INFO, "root logger")
     }
 
 
     "support nested logging" in {
-      log('sub) {
-        debug("hello sub logger")
-      }
+      val l = logger('sub)
+      l.debug("hello sub logger")
     }
 
     "support logging in recursion" in {
       def loop(i: Int): Unit = {
         if (i >= 0) {
-          log('loop) {
-            debug("recursion: %d", i)
-            loop(i - 1)
-          }
+          val l = logger('sub)
+          l.debug("recursion: %d", i)
+          loop(i - 1)
         }
       }
       loop(3)
@@ -51,7 +49,7 @@ class LoggerTest extends XerialSpec {
         for (i <- 1 to 4) yield {
           val varList = (1 to i).map("a%d".format(_)).mkString(", ")
           val argList = (1 to i).map("a%d: => Any".format(_)).mkString(", ")
-          val s = "protected def %s(format:String, %s) : Boolean = %s(format.format(%s))".format(l, argList, l, varList)
+          val s = "def %s(format:String, %s) : Boolean = %s(format.format(%s))".format(l, argList, l, varList)
           s
         }
       )
