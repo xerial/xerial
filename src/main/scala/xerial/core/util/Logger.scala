@@ -133,6 +133,8 @@ object Logger {
   def apply(name: String): Logger = getLogger(name)
   def apply(logger: Logger, symbol: Symbol): Logger = getLogger(logger.name + ":" + symbol.name)
 
+  ///private def getLogLevel(name:String)
+
   /**
    * Get the logger of the specified name. LogWriter names are
    * dot-separated list of package names. LogWriter naming should be the same with java package/class naming convention.
