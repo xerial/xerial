@@ -8,6 +8,8 @@
 package xerial.core.util
 
 import collection.mutable
+import management.ManagementFactory
+import javax.management.ObjectName
 
 
 /**
@@ -42,6 +44,7 @@ object LogLevel {
 
 sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered[LogLevel] {
   def compare(other: LogLevel) = this.order - other.order
+  override def toString = name
 }
 
 
@@ -52,7 +55,7 @@ trait Logging extends LogHelper {
 
   private val logger = Logger(this.getClass)
 
-  def log(logLevel: LogLevel, message: => Any) : Unit = {
+  def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.isEnabled(logLevel))
       logger.log(logLevel, message)
   }
@@ -62,19 +65,21 @@ trait Logging extends LogHelper {
    * @param tag
    * @return
    */
-  protected def logger(tag:Symbol) : Logger = Logger(logger, tag)
+  protected def logger(tag: Symbol): Logger = Logger(logger, tag)
 
   /**
    * Create a sub logger with a given tag name
    * @param tag
    * @return
    */
-  protected def logger(tag:String) : Logger = logger(Symbol(tag))
+  protected def logger(tag: String): Logger = logger(Symbol(tag))
 
 }
 
 trait LogHelper {
+
   import LogLevel._
+
   def log(logLevel: LogLevel, message: => Any): Unit
 
   def fatal(message: => Any): Unit = log(FATAL, message)
@@ -116,7 +121,7 @@ object Logger {
 
   private def defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
 
-  private val rootLoggerName = "_"
+  private val rootLoggerName = "root"
   val rootLogger = new ConsoleLogger(rootLoggerName, defaultLogLevel)
 
   /**
@@ -137,11 +142,11 @@ object Logger {
    */
   private def getLogger(name: String): Logger = {
 
-    def property(key:String) = Option(System.getProperty(key))
+    def property(key: String) = Option(System.getProperty(key))
 
     def getLogLevel = {
       val l = property("loglevel:%s".format(name)) orElse {
-         property("loglevel:%s".format(leafName(name)))
+        property("loglevel:%s".format(leafName(name)))
       } getOrElse defaultLogLevel.name
       LogLevel(l)
     }
@@ -155,10 +160,32 @@ object Logger {
     }
   }
 
-  def leafName(name:String) = name.split("""[\.]""").last
+  def leafName(name: String) = name.split( """[\.]""").last
+
+  {
+    val server = ManagementFactory.getPlatformMBeanServer
+    try {
+      val name = new ObjectName("xerial.core.util:type=LoggerConfig")
+      if(!server.isRegistered(name))
+        server.registerMBean(new LoggerConfigImpl, name)
+    }
+    catch {
+      case e: Exception => e.printStackTrace()
+    }
+  }
 
 }
 
+class LoggerConfigImpl extends LoggerConfig {
+
+  def setLogLevel(name: String, logLevel: String) {
+    System.setProperty("loglevel:%s".format(name), logLevel)
+    val logger = Logger.apply(name)
+    val level = LogLevel(logLevel)
+    logger.logLevel = level
+    Logger.rootLogger.info("set the log level of %s to %s", name, level)
+  }
+}
 
 /**
  * Logger is
@@ -170,13 +197,13 @@ trait Logger extends LogHelper {
   val shortName = Logger.leafName(name)
   val tag = {
     val pos = shortName.lastIndexOf(":")
-    if(pos == -1)
+    if (pos == -1)
       Symbol("")
     else
-      Symbol(shortName.substring(pos+1))
+      Symbol(shortName.substring(pos + 1))
   }
 
-  def logLevel : LogLevel
+  var logLevel: LogLevel
 
   def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
 
@@ -186,36 +213,55 @@ trait Logger extends LogHelper {
    * @param message
    * @return true if log is generated, or false when log is suppressed
    */
-  def log(level: LogLevel, message: => Any): Unit =  {
-    if(isEnabled(level))
+  def log(level: LogLevel, message: => Any): Unit = {
+    if (isEnabled(level))
       write(level, message)
   }
 
 
-  def write(level:LogLevel, message: Any)
+  protected def write(level: LogLevel, message: Any)
 }
 
 /**
  * Empty logger
  */
 trait NullLogger extends Logger {
-  def write(level:LogLevel, message: Any) {}
+  protected def write(level: LogLevel, message: Any) {}
 }
 
 /**
  * Logger for string messages
  */
 trait StringLogger extends Logger {
-  def write(level:LogLevel, message: Any) = write(level, message.toString)
-  def write(level:LogLevel, message:String)
+  def write(level: LogLevel, message: Any) = write(level, formatLog(level, message))
+  /**
+   * Override this method to customize the log format
+   * @param message
+   * @return
+   */
+  protected def formatLog(logLevel:LogLevel, message: Any): String = {
+    def isMultiLine(str: String) = str.contains("\n")
+    val s = new StringBuilder
+
+    s.append("[")
+    s.append(shortName)
+    s.append("] ")
+
+    val m = message.toString
+    if (isMultiLine(m))
+      s.append("\n")
+    s.append(m)
+
+    s.toString
+  }
+
+  protected def write(level: LogLevel, message: String) = Console.err.println(message)
 }
 
-
-class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogger {
+object ConsoleLogger {
 
   import LogLevel._
-
-  protected val colorPrefix = Map[LogLevel, String](
+  val colorPrefix = Map[LogLevel, String](
     ALL -> "",
     TRACE -> Console.GREEN,
     DEBUG -> Console.WHITE,
@@ -225,31 +271,14 @@ class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogg
     FATAL -> Console.RED,
     OFF -> "")
 
+}
 
-  def write(level: LogLevel, message: String) = {
+class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogger {
 
-    def isMultiLine(str: String) = str.contains("\n")
-    val s = new StringBuilder
-
-    def wrap(body: => Unit) = {
-      s.append(colorPrefix(level))
-      body
-      s.append(Console.RESET)
-    }
-
-    wrap {
-      s.append("[")
-      s.append(shortName)
-      s.append("] ")
-
-      val m = message.toString
-      if (isMultiLine(m))
-        s.append("\n")
-      s.append(m)
-    }
-
-    Console.err.println(s.toString)
+  override protected def formatLog(level:LogLevel, message: Any) = {
+    "%s%s%s".format(ConsoleLogger.colorPrefix(level), super.formatLog(level, message), Console.RESET)
   }
+
 }
 
 
