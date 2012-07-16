@@ -52,17 +52,13 @@ trait Logging extends LogHelper {
 
   private val logger = Logger(this.getClass)
 
-  def log(logLevel: LogLevel, message: => Any): Boolean = {
-    if (logger.isEnabled(logLevel)) {
+  def log(logLevel: LogLevel, message: => Any) : Unit = {
+    if (logger.isEnabled(logLevel))
       logger.log(logLevel, message)
-      true
-    }
-    else
-      false
   }
 
   /**
-   * Create a sub logger with a tag name
+   * Create a sub logger with a given tag name
    * @param tag
    * @return
    */
@@ -79,39 +75,39 @@ trait Logging extends LogHelper {
 
 trait LogHelper {
   import LogLevel._
-  def log(logLevel: LogLevel, message: => Any): Boolean
+  def log(logLevel: LogLevel, message: => Any): Unit
 
-  def fatal(message: => Any): Boolean = log(FATAL, message)
-  def error(message: => Any): Boolean = log(ERROR, message)
-  def warn(message: => Any): Boolean = log(WARN, message)
-  def info(message: => Any): Boolean = log(INFO, message)
-  def debug(message: => Any): Boolean = log(DEBUG, message)
-  def trace(message: => Any): Boolean = log(TRACE, message)
+  def fatal(message: => Any): Unit = log(FATAL, message)
+  def error(message: => Any): Unit = log(ERROR, message)
+  def warn(message: => Any): Unit = log(WARN, message)
+  def info(message: => Any): Unit = log(INFO, message)
+  def debug(message: => Any): Unit = log(DEBUG, message)
+  def trace(message: => Any): Unit = log(TRACE, message)
 
-  def fatal(format: String, a1: => Any): Boolean = fatal(format.format(a1))
-  def fatal(format: String, a1: => Any, a2: => Any): Boolean = fatal(format.format(a1, a2))
-  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = fatal(format.format(a1, a2, a3))
-  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = fatal(format.format(a1, a2, a3, a4))
-  def error(format: String, a1: => Any): Boolean = error(format.format(a1))
-  def error(format: String, a1: => Any, a2: => Any): Boolean = error(format.format(a1, a2))
-  def error(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = error(format.format(a1, a2, a3))
-  def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = error(format.format(a1, a2, a3, a4))
-  def warn(format: String, a1: => Any): Boolean = warn(format.format(a1))
-  def warn(format: String, a1: => Any, a2: => Any): Boolean = warn(format.format(a1, a2))
-  def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = warn(format.format(a1, a2, a3))
-  def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = warn(format.format(a1, a2, a3, a4))
-  def info(format: String, a1: => Any): Boolean = info(format.format(a1))
-  def info(format: String, a1: => Any, a2: => Any): Boolean = info(format.format(a1, a2))
-  def info(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = info(format.format(a1, a2, a3))
-  def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = info(format.format(a1, a2, a3, a4))
-  def debug(format: String, a1: => Any): Boolean = debug(format.format(a1))
-  def debug(format: String, a1: => Any, a2: => Any): Boolean = debug(format.format(a1, a2))
-  def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = debug(format.format(a1, a2, a3))
-  def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = debug(format.format(a1, a2, a3, a4))
-  def trace(format: String, a1: => Any): Boolean = trace(format.format(a1))
-  def trace(format: String, a1: => Any, a2: => Any): Boolean = trace(format.format(a1, a2))
-  def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Boolean = trace(format.format(a1, a2, a3))
-  def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Boolean = trace(format.format(a1, a2, a3, a4))
+  def fatal(format: String, a1: => Any): Unit = fatal(format.format(a1))
+  def fatal(format: String, a1: => Any, a2: => Any): Unit = fatal(format.format(a1, a2))
+  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = fatal(format.format(a1, a2, a3))
+  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = fatal(format.format(a1, a2, a3, a4))
+  def error(format: String, a1: => Any): Unit = error(format.format(a1))
+  def error(format: String, a1: => Any, a2: => Any): Unit = error(format.format(a1, a2))
+  def error(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = error(format.format(a1, a2, a3))
+  def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = error(format.format(a1, a2, a3, a4))
+  def warn(format: String, a1: => Any): Unit = warn(format.format(a1))
+  def warn(format: String, a1: => Any, a2: => Any): Unit = warn(format.format(a1, a2))
+  def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = warn(format.format(a1, a2, a3))
+  def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = warn(format.format(a1, a2, a3, a4))
+  def info(format: String, a1: => Any): Unit = info(format.format(a1))
+  def info(format: String, a1: => Any, a2: => Any): Unit = info(format.format(a1, a2))
+  def info(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = info(format.format(a1, a2, a3))
+  def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = info(format.format(a1, a2, a3, a4))
+  def debug(format: String, a1: => Any): Unit = debug(format.format(a1))
+  def debug(format: String, a1: => Any, a2: => Any): Unit = debug(format.format(a1, a2))
+  def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = debug(format.format(a1, a2, a3))
+  def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = debug(format.format(a1, a2, a3, a4))
+  def trace(format: String, a1: => Any): Unit = trace(format.format(a1))
+  def trace(format: String, a1: => Any, a2: => Any): Unit = trace(format.format(a1, a2))
+  def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = trace(format.format(a1, a2, a3))
+  def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = trace(format.format(a1, a2, a3, a4))
 
 }
 
@@ -121,7 +117,7 @@ object Logger {
   private def defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
 
   private val rootLoggerName = "_"
-  val rootLogger = new ConsoleLogger(None, rootLoggerName, defaultLogLevel)
+  val rootLogger = new ConsoleLogger(rootLoggerName, defaultLogLevel)
 
   /**
    * Hold logger instances in weakly referenced hash map to allow releasing instances when necessary
@@ -139,36 +135,39 @@ object Logger {
    * Get the logger of the specified name. LogWriter names are
    * dot-separated list of package names. LogWriter naming should be the same with java package/class naming convention.
    */
-  def getLogger(name: String): Logger = {
+  private def getLogger(name: String): Logger = {
+
+    def property(key:String) = Option(System.getProperty(key))
+
+    def getLogLevel = {
+      val l = property("loglevel:%s".format(name)) orElse {
+         property("loglevel:%s".format(leafName(name)))
+      } getOrElse defaultLogLevel.name
+      LogLevel(l)
+    }
+
     if (name.isEmpty)
       rootLogger
-    else
-      loggerHolder.getOrElseUpdate(name, new ConsoleLogger(loggerHolder.get(parentLoggerName(name)), name, defaultLogLevel))
+    else {
+      synchronized {
+        loggerHolder.getOrElseUpdate(name, new ConsoleLogger(name, getLogLevel))
+      }
+    }
   }
-  
 
-  private def parentLoggerName(name: String): String = {
-    val p = name.split("""\.""")
-    if (p.isEmpty)
-      rootLoggerName
-    else
-      p.slice(0, p.length - 1).mkString(".")
-  }
+  def leafName(name:String) = name.split("""[\.]""").last
 
 }
 
 
-
-
-
 /**
- * Logger
+ * Logger is
  * @author leo
  */
 trait Logger extends LogHelper {
 
   val name: String
-  val shortName = name.split("""[\.]""").last
+  val shortName = Logger.leafName(name)
   val tag = {
     val pos = shortName.lastIndexOf(":")
     if(pos == -1)
@@ -176,9 +175,8 @@ trait Logger extends LogHelper {
     else
       Symbol(shortName.substring(pos+1))
   }
-  protected var logLevel: LogLevel
 
-  protected val parent: Option[Logger]
+  def logLevel : LogLevel
 
   def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
 
@@ -188,27 +186,32 @@ trait Logger extends LogHelper {
    * @param message
    * @return true if log is generated, or false when log is suppressed
    */
-  def log(level: LogLevel, message: => Any): Boolean =  {
-    if(isEnabled(level)) {
+  def log(level: LogLevel, message: => Any): Unit =  {
+    if(isEnabled(level))
       write(level, message)
-      true
-    }
-    else
-      false
   }
 
 
   def write(level:LogLevel, message: Any)
 }
 
+/**
+ * Empty logger
+ */
+trait NullLogger extends Logger {
+  def write(level:LogLevel, message: Any) {}
+}
 
+/**
+ * Logger for string messages
+ */
 trait StringLogger extends Logger {
-  def write(level:LogLevel, message:Any) = write(level, message.toString)
+  def write(level:LogLevel, message: Any) = write(level, message.toString)
   def write(level:LogLevel, message:String)
 }
 
 
-class ConsoleLogger(protected val parent: Option[Logger], val name: String, var logLevel: LogLevel) extends StringLogger {
+class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogger {
 
   import LogLevel._
 
