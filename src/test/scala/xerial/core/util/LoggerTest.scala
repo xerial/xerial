@@ -57,6 +57,10 @@ class LoggerTest extends XerialSpec {
       trace(p.mkString("\n"))
     }
 
+    "Set log level via JMX" in {
+      pending
+    }
+
   }
 
 }
