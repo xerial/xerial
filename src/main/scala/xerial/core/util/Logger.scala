@@ -240,6 +240,7 @@ trait StringLogger extends Logger {
    * @return
    */
   protected def formatLog(logLevel:LogLevel, message: Any): String = {
+
     def isMultiLine(str: String) = str.contains("\n")
     val s = new StringBuilder
 
@@ -247,7 +248,9 @@ trait StringLogger extends Logger {
     s.append(shortName)
     s.append("] ")
 
-    val m = message.toString
+    val m = message match {
+      case _ => message.toString
+    }
     if (isMultiLine(m))
       s.append("\n")
     s.append(m)
