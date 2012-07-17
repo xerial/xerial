@@ -192,8 +192,13 @@ object XerialBuild extends Build {
       binDir.mkdirs()
       IO.copyDirectory(base / "src/script", binDir)
 
+      // chmod +x
+      if(!System.getProperty("os.name", "").contains("Windows")) {
+        scala.sys.process.Process("chmod -R +x %s".format(binDir)).run
+      }
+
       out.log.info("Generating version info")
-      IO.write(distDir / "VERSION", ver)
+      IO.write(distDir / "VERSION", ver + "\n")
       out.log.info("done.")
 
       distDir
