@@ -74,6 +74,10 @@ trait Logging extends LogHelper {
    */
   protected def logger(tag: String): Logger = logger(Symbol(tag))
 
+  protected def log[U](tag:String)(f: Logger => U) {
+    f(logger(tag))
+  }
+
 }
 
 /**

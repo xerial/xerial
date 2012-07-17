@@ -1,7 +1,7 @@
 package xerial.core.util
 
 import xerial.core.XerialSpec
-
+import collection.JavaConversions._
 //--------------------------------------
 //
 // ResourceTest.scala
@@ -17,8 +17,13 @@ class ResourceTest extends XerialSpec {
   "Resource" should {
 
     "find files from the current class loader" in {
+      val cl = Thread.currentThread().getContextClassLoader
+      debug(cl)
+      val r = cl.getResources("xerial/core/util")
+      debug(r.mkString(","))
+
       debug("find files from package")
-      val l = Resource.listResources("xerial.core.util", { s : String => s.endsWith(".scala")})
+      val l = Resource.listResources("xerial.core.util", { s : String => s.endsWith(".class")})
       l.size should be > 0
     }
 

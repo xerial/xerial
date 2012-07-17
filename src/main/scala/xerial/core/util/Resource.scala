@@ -51,7 +51,8 @@ object Resource extends Logging {
   }
   private def packagePath(packageName: String): String = {
     val packageAsPath: String = packageName.replaceAll("\\.", "/")
-    return if (packageAsPath.endsWith("/")) packageAsPath else packageAsPath + "/"
+    if (packageAsPath.endsWith("/")) packageAsPath else packageAsPath + "/"
+
   }
 
   /**
@@ -76,12 +77,16 @@ object Resource extends Logging {
 
   private def resolveResourcePath(packageName: String, resourceFileName: String) = {
     val path: String = packagePath(packageName)
-    val p = path + resourceFileName
-    if (!p.startsWith("/"))
-      "/" + p
-    else
-      p
+    prependSlash(path + resourceFileName)
   }
+
+  private def prependSlash(name:String) : String = {
+    if(name.startsWith("/"))
+      name
+    else
+      "/" + name
+  }
+
 
   def find(referenceClass: Class[_], resourceFileName: String): Option[URL] = {
     find(packagePath(referenceClass), resourceFileName)
@@ -188,6 +193,8 @@ object Resource extends Logging {
     if (logicalName == null)
       throw new IllegalArgumentException("packagePath=" + packagePath + ", resourceURL=" + resourceURLString)
 
+    debug("collect: logical name: %s", logicalName)
+
     val b = Seq.newBuilder[VirtualFile]
     val file: File = new File(new URL(resourceURLString).toURI)
     if (resourceFilter(file.getPath))
@@ -195,10 +202,11 @@ object Resource extends Logging {
     if (file.isDirectory) {
       for (childFile <- file.listFiles) {
         val childResourceURL = resourceURLString + (if (resourceURLString.endsWith("/")) "" else "/") + childFile.getName
-        collectFileResources(childResourceURL, packagePath, resourceFilter)
+        b ++= collectFileResources(childResourceURL, packagePath, resourceFilter)
       }
     }
     b.result()
+
   }
   /**
    * Create a list of all resources under the given resourceURL recursively. If the
@@ -206,13 +214,13 @@ object Resource extends Logging {
    * in a Jar file, it searches contents of the Jar file.
    *
    * @param resourceURL
-   * @param packagePath  package path under consideration
+   * @param packageName  package name under consideration
    * @param resourceFilter
    * @return the list of resources matching the given resource filter
    */
-  private def listResources(resourceURL: URL, packagePath: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
+  private def listResources(resourceURL: URL, packageName: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
     debug("listResource: url=" + resourceURL)
-
+    val path = packagePath(packageName)
     val fileList = Seq.newBuilder[VirtualFile]
     if (resourceURL == null)
       return Seq.empty
@@ -220,7 +228,7 @@ object Resource extends Logging {
     val protocol = resourceURL.getProtocol
     if (protocol == "file") {
       val resourceURLString = resourceURL.toString
-      fileList ++= collectFileResources(resourceURLString, packagePath, resourceFilter)
+      fileList ++= collectFileResources(resourceURLString, path, resourceFilter)
     }
     else if (protocol == "jar") {
       val path: String = resourceURL.getPath
@@ -236,7 +244,7 @@ object Resource extends Logging {
         val jarEntry = entryEnum.nextElement
         val physicalURL = jarURLString + "!/" + jarEntry.getName
         val jarFileURL = new URL(physicalURL)
-        val logicalName = extractLogicalName(packagePath, jarEntry.getName)
+        val logicalName = extractLogicalName(path, jarEntry.getName)
         if (logicalName != null && resourceFilter(logicalName))
           fileList += FileInJar(jarFileURL, logicalName, jarEntry.isDirectory)
       }
@@ -279,14 +287,14 @@ object Resource extends Logging {
    * @return
    */
   def findResourceURLs(cl: ClassLoader, name: String): Seq[URL] = {
-    debug("find resource URLs: %s", name)
+    val path = packagePath(name)
+    debug("find resource URLs: %s", path)
     val b = Seq.newBuilder[URL]
     for (c: URLClassLoader <- classLoaders(cl)) {
-      val e = c.findResources(name)
+      val e = c.findResources(path)
       while (e.hasMoreElements)
         b += e.nextElement
     }
-
     b.result
   }
 
