@@ -114,7 +114,7 @@ interface ResourceFilter
  * 
  */
 public class FileResource  {
-    private static Logger _logger = Logger$.apply(FileResource.class);
+    private static Logger _logger = xerial.core.util.Logger$.apply(FileResource.class);
 
     /**
      * A virtual file implementation for usual files
