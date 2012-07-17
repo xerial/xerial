@@ -9,7 +9,10 @@ package xerial.core.util
 
 import collection.mutable
 import management.ManagementFactory
-import javax.management.ObjectName
+import javax.management.{JMX, ObjectName}
+import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
+import sun.management.ConnectorAddressLink
+import java.rmi.dgc.VMID
 
 
 /**
@@ -140,6 +143,7 @@ object Logger {
   def apply(cl: Class[_]): Logger = getLogger(cl.getName)
   def apply(name: String): Logger = getLogger(name)
   def apply(logger: Logger, symbol: Symbol): Logger = getLogger(logger.name + ":" + symbol.name)
+  def apply(cl: Class[_], symbol: Symbol): Logger = apply(apply(cl), symbol)
 
 
   /**
@@ -171,9 +175,9 @@ object Logger {
   {
     val server = ManagementFactory.getPlatformMBeanServer
     try {
-      val name = new ObjectName("xerial.core.util:type=LoggerConfig")
-      if(!server.isRegistered(name))
-        server.registerMBean(new LoggerConfigImpl, name)
+
+      if(!server.isRegistered(LoggerConfigAPI.mbeanName))
+        server.registerMBean(new LoggerConfigImpl, LoggerConfigAPI.mbeanName)
     }
     catch {
       case e: Exception => e.printStackTrace()
@@ -183,6 +187,58 @@ object Logger {
 }
 
 import javax.management.MXBean
+
+object LoggerConfigAPI extends Logging {
+
+  def main(args:Array[String]) = {
+
+  }
+
+  val mbeanName = new ObjectName("xerial.core.util:type=LoggerConfig")
+
+  def jmxPort : Option[Int] = {
+    def prop(name:String) : Option[Int] = {
+      Option(System.getProperty(name)).map(_.toInt)
+    }
+    prop("com.sun.management.jmxremote.port")
+  }
+
+  def vmid : Option[Int] = {
+    val vmid = ManagementFactory.getRuntimeMXBean.getName
+    debug("vmid:%s", vmid)
+    "[0-9]+".r.findFirstIn(vmid).map(_.toInt)
+  }
+
+
+  def setLogLevel(loggerName:String, logLevel:String) {
+    if(jmxPort.isEmpty)
+      warn("no jmx port is found")
+
+    val serviceURL : Option[String] = vmid.flatMap { id =>
+      ManagementFactory.getPlatformMBeanServer
+
+      debug("jvm ID:" + id)
+      Option(ConnectorAddressLink.importFrom(id))
+    }
+
+    val server = ManagementFactory.getPlatformMBeanServer
+    val lc = JMX.newMBeanProxy(server, mbeanName, classOf[LoggerConfig], true)
+    lc.setLogLevel(loggerName, logLevel)
+
+//    if(serviceURL.isEmpty)
+//      warn("no jmx server is found")
+//
+//    for(url <- serviceURL) {
+//      debug("service URL: %s", url)
+//      val u = new JMXServiceURL(url)
+//      val jmxc = JMXConnectorFactory.connect(u, null)
+//      val conn = jmxc.getMBeanServerConnection
+//      val config : LoggerConfig = JMX.newMBeanProxy(conn, mbeanName, classOf[LoggerConfig], true)
+//      config.setLogLevel(loggerName, logLevel)
+//      jmxc.close
+//    }
+  }
+}
 
 /**
  * Logger configuration API
@@ -195,12 +251,12 @@ import javax.management.MXBean
 
 class LoggerConfigImpl extends LoggerConfig {
 
-  def setLogLevel(name: String, logLevel: String) {
-    System.setProperty("loglevel:%s".format(name), logLevel)
-    val logger = Logger.apply(name)
+  def setLogLevel(loggerName: String, logLevel: String)  {
+    System.setProperty("loglevel:%s".format(loggerName), logLevel)
+    val logger = Logger.apply(loggerName)
     val level = LogLevel(logLevel)
     logger.logLevel = level
-    Logger.rootLogger.info("set the log level of %s to %s", name, level)
+    Logger.rootLogger.info("set the log level of %s to %s", loggerName, level)
   }
 }
 
@@ -266,6 +322,7 @@ trait StringLogger extends Logger {
     s.append("] ")
 
     val m = message match {
+      case null => ""
       case _ => message.toString
     }
     if (isMultiLine(m))
