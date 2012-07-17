@@ -9,7 +9,7 @@ package xerial.core.util
 
 import collection.mutable
 import management.ManagementFactory
-import javax.management.{JMX, ObjectName}
+import javax.management.{MBeanServer, MBeanServerConnection, JMX, ObjectName}
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import sun.management.ConnectorAddressLink
 import java.rmi.dgc.VMID
@@ -172,37 +172,60 @@ object Logger {
 
   def leafName(name: String) = name.split( """[\.]""").last
 
+  private val configMBeanName = new ObjectName("xerial.core.util:type=LoggerConfig")
+
   {
     val server = ManagementFactory.getPlatformMBeanServer
     try {
-
-      if(!server.isRegistered(LoggerConfigAPI.mbeanName))
-        server.registerMBean(new LoggerConfigImpl, LoggerConfigAPI.mbeanName)
+      if(!server.isRegistered(configMBeanName))
+        server.registerMBean(new LoggerConfigImpl, configMBeanName)
     }
     catch {
       case e: Exception => e.printStackTrace()
     }
   }
 
+
+  def setLogLevelJMX(loggerName:String, logLevel:String) {
+    val lc = JMX.newMBeanProxy(ManagementFactory.getPlatformMBeanServer, configMBeanName, classOf[LoggerConfig], true)
+    lc.setLogLevel(loggerName, logLevel)
+  }
+
+  def setLogLevelJMX(server:MBeanServerConnection, loggerName:String, logLevel:String) {
+    val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
+    lc.setLogLevel(loggerName, logLevel)
+  }
+
+  def getJMXServerAddress(pid:Int) : Option[String] = {
+    Option(sun.management.ConnectorAddressLink.importFrom(pid))
+  }
+
+  /**
+   *
+   */
+  private def getJMXServer(pid:Int) : Option[MBeanServerConnection] = {
+    getJMXServerAddress(pid).map { addr =>
+      JMXConnectorFactory.connect(new JMXServiceURL(addr))
+    } map (_.getMBeanServerConnection)
+  }
+
+  def main(args:Array[String]) {
+    def at(index:Int) : Option[String] = {
+      if(args.isDefinedAt(index))
+        Some(args(index))
+      else
+        None
+    }
+
+    // Resolve MBean port number
+    for(pid <- at(0); server <- getJMXServer(pid.toInt); loggerName <- at(1); logLevel <- at(2)) {
+      setLogLevelJMX(server, loggerName, logLevel)
+    }
+  }
+
 }
 
 import javax.management.MXBean
-
-object LoggerConfigAPI extends Logging {
-
-  def main(args:Array[String]) = {
-
-  }
-
-  val mbeanName = new ObjectName("xerial.core.util:type=LoggerConfig")
-
-  def setLogLevel(loggerName:String, logLevel:String) {
-    val server = ManagementFactory.getPlatformMBeanServer
-    val lc = JMX.newMBeanProxy(server, mbeanName, classOf[LoggerConfig], true)
-    lc.setLogLevel(loggerName, logLevel)
-  }
-}
-
 /**
  * Logger configuration API
  * @author leo

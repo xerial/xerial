@@ -61,7 +61,7 @@ class LoggerTest extends XerialSpec {
     }
 
     "Set log level via JMX" in {
-      LoggerConfigAPI.setLogLevel("LoggerTest:jmx", "error")
+      Logger.setLogLevelJMX("LoggerTest:jmx", "error")
       val l = Logger(classOf[LoggerTest], 'jmx)
       l.logLevel should be (LogLevel.ERROR)
     }
