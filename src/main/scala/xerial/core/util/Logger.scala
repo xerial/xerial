@@ -76,6 +76,9 @@ trait Logging extends LogHelper {
 
 }
 
+/**
+ * Add support for formatted log
+ */
 trait LogHelper {
 
   import LogLevel._
@@ -134,7 +137,6 @@ object Logger {
   def apply(name: String): Logger = getLogger(name)
   def apply(logger: Logger, symbol: Symbol): Logger = getLogger(logger.name + ":" + symbol.name)
 
-  ///private def getLogLevel(name:String)
 
   /**
    * Get the logger of the specified name. LogWriter names are
@@ -176,6 +178,17 @@ object Logger {
 
 }
 
+import javax.management.MXBean
+
+/**
+ * Logger configuration API
+ * @author leo
+ */
+@MXBean abstract trait LoggerConfig {
+  def setLogLevel(name: String, logLevel: String): Unit
+}
+
+
 class LoggerConfigImpl extends LoggerConfig {
 
   def setLogLevel(name: String, logLevel: String) {
@@ -188,7 +201,7 @@ class LoggerConfigImpl extends LoggerConfig {
 }
 
 /**
- * Logger is
+ * Logger interface
  * @author leo
  */
 trait Logger extends LogHelper {
@@ -281,6 +294,8 @@ class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogg
   override protected def formatLog(level:LogLevel, message: Any) = {
     "%s%s%s".format(ConsoleLogger.colorPrefix(level), super.formatLog(level, message), Console.RESET)
   }
+
+  override protected def write(level: LogLevel, message: String) = Console.err.println(message)
 
 }
 
