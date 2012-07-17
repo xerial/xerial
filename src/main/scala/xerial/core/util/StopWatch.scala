@@ -34,7 +34,7 @@ import collection.mutable.{ListBuffer, Stack, LinkedHashMap}
  * <pre>
  *   import StopWatch._
  *
- *   time("overall") {
+ *   val t = time("performance test") {
  *     block("A") {
  *        // code A
  *     }
@@ -43,6 +43,8 @@ import collection.mutable.{ListBuffer, Stack, LinkedHashMap}
  *        // code B
  *     }
  *   }
+ *
+ *   println(t)
  *
  * </pre>
  * </code>
