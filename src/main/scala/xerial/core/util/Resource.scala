@@ -57,15 +57,15 @@ object Resource extends Logging {
   /**
    * @return Stream of class loaders in the path from the specified class loader to the root class loader
    */
-  private def classLoaders(cl: ClassLoader): Stream[ClassLoader] = {
-    def ancestors(c: ClassLoader): Stream[ClassLoader] = {
-      val p = c.getParent
-      if (p == null)
-        Stream.Empty
-      else
-        Stream.cons(p, ancestors(p))
+  private def classLoaders(cl: ClassLoader): Stream[URLClassLoader] = {
+    def stream(c: ClassLoader): Stream[URLClassLoader] = {
+      c match {
+        case null => Stream.empty
+        case u:URLClassLoader => u #:: stream(c.getParent)
+        case _ => stream(c.getParent)
+      }
     }
-    Stream.cons(cl, ancestors(cl))
+    stream(cl)
   }
 
   /**
@@ -92,7 +92,7 @@ object Resource extends Logging {
    * @param absoluteResourcePath
    * @return
    */
-  def find(absoluteResourcePath: String) =
+  def find(absoluteResourcePath: String) : Option[URL] =
     find("", if (absoluteResourcePath.startsWith("/")) absoluteResourcePath.substring(1) else absoluteResourcePath)
 
   /**
@@ -113,7 +113,7 @@ object Resource extends Logging {
       case path: URL => path
     }
 
-    r orElse Option(classOf[FileResource].getResource(resourcePath))
+    r orElse Option(this.getClass.getResource(resourcePath))
   }
 
   /**
@@ -206,11 +206,12 @@ object Resource extends Logging {
    * in a Jar file, it searches contents of the Jar file.
    *
    * @param resourceURL
+   * @param packagePath  package path under consideration
    * @param resourceFilter
    * @return the list of resources matching the given resource filter
    */
-  def listResources(resourceURL: URL, packagePath: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
-    trace("listResource: url=" + resourceURL)
+  private def listResources(resourceURL: URL, packagePath: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
+    debug("listResource: url=" + resourceURL)
 
     val fileList = Seq.newBuilder[VirtualFile]
     if (resourceURL == null)
@@ -247,7 +248,23 @@ object Resource extends Logging {
     fileList.result
   }
 
-  def listResources(classLoader: ClassLoader, packageName: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
+  /**
+   * Collect resources under the given package
+   * @param packageName
+   * @return
+   */
+  def listResources(packageName:String) : Seq[VirtualFile] =
+    listResources(packageName, {f:String => true})
+
+
+  /**
+   * Collect resources under the given package
+   * @param classLoader
+   * @param packageName
+   * @param resourceFilter
+   * @return
+   */
+  def listResources(packageName: String, resourceFilter: String => Boolean, classLoader: ClassLoader = Thread.currentThread.getContextClassLoader): Seq[VirtualFile] = {
     val b = Seq.newBuilder[VirtualFile]
     for (u <- findResourceURLs(classLoader, packageName)) {
       b ++= listResources(u, packageName, resourceFilter)
@@ -262,6 +279,7 @@ object Resource extends Logging {
    * @return
    */
   def findResourceURLs(cl: ClassLoader, name: String): Seq[URL] = {
+    debug("find resource URLs: %s", name)
     val b = Seq.newBuilder[URL]
     for (c: URLClassLoader <- classLoaders(cl)) {
       val e = c.findResources(name)
@@ -273,32 +291,35 @@ object Resource extends Logging {
   }
 
 
-  @SuppressWarnings(Array("unchecked"))
+
   def findClasses[A](searchPath: Package, toSearch: Class[A], classLoader: ClassLoader = Thread.currentThread.getContextClassLoader): Seq[Class[A]] = {
-    val b = Seq.newBuilder[Class[A]]
     val packageName = searchPath.getName
-
-    val classFileList = listResources(classLoader, packageName, { f:String => f.endsWith(".class") })
-
-
-    import scala.collection.JavaConversions._
-    for (vf <- classFileList) {
-      var logicalPath: String = vf.getLogicalPath
-      var dot: Int = logicalPath.lastIndexOf(".")
-      if (dot <= 0) continue //todo: continue is not supported
-      var className: String = packageName + "." + logicalPath.substring(0, dot).replaceAll("/", ".")
-      try {
-        var c: Class[_] = Class.forName(className, false, classLoader)
-        if (!Modifier.isAbstract(c.getModifiers) && toSearch.isAssignableFrom(c)) {
-          result.add(c.asInstanceOf[Class[T]])
-        }
-      }
+    val classFileList = listResources(packageName, { f:String => f.endsWith(".class") }, classLoader)
+    
+    def componentName(path:String) : Option[String] = {
+      val dot: Int = path.lastIndexOf(".")
+      if (dot <= 0)
+        None
+      else
+        Some(path.substring(0, dot).replaceAll("/", "."))
+    } 
+    def findClass(name:String) : Option[Class[_]] = {
+      try
+        Some(Class.forName(name, false, classLoader))
       catch {
-        case e: ClassNotFoundException => {
-          continue //todo: continue is not supported
+        case e: ClassNotFoundException => None
+      }
+    }
+
+    val b = Seq.newBuilder[Class[A]]
+    for (vf <- classFileList; cn <- componentName(vf.logicalPath)) {
+      val className: String = packageName + "." + cn
+      for(cl <- findClass(className)) {
+        if (!Modifier.isAbstract(cl.getModifiers) && toSearch.isAssignableFrom(cl)) {
+          b += cl.asInstanceOf[Class[A]]
         }
       }
     }
-    return result
+    b.result
   }
 }
