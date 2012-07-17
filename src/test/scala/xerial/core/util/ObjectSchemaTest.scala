@@ -16,9 +16,6 @@
 
 package xerial.core.util
 
-import java.lang.reflect.ParameterizedType
-import tools.scalap.scalax.rules.scalasig.{TypeRefType, MethodSymbol}
-import tools.nsc.io.Sources
 import io.Source
 import xerial.core.XerialSpec
 
