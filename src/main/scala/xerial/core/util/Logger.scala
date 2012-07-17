@@ -196,47 +196,10 @@ object LoggerConfigAPI extends Logging {
 
   val mbeanName = new ObjectName("xerial.core.util:type=LoggerConfig")
 
-  def jmxPort : Option[Int] = {
-    def prop(name:String) : Option[Int] = {
-      Option(System.getProperty(name)).map(_.toInt)
-    }
-    prop("com.sun.management.jmxremote.port")
-  }
-
-  def vmid : Option[Int] = {
-    val vmid = ManagementFactory.getRuntimeMXBean.getName
-    debug("vmid:%s", vmid)
-    "[0-9]+".r.findFirstIn(vmid).map(_.toInt)
-  }
-
-
   def setLogLevel(loggerName:String, logLevel:String) {
-    if(jmxPort.isEmpty)
-      warn("no jmx port is found")
-
-    val serviceURL : Option[String] = vmid.flatMap { id =>
-      ManagementFactory.getPlatformMBeanServer
-
-      debug("jvm ID:" + id)
-      Option(ConnectorAddressLink.importFrom(id))
-    }
-
     val server = ManagementFactory.getPlatformMBeanServer
     val lc = JMX.newMBeanProxy(server, mbeanName, classOf[LoggerConfig], true)
     lc.setLogLevel(loggerName, logLevel)
-
-//    if(serviceURL.isEmpty)
-//      warn("no jmx server is found")
-//
-//    for(url <- serviceURL) {
-//      debug("service URL: %s", url)
-//      val u = new JMXServiceURL(url)
-//      val jmxc = JMXConnectorFactory.connect(u, null)
-//      val conn = jmxc.getMBeanServerConnection
-//      val config : LoggerConfig = JMX.newMBeanProxy(conn, mbeanName, classOf[LoggerConfig], true)
-//      config.setLogLevel(loggerName, logLevel)
-//      jmxc.close
-//    }
   }
 }
 
