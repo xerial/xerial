@@ -162,7 +162,6 @@ object Resource extends Logging {
     def url: URL = file.toURI.toURL
 
     def isDirectory: Boolean = file.isDirectory
-    override def toString: String = url.toString
   }
 
   /**
@@ -176,8 +175,6 @@ object Resource extends Logging {
       sys.error("resource URL cannot be null: " + logicalPath)
 
     def url = resourceURL
-
-    override def toString: String = url.toString
   }
 
   private def extractLogicalName(packagePath: String, resourcePath: String): String = {
@@ -193,7 +190,7 @@ object Resource extends Logging {
     if (logicalName == null)
       throw new IllegalArgumentException("packagePath=" + packagePath + ", resourceURL=" + resourceURLString)
 
-    debug("collect: logical name: %s", logicalName)
+    trace("collect: logical name: %s", logicalName)
 
     val b = Seq.newBuilder[VirtualFile]
     val file: File = new File(new URL(resourceURLString).toURI)
@@ -219,8 +216,8 @@ object Resource extends Logging {
    * @return the list of resources matching the given resource filter
    */
   private def listResources(resourceURL: URL, packageName: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
-    debug("listResource: url=" + resourceURL)
-    val path = packagePath(packageName)
+    trace("listResource: url=" + resourceURL)
+    val pkgPath = packagePath(packageName)
     val fileList = Seq.newBuilder[VirtualFile]
     if (resourceURL == null)
       return Seq.empty
@@ -228,7 +225,7 @@ object Resource extends Logging {
     val protocol = resourceURL.getProtocol
     if (protocol == "file") {
       val resourceURLString = resourceURL.toString
-      fileList ++= collectFileResources(resourceURLString, path, resourceFilter)
+      fileList ++= collectFileResources(resourceURLString, pkgPath, resourceFilter)
     }
     else if (protocol == "jar") {
       val path: String = resourceURL.getPath
@@ -236,15 +233,18 @@ object Resource extends Logging {
       if (pos < 0)
         throw new IllegalArgumentException("invalid resource URL: " + resourceURL)
 
-      val jarPath = path.substring(0, pos) replaceAll("%20", " ") replace("file:", "")
+      val jarPath = path.substring(0, pos) replaceAll("%20", " ")
+      val filePath = path.substring(0, pos) replaceAll("%20", " ") replace("file:", "")
       val jarURLString = "jar:" + jarPath
-      val jf: JarFile = new JarFile(jarPath)
-      val entryEnum: Enumeration[JarEntry] = jf.entries
+      val jf: JarFile = new JarFile(filePath)
+      val entryEnum = jf.entries
       while (entryEnum.hasMoreElements) {
         val jarEntry = entryEnum.nextElement
         val physicalURL = jarURLString + "!/" + jarEntry.getName
+        trace("phisical URL: %s", physicalURL)
         val jarFileURL = new URL(physicalURL)
-        val logicalName = extractLogicalName(path, jarEntry.getName)
+        val logicalName = extractLogicalName(pkgPath, jarEntry.getName)
+        trace("logical name of %s: %s (path:%s)", jarEntry.getName, logicalName, pkgPath)
         if (logicalName != null && resourceFilter(logicalName))
           fileList += FileInJar(jarFileURL, logicalName, jarEntry.isDirectory)
       }
@@ -288,7 +288,7 @@ object Resource extends Logging {
    */
   def findResourceURLs(cl: ClassLoader, name: String): Seq[URL] = {
     val path = packagePath(name)
-    debug("find resource URLs: %s", path)
+    trace("find resource URLs: %s", path)
     val b = Seq.newBuilder[URL]
     for (c: URLClassLoader <- classLoaders(cl)) {
       val e = c.findResources(path)
@@ -298,19 +298,16 @@ object Resource extends Logging {
     b.result
   }
 
+  def findClasses[A](packageName: String, toSearch: Class[A], classLoader: ClassLoader = Thread.currentThread.getContextClassLoader): Seq[Class[A]] = {
+        val classFileList = listResources(packageName, { f:String => f.endsWith(".class") }, classLoader)
 
-
-  def findClasses[A](searchPath: Package, toSearch: Class[A], classLoader: ClassLoader = Thread.currentThread.getContextClassLoader): Seq[Class[A]] = {
-    val packageName = searchPath.getName
-    val classFileList = listResources(packageName, { f:String => f.endsWith(".class") }, classLoader)
-    
     def componentName(path:String) : Option[String] = {
       val dot: Int = path.lastIndexOf(".")
       if (dot <= 0)
         None
       else
         Some(path.substring(0, dot).replaceAll("/", "."))
-    } 
+    }
     def findClass(name:String) : Option[Class[_]] = {
       try
         Some(Class.forName(name, false, classLoader))
@@ -329,5 +326,9 @@ object Resource extends Logging {
       }
     }
     b.result
+  }
+
+  def findClasses[A](searchPath: Package, toSearch: Class[A], classLoader: ClassLoader): Seq[Class[A]] = {
+    findClasses(searchPath.getName, toSearch, classLoader)
   }
 }
