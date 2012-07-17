@@ -13,6 +13,7 @@ import javax.management.{MBeanServer, MBeanServerConnection, JMX, ObjectName}
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import sun.management.ConnectorAddressLink
 import java.rmi.dgc.VMID
+import java.io.{FileWriter, BufferedWriter}
 
 
 /**
@@ -346,7 +347,16 @@ class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogg
 
 }
 
+class FileLogger(val name:String, var logLevel: LogLevel, val file:String) extends StringLogger {
 
+  private val out = new BufferedWriter(new FileWriter(file))
+
+  override protected def write(level: LogLevel, message: String) = {
+
+
+
+  }
+}
 
 
 
