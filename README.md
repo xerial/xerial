@@ -18,7 +18,7 @@ Core utilities for xerial projects.
 ## Usage
 Add the following settings to your sbt build file (e.g., `project/build.sbt`)
 
-  resolvers += "xerial snapshot"  at "http://maven.xerial.org/repository/snapshot/"
-
-  libraryDependencies += "org.xerial" % "xerial-core" % "3.0-SNAPSHOT"
+    resolvers += "xerial snapshot"  at "http://maven.xerial.org/repository/snapshot/"
+    
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.0-SNAPSHOT"
 
