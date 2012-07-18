@@ -1,4 +1,4 @@
-package xerial.core.util
+package xerial.core.util.lens
 
 import xerial.core.XerialSpec
 
@@ -15,16 +15,16 @@ class PrimitiveTest extends XerialSpec {
 
   "Primitive" should {
     "have all primitives" in {
-      for(each <- Primitive.values) {
+      for (each <- Primitive.values) {
         debug(each.name)
       }
     }
 
     "have name" in {
-      Primitive.Int.name should be ("Int")
-      Primitive.Float.name should be ("Float")
+      Primitive.Int.name should be("Int")
+      Primitive.Float.name should be("Float")
     }
-    
+
   }
-  
+
 }

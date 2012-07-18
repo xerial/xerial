@@ -1,3 +1,5 @@
+package xerial.core.util.lens
+
 /*
  * Copyright 2012 Taro L. Saito
  *
@@ -14,10 +16,9 @@
  * limitations under the License.
  */
 
-package xerial.core.util
-
 import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
+import xerial.core.util.Logging
 
 //--------------------------------------
 //
@@ -413,34 +414,37 @@ object ObjectSchema extends Logging {
           }
         }
 
-        val targetMethodSymbol : Seq[(MethodSymbol, Any)] = entries.collect {
+        val targetMethodSymbol: Seq[(MethodSymbol, Any)] = entries.collect {
           case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
         }
 
-        val methods = targetMethodSymbol.map { s =>
-          try {
-            s match {
-              case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
-                val jMethod = cl.getMethod(m.name)
-                Some(Method(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
+        val methods = targetMethodSymbol.map {
+          s =>
+            try {
+              s match {
+                case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
+                  val jMethod = cl.getMethod(m.name)
+                  Some(Method(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
+                }
+                case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_])) => {
+                  val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
+                  val jMethod = cl.getMethod(m.name, resolveMethodArgTypes(params): _*)
+                  val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(jMethod, index, name, vt)
+                  Some(Method(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
+                }
+                case _ => None
               }
-              case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_])) => {
-                val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
-                val jMethod = cl.getMethod(m.name, resolveMethodArgTypes(params): _*)
-                val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(jMethod, index, name, vt)
-                Some(Method(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
+            }
+            catch {
+              case e => {
+                warn("error occurred when accessing method %s : %s", s, e)
+                None
               }
-              case _ => None
             }
-          }
-          catch {
-            case e => {
-              warn("error occurred when accessing method %s : %s", s, e)
-              None
-            }
-          }
         }
-        methods.collect{case Some(x) => x}.toArray
+        methods.collect {
+          case Some(x) => x
+        }.toArray
       }
     }
 

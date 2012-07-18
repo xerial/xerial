@@ -1,6 +1,7 @@
-package xerial.core.util
+package xerial.core.util.cui
 
 import util.parsing.combinator.RegexParsers
+import xerial.core.util.Logging
 
 
 //--------------------------------------

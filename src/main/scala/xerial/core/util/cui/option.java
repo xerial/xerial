@@ -1,4 +1,4 @@
-package xerial.core.util;
+package xerial.core.util.cui;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

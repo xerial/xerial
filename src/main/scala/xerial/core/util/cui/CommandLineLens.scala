@@ -1,3 +1,5 @@
+package xerial.core.util.cui
+
 //--------------------------------------
 //
 // CommandLineLens.scala
@@ -5,13 +7,11 @@
 //
 //--------------------------------------
 
-package xerial.core.util
-
-
+import lens.{ObjectBuilder, GenericBuilder, ObjectSchema}
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
-import xerial.core.util.ObjectSchema.{Method, Parameter}
+import xerial.core.util.lens.ObjectSchema.{Method, Parameter}
 
 /**
  *
@@ -21,10 +21,9 @@ import xerial.core.util.ObjectSchema.{Method, Parameter}
 object CommandLineLens {
 
 
-
 }
 
-class CommandLineLens(cl:Class[_]) {
+class CommandLineLens(cl: Class[_]) {
 
 }
 
@@ -239,7 +238,7 @@ class OptionParser(val schema: OptionSchema) {
 
   import OptionParser._
 
-  def build[A](args:Array[String], b:GenericBuilder) : OptionParserResult = {
+  def build[A](args: Array[String], b: GenericBuilder): OptionParserResult = {
     val result = parse(args)
     for (each <- result.mapping) {
       each match {
@@ -497,7 +496,7 @@ class OptionParser(val schema: OptionSchema) {
     }
 
     val b = new StringBuilder
-    if(!s.isEmpty) {
+    if (!s.isEmpty) {
       b.append("[options]\n")
       b.append(s.mkString("\n") + "\n")
     }

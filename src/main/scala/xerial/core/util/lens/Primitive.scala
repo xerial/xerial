@@ -1,6 +1,6 @@
-package xerial.core.util
+package xerial.core.util.lens
 
-import java.{lang=>jl}
+import java.{lang => jl}
 
 //--------------------------------------
 //
@@ -9,7 +9,22 @@ import java.{lang=>jl}
 //
 //--------------------------------------
 
-trait Type
+object Type {
+
+  def apply(cl: Class[_]): Type = {
+    if (Primitive.isPrimitive(cl))
+      Primitive(cl)
+    else if (BasicType.isBasicType(cl))
+      BasicType(cl)
+    else
+      new OtherType(cl)
+  }
+
+}
+
+trait Type {
+  val name = this.getClass.getSimpleName.replaceAll("""\$""", "")
+}
 
 /**
  * Enum of Scala's primitive types
@@ -41,7 +56,7 @@ object Primitive {
   def isPrimitive(cl: Class[_]): Boolean = {
     cl.isPrimitive || primitiveTable.contains(cl)
   }
-  
+
   private val primitiveTable = {
     val b = Map.newBuilder[Class[_], Primitive]
     b += classOf[jl.Boolean] -> Boolean
@@ -62,17 +77,14 @@ object Primitive {
     b += classOf[Double] -> Double
     b.result
   }
-  
 
-  def apply(cl:Class[_]) : Primitive = primitiveTable(cl)
+
+  def apply(cl: Class[_]): Primitive = primitiveTable(cl)
 
 }
 
-trait Enum {
-  val name = this.getClass.getSimpleName.replaceAll("""\$""", "")
-}
 
-sealed abstract class Primitive(cl:Class[_]) extends Enum with Type
+sealed abstract class Primitive(val cl: Class[_]) extends Type
 
 
 object BasicType {
@@ -80,17 +92,33 @@ object BasicType {
   object File extends BasicType(classOf[java.io.File])
   object Date extends BasicType(classOf[java.util.Date])
 
+  val values = Seq(String, File, Date)
+
   private val table = Map(
     classOf[String] -> String,
     classOf[java.io.File] -> File,
     classOf[java.util.Date] -> Date
   )
 
-  def apply(cl:Class[_]) : BasicType = table(cl)
+  def apply(cl: Class[_]): BasicType = table(cl)
 
-  def isBasicType(cl:Class[_]) = table.contains(cl)
+  def isBasicType(cl: Class[_]) = table.contains(cl)
 }
 
-sealed abstract class BasicType(cl:Class[_]) extends Enum with Type
+sealed abstract class BasicType(val cl: Class[_]) extends Type
 
 
+object GenericType {
+
+}
+
+sealed abstract class GenericType(val cl: Class[_], val typeParameter: Seq[Type]) extends Type
+
+class CollectionType(cl: Class[_], typeParameter: Seq[Type]) extends GenericType(cl, typeParameter)
+class MapType(cl: Class[_], keyType: Type, valueType: Type) extends GenericType(cl, Seq(keyType, valueType))
+class SeqType(cl: Class[_], elementType: Type) extends GenericType(cl, Seq(elementType))
+class ArrayType(cl: Class[_], elementType: Type) extends GenericType(cl, Seq(elementType))
+class OptionType(cl: Class[_], elementType: Type) extends GenericType(cl: Class[_], Seq(elementType))
+class TupleType(cl: Class[_], elementType: Seq[Type]) extends GenericType(cl: Class[_], elementType)
+
+class OtherType(cl: Class[_]) extends Type
