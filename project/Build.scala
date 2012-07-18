@@ -24,8 +24,6 @@ import sbtrelease.Release._
 
 object XerialBuild extends Build {
 
-  lazy val commandSettings = Seq(printState)
-
   val SCALA_VERSION = "2.9.2"
 
   def releaseResolver(v:String) : Resolver = {
@@ -46,7 +44,6 @@ object XerialBuild extends Build {
   }
 
   lazy val buildSettings = Defaults.defaultSettings ++ releaseSettings ++  Seq[Setting[_]](
-    commands ++= commandSettings,
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
@@ -74,7 +71,7 @@ object XerialBuild extends Build {
     crossPaths := false,
     //crossScalaVersions := Seq("2.10.0-M1", "2.9.1-1", "2.9.1"),
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
-    pomExtra := {
+    pomExtra := { 
       <licenses>
         <license>
           <name>Apache 2</name>
@@ -130,16 +127,12 @@ object XerialBuild extends Build {
 
   object Dependencies {
 
-    val classWorld = "org.codehaus.plexus" % "plexus-classworlds" % "2.4"
-
     val testLib = Seq(
-      "junit" % "junit" % "4.10" % "test",
       "org.scalatest" %% "scalatest" % "2.0.M1" % "test"
-      //"org.hamcrest" % "hamcrest-core" % "1.3.RC2" % "test"
     )
 
     val bootLib = Seq(
-      classWorld
+      "org.codehaus.plexus" % "plexus-classworlds" % "2.4"
     )
 
     val reflectionLib = Seq(
@@ -191,8 +184,7 @@ object XerialBuild extends Build {
       val binDir = distDir / "bin"
       binDir.mkdirs()
       IO.copyDirectory(base / "src/script", binDir)
-
-      // chmod +x
+       // chmod +x
       if(!System.getProperty("os.name", "").contains("Windows")) {
         scala.sys.process.Process("chmod -R +x %s".format(binDir)).run
       }
@@ -205,32 +197,6 @@ object XerialBuild extends Build {
     }
   }
 
-  def printState = Command.command("print-state") {
-    state =>
-      import state._
-      def show[T](s: Seq[T]) =
-        s.map("'" + _ + "'").mkString("[", ", ", "]")
-      println(definedCommands.size + " registered commands")
-      println("commands to run: " + show(remainingCommands))
-      println()
-
-      println("original arguments: " + show(configuration.arguments))
-      println("base directory: " + configuration.baseDirectory)
-      println()
-
-      println("sbt version: " + configuration.provider.id.version)
-      println("Scala version (for sbt): " + configuration.provider.scalaProvider.version)
-      println()
-
-      val extracted = Project.extract(state)
-      import extracted._
-      println("Current build: " + currentRef.build)
-      println("Current project: " + currentRef.project)
-      println("Original setting count: " + session.original.size)
-      println("Session setting count: " + session.append.size)
-      println(allDependencies get extracted.structure.data)
-      state
-  }
 }
 
 
