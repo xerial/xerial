@@ -18,7 +18,7 @@ package xerial.core.util.lens
 
 import io.Source
 import xerial.core.XerialSpec
-import xerial.core.util.option
+import xerial.core.util.cui.option
 
 
 //--------------------------------------

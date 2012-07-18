@@ -4,8 +4,9 @@ package xerial.core.util
 import collection.mutable
 import java.io.File
 import java.text.DateFormat
+import lens.{Primitive, Type, BasicType, ObjectSchema}
 import mutable.ArrayBuffer
-import xerial.core.util.ObjectSchema.{GenericType, ValueType}
+import xerial.core.util.lens.ObjectSchema.{GenericType, ValueType}
 import java.lang.{reflect=>jr}
 
 
@@ -55,13 +56,14 @@ object TypeUtil {
     cl <:< classOf[Product]
   }
 
-  def toBuffer[A](input: Array[A]): collection.mutable.Buffer[A] = {
-    input.toBuffer[A]
-  }
 
   def isTraversable[T](cl:ClassManifest[T]) = cl <:< classOf[Traversable[_]]
 
   def isTraversableOnce[T](cl: ClassManifest[T]) = cl <:< classOf[TraversableOnce[_]]
+
+  def toBuffer[A](input: Array[A]): collection.mutable.Buffer[A] = {
+    input.toBuffer[A]
+  }
 
 
   /**
@@ -141,40 +143,6 @@ object TypeUtil {
         val pt = cc.getParameterTypes
         pt.length == 1 && pt(0) == classOf[String]
     }
-  }
-
-  def toBuffer[A](input: Array[A]): collection.mutable.Buffer[A] = {
-    input.toBuffer[A]
-  }
-
-  /**
-   * Convert immutable collections or arrays to a mutable buffer
-   * @param input
-   * @param valueType
-   */
-  def toBuffer(input: Any, valueType: ObjectSchema.ValueType): collection.mutable.Buffer[_] = {
-
-    def err = throw new IllegalArgumentException("cannot convert to ArrayBuffer: %s".format(valueType))
-
-    if (!canBuildFromBuffer(valueType.rawType))
-      err
-
-    val cl: Class[_] = input.getClass
-    if (isArray(cl)) {
-      val a = input.asInstanceOf[Array[_]]
-      a.toBuffer
-    }
-    else if (isTraversableOnce(cl) && valueType.isGenericType) {
-      val gt = valueType.asInstanceOf[ObjectSchema.GenericType]
-      val e = gt.genericTypes(0).rawType
-      type E = e.type
-      val l = input.asInstanceOf[TraversableOnce[E]]
-      val b = new ArrayBuffer[E]
-      l.foreach(b += _)
-      b
-    }
-    else
-      err
   }
 
 
@@ -284,9 +252,12 @@ object TypeUtil {
     if (targetType.isAssignableFrom(cl))
       value.asInstanceOf[A]
     else {
+
+
+
       stringConstructor(targetType) match {
         case Some(cc) => cc.newInstance(value.toString).asInstanceOf[A]
-        case None => convertToPrimitive(value, targetType)
+        case None => convertToPrimitive(value, Primitive(targetType))
       }
     }
   }
@@ -356,7 +327,7 @@ object TypeUtil {
     def createDefaultInstance: A = {
       val hasOuter = cl.getDeclaredFields.find(x => x.getName == "$outer").isDefined
       if (hasOuter)
-        throw new IllegalArgumentException("Cannot use inner class %s. Use classes defined globally or in companion objects".format(cl.getName))
+        throw new IllegalArgumentException("Cannot instantiate the inner class %s. Use classes defined globally or in companion objects".format(cl.getName))
       val paramArgs = defaultConstructorParameters(cl)
       val cc = cl.getConstructors()(0)
       val obj = cc.newInstance(paramArgs: _*)

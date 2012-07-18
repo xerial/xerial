@@ -1,4 +1,4 @@
-package xerial.core.util
+package xerial.core.util.cui
 
 import xerial.core.XerialSpec
 

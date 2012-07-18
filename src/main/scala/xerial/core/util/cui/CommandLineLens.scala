@@ -7,11 +7,12 @@ package xerial.core.util.cui
 //
 //--------------------------------------
 
-import lens.{ObjectBuilder, GenericBuilder, ObjectSchema}
+import xerial.core.util.lens.{ObjectBuilder, GenericBuilder, ObjectSchema}
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
 import xerial.core.util.lens.ObjectSchema.{Method, Parameter}
+import xerial.core.util.{TypeUtil, Logging, StringTemplate}
 
 /**
  *
@@ -31,9 +32,6 @@ class CommandLineLens(cl: Class[_]) {
  * Creates option parsers
  */
 object OptionParser extends Logging {
-
-  import java.lang.reflect.Field
-  import TypeUtil._
 
   def tokenize(line: String): Array[String] = CommandLineTokenizer.tokenize(line)
 

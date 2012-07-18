@@ -18,7 +18,7 @@ package xerial.core.util.lens
 
 import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
-import xerial.core.util.Logging
+import xerial.core.util.{Reflect, TypeUtil, Logging}
 
 //--------------------------------------
 //

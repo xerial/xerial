@@ -50,7 +50,7 @@ object Primitive {
       //  , jl.Integer.TYPE, jl.Short.TYPE, jl.Character.TYPE, jl.Long.TYPE, jl.Float.TYPE, jl.Byte.TYPE, jl.Boolean.TYPE
     )
   val scalaPrimitiveTypes: Set[Class[_]] =
-    Set[Class[_]](classOf[Int], classOf[Short], classOf[Long], classOf[Float], classOf[Byte],
+    Set[Class[_]](classOf[Int], classOf[Short], classOf[Long], classOf[Char], classOf[Float], classOf[Byte],
       classOf[Double], classOf[Boolean])
 
   def isPrimitive(cl: Class[_]): Boolean = {
@@ -66,7 +66,7 @@ object Primitive {
     b += classOf[jl.Byte] -> Byte
     b += classOf[Byte] -> Byte
     b += classOf[jl.Character] -> Char
-    b += classOf[Character] -> Char
+    b += classOf[Char] -> Char
     b += classOf[jl.Integer] -> Int
     b += classOf[Int] -> Int
     b += classOf[jl.Float] -> Float
@@ -94,7 +94,7 @@ object BasicType {
 
   val values = Seq(String, File, Date)
 
-  private val table = Map(
+  private val table = Map[Class[_], BasicType](
     classOf[String] -> String,
     classOf[java.io.File] -> File,
     classOf[java.util.Date] -> Date
@@ -102,23 +102,16 @@ object BasicType {
 
   def apply(cl: Class[_]): BasicType = table(cl)
 
-  def isBasicType(cl: Class[_]) = table.contains(cl)
+  def isBasicType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
 sealed abstract class BasicType(val cl: Class[_]) extends Type
 
 
-object GenericType {
-
-}
-
-sealed abstract class GenericType(val cl: Class[_], val typeParameter: Seq[Type]) extends Type
-
-class CollectionType(cl: Class[_], typeParameter: Seq[Type]) extends GenericType(cl, typeParameter)
-class MapType(cl: Class[_], keyType: Type, valueType: Type) extends GenericType(cl, Seq(keyType, valueType))
-class SeqType(cl: Class[_], elementType: Type) extends GenericType(cl, Seq(elementType))
-class ArrayType(cl: Class[_], elementType: Type) extends GenericType(cl, Seq(elementType))
-class OptionType(cl: Class[_], elementType: Type) extends GenericType(cl: Class[_], Seq(elementType))
-class TupleType(cl: Class[_], elementType: Seq[Type]) extends GenericType(cl: Class[_], elementType)
+class MapType(cl: Class[_], keyType: Type, valueType: Type) extends Type
+class SeqType(cl: Class[_], elementType: Type) extends Type
+class ArrayType(cl: Class[_], elementType: Type) extends Type
+class OptionType(cl: Class[_], elementType: Type) extends Type
+class TupleType(cl: Class[_], elementType: Seq[Type]) extends Type
 
 class OtherType(cl: Class[_]) extends Type
