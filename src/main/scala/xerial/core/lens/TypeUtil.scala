@@ -1,13 +1,10 @@
-package xerial.core.util
-
+package xerial.core.lens
 
 import collection.mutable
 import java.io.File
 import java.text.DateFormat
-import xerial.core.lens.{Primitive, Type, BasicType, ObjectSchema}
 import mutable.ArrayBuffer
-import xerial.core.lens.ObjectSchema.{GenericType, ValueType}
-import java.lang.{reflect=>jr}
+import java.lang.{reflect => jr}
 
 
 //--------------------------------------
@@ -24,7 +21,7 @@ object TypeUtil {
 
   implicit def toClassManifest[T](targetType: Class[T]): ClassManifest[T] = ClassManifest.fromClass(targetType)
 
-  def isPrimitive[T](cl:Class[T]) = Primitive.isPrimitive(cl)
+  def isPrimitive[T](cl: Class[T]) = Primitive.isPrimitive(cl)
 
   def isArray[T](cl: Class[T]) = {
     cl.isArray || cl.getSimpleName == "Array"
@@ -57,7 +54,7 @@ object TypeUtil {
   }
 
 
-  def isTraversable[T](cl:ClassManifest[T]) = cl <:< classOf[Traversable[_]]
+  def isTraversable[T](cl: ClassManifest[T]) = cl <:< classOf[Traversable[_]]
 
   def isTraversableOnce[T](cl: ClassManifest[T]) = cl <:< classOf[TraversableOnce[_]]
 
@@ -71,7 +68,7 @@ object TypeUtil {
    * @param input
    * @param valueType
    */
-  def toBuffer(input: Any, valueType: ObjectSchema.ValueType): collection.mutable.Buffer[_] = {
+  def toBuffer(input: Any, valueType: ValueType): collection.mutable.Buffer[_] = {
 
     def err = throw new IllegalArgumentException("cannot convert to ArrayBuffer: %s".format(valueType))
 
@@ -84,7 +81,7 @@ object TypeUtil {
       a.toBuffer
     }
     else if (isTraversableOnce(cl) && valueType.isGenericType) {
-      val gt = valueType.asInstanceOf[ObjectSchema.GenericType]
+      val gt = valueType.asInstanceOf[GenericType]
       val e = gt.genericTypes(0).rawType
       type E = e.type
       val l = input.asInstanceOf[TraversableOnce[E]]
@@ -136,15 +133,6 @@ object TypeUtil {
 
   def canBuildFromBuffer[T](cl: ClassManifest[T]) = isArray(cl.erasure) || isSeq(cl) || isMap(cl) || isSet(cl)
 
-  def stringConstructor(cl: Class[_]): Option[jr.Constructor[_]] = {
-    val cc = cl.getDeclaredConstructors
-    cc.find {
-      cc =>
-        val pt = cc.getParameterTypes
-        pt.length == 1 && pt(0) == classOf[String]
-    }
-  }
-
 
   def zero[A](cl: Class[A]): A = {
     if (isPrimitive(cl)) {
@@ -160,8 +148,8 @@ object TypeUtil {
       }
       v.asInstanceOf[A]
     }
-    else if(BasicType.isBasicType(cl)) {
-      val v:Any = BasicType(cl) match {
+    else if (BasicType.isBasicType(cl)) {
+      val v: Any = BasicType(cl) match {
         case BasicType.String => ""
         case BasicType.Date => new java.util.Date(0)
         case BasicType.File => new File("")
@@ -199,92 +187,6 @@ object TypeUtil {
     else
       null.asInstanceOf[A]
   }
-
-  def convert(value: Any, targetType: ObjectSchema.ValueType): Any = {
-    if (targetType.isOption) {
-      if (isOption(value.getClass))
-        value
-      else {
-        val gt: Seq[ValueType] = targetType.asInstanceOf[GenericType].genericTypes
-        Some(convert(value, gt(0)))
-      }
-    }
-    else if (isArray(targetType.rawType) && isArray(value.getClass)) {
-      value
-    }
-    else {
-      val t: Class[_] = targetType.rawType
-      val s: Class[_] = value.getClass
-      if (t.isAssignableFrom(s))
-        value
-      else if (isBuffer(s)) {
-        val buf = value.asInstanceOf[mutable.Buffer[_]]
-        val gt: Seq[ValueType] = targetType.asInstanceOf[GenericType].genericTypes
-        val e = gt(0).rawType
-        type E = e.type
-        if (isArray(t)) {
-          val arr = e.newArray(buf.length).asInstanceOf[Array[Any]]
-          buf.copyToArray(arr)
-          arr
-        }
-        else if (isSeq(t)) {
-          buf.toSeq
-        }
-        else if (isSet(t)) {
-          buf.toSet
-        }
-        else if (isMap(t)) {
-          buf.asInstanceOf[mutable.Buffer[(_, _)]].toMap
-        }
-        else
-          throw sys.error("cannot convert %s to %s".format(s.getSimpleName, t.getSimpleName))
-      }
-      else
-        convert(value, targetType.rawType)
-    }
-  }
-
-  /**
-   * Convert the input value into the target type
-   */
-  def convert[A](value: Any, targetType: Class[A]): A = {
-    val cl: Class[_] = value.getClass
-    if (targetType.isAssignableFrom(cl))
-      value.asInstanceOf[A]
-    else {
-
-
-
-      stringConstructor(targetType) match {
-        case Some(cc) => cc.newInstance(value.toString).asInstanceOf[A]
-        case None => convertToPrimitive(value, Primitive(targetType))
-      }
-    }
-  }
-
-  /**
-   * Convert the input value into the target type
-   */
-  def convertToPrimitive[A](value: Any, targetType: Type): A = {
-    val s = value.toString
-    val v: Any = targetType match {
-      case BasicType.String => s
-      case Primitive.Boolean => s.toBoolean
-      case Primitive.Int => s.toInt
-      case Primitive.Float => s.toFloat
-      case Primitive.Double => s.toDouble
-      case Primitive.Long => s.toLong
-      case Primitive.Short => s.toShort
-      case Primitive.Byte => s.toByte
-      case Primitive.Char if (s.length == 1) => s(0)
-      case BasicType.File => new File(s)
-      case BasicType.Date => DateFormat.getDateInstance.parse(s)
-      case _ =>
-        throw new IllegalArgumentException("""Failed to convert "%s" to %s""".format(s, targetType.toString))
-    }
-    v.asInstanceOf[A]
-  }
-
 
 
   def defaultConstructorParameters[A](cl: Class[A]): Seq[AnyRef] = {

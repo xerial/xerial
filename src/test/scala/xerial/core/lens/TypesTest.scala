@@ -11,7 +11,7 @@ import xerial.core.XerialSpec
 /**
  * @author leo
  */
-class PrimitiveTest extends XerialSpec {
+class TypesTest extends XerialSpec {
 
   "Primitive" should {
     "have all primitives" in {

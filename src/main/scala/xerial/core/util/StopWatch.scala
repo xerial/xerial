@@ -18,6 +18,7 @@ package xerial.core.util
 
 import java.lang.IllegalStateException
 import collection.mutable.{ListBuffer, Stack, LinkedHashMap}
+import xerial.core.log.{Logger, LogLevel}
 
 
 //--------------------------------------

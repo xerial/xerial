@@ -1,5 +1,7 @@
 package xerial.core.util
 
+import xerial.core.lens.{TypeUtil, TypeConverter}
+
 
 //--------------------------------------
 //
@@ -55,7 +57,7 @@ object Reflect {
         Some(prepareInstance(prevValue, newValue, elementType))
       }
       else
-        Some(TypeUtil.convert(newValue, targetType))
+        Some(TypeConverter.convert(newValue, targetType))
     }
 
 

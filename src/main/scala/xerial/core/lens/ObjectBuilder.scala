@@ -16,9 +16,10 @@ package xerial.core.lens
  * limitations under the License.
  */
 
-import collection.mutable.{ArrayBuffer, ArrayBuilder, Buffer, Map}
-import xerial.core.lens.ObjectSchema.{GenericType, FieldParameter, Parameter, ValueType}
-import xerial.core.util.{Reflect, TypeUtil, Logging}
+import collection.mutable.{ArrayBuffer, Map}
+import xerial.core.util.Reflect
+import xerial.core.lens
+import xerial.core.log.Logging
 
 
 //--------------------------------------
@@ -76,7 +77,7 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
   private val schema = ObjectSchema(cl)
   private val valueHolder = collection.mutable.Map[String, Any]()
 
-  import xerial.core.util.TypeUtil._
+  import lens.TypeUtil._
 
   defaultValue.foreach {
     case (name, value) => {
@@ -109,7 +110,7 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
       val gt = t.genericTypes(0).rawType
       type E = gt.type
       val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
-      arr += convert(value, gt)
+      arr += TypeConverter.convert(value, gt)
     }
     else {
       valueHolder(name) = value
@@ -125,7 +126,7 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
     def getValue(p: Parameter): Option[_] = {
       val v = valueHolder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
       if (v != null) {
-        val cv = TypeUtil.convert(v, p.valueType)
+        val cv = TypeConverter.convert(v, p.valueType)
         trace("getValue:%s, v:%s => cv:%s", p, v, cv)
         Some(cv)
       }

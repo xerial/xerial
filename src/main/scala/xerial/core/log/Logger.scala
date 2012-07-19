@@ -1,20 +1,16 @@
 //--------------------------------------
 //
 // Logger.scala
-// Since: 2012/07/06 4:18 PM
+// Since: 2012/07/19 4:23 PM
 //
 //--------------------------------------
 
-package xerial.core.util
+package xerial.core.log
 
 import collection.mutable
+import javax.management.{MBeanServerConnection, JMX, ObjectName}
 import management.ManagementFactory
-import javax.management.{MBeanServer, MBeanServerConnection, JMX, ObjectName}
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
-import sun.management.ConnectorAddressLink
-import java.rmi.dgc.VMID
-import java.io.{FileWriter, BufferedWriter}
-
 
 /**
  * log level definitions
@@ -51,7 +47,6 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
   override def toString = name
 }
 
-
 /**
  * Adding log functions to your class.
  */
@@ -78,11 +73,17 @@ trait Logging extends LogHelper {
    */
   protected def logger(tag: String): Logger = logger(Symbol(tag))
 
-  protected def log[U](tag:String)(f: Logger => U) {
+  protected def log[U](tag: String)(f: Logger => U) {
     f(logger(tag))
   }
 
 }
+
+
+
+
+
+
 
 /**
  * Add support for formatted log
@@ -125,6 +126,42 @@ trait LogHelper {
   def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = trace(format.format(a1, a2, a3))
   def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = trace(format.format(a1, a2, a3, a4))
 
+}
+
+
+/**
+ * Logger interface
+ * @author leo
+ */
+trait Logger extends LogHelper {
+
+  val name: String
+  val shortName = Logger.leafName(name)
+  val tag = {
+    val pos = shortName.lastIndexOf(":")
+    if (pos == -1)
+      Symbol("")
+    else
+      Symbol(shortName.substring(pos + 1))
+  }
+
+  var logLevel: LogLevel
+
+  def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
+
+  /**
+   * Generate log message
+   * @param level
+   * @param message
+   * @return true if log is generated, or false when log is suppressed
+   */
+  def log(level: LogLevel, message: => Any): Unit = {
+    if (isEnabled(level))
+      write(level, message)
+  }
+
+
+  protected def write(level: LogLevel, message: Any)
 }
 
 
@@ -247,40 +284,7 @@ class LoggerConfigImpl extends LoggerConfig {
   }
 }
 
-/**
- * Logger interface
- * @author leo
- */
-trait Logger extends LogHelper {
 
-  val name: String
-  val shortName = Logger.leafName(name)
-  val tag = {
-    val pos = shortName.lastIndexOf(":")
-    if (pos == -1)
-      Symbol("")
-    else
-      Symbol(shortName.substring(pos + 1))
-  }
-
-  var logLevel: LogLevel
-
-  def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
-
-  /**
-   * Generate log message
-   * @param level
-   * @param message
-   * @return true if log is generated, or false when log is suppressed
-   */
-  def log(level: LogLevel, message: => Any): Unit = {
-    if (isEnabled(level))
-      write(level, message)
-  }
-
-
-  protected def write(level: LogLevel, message: Any)
-}
 
 /**
  * Empty logger
@@ -345,17 +349,6 @@ class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogg
 
   override protected def write(level: LogLevel, message: String) = Console.err.println(message)
 
-}
-
-class FileLogger(val name:String, var logLevel: LogLevel, val file:String) extends StringLogger {
-
-  private val out = new BufferedWriter(new FileWriter(file))
-
-  override protected def write(level: LogLevel, message: String) = {
-
-
-
-  }
 }
 
 

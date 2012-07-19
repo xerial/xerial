@@ -3,7 +3,7 @@ package xerial.core
 import org.scalatest.WordSpec
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
 import org.scalatest._
-import util.Logging
+import xerial.core.log.Logging
 
 
 //--------------------------------------

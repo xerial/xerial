@@ -5,12 +5,9 @@
 //
 //--------------------------------------
 
-package xerial.core.util
+package xerial.core.log
 
 import xerial.core.XerialSpec
-import management.ManagementFactory
-import javax.management.JMX
-import javax.management.remote.{JMXServiceURL, JMXConnectorFactory}
 
 
 /**
@@ -62,13 +59,12 @@ class LoggerTest extends XerialSpec {
     "Set log level via JMX" in {
       Logger.setLogLevelJMX("LoggerTest:jmx", "error")
       val l = Logger(classOf[LoggerTest], 'jmx)
-      l.logLevel should be (LogLevel.ERROR)
+      l.logLevel should be(LogLevel.ERROR)
     }
 
     "support file logger" in {
+      pending
       val l = logger('file)
-
-
     }
 
   }

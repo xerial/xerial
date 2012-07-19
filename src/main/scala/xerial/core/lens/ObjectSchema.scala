@@ -18,7 +18,7 @@ package xerial.core.lens
 
 import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
-import xerial.core.util.{Reflect, TypeUtil, Logging}
+import xerial.core.log.Logging
 
 //--------------------------------------
 //
@@ -34,131 +34,6 @@ object ObjectSchema extends Logging {
 
   import java.{lang => jl}
 
-  sealed trait Type {
-    val name: String
-  }
-
-  abstract class ValueType(val rawType: Class[_]) extends Type {
-    val name: String = rawType.getSimpleName
-
-    override def toString = name
-    def isOption = false
-    def isBooleanType = false
-    def isGenericType = false
-  }
-
-  case class StandardType(override val rawType: Class[_]) extends ValueType(rawType) {
-    override def isBooleanType = rawType == classOf[Boolean]
-  }
-
-  case class GenericType(override val rawType: Class[_], genericTypes: Seq[ValueType]) extends ValueType(rawType) {
-    override def toString = "%s[%s]".format(rawType.getSimpleName, genericTypes.map(_.name).mkString(", "))
-
-    override def isOption = rawType == classOf[Option[_]]
-    override def isBooleanType = isOption && genericTypes(0).isBooleanType
-    override def isGenericType = true
-  }
-
-  sealed abstract class Parameter(val name: String, val valueType: ValueType) {
-    val rawType = valueType.rawType
-
-    override def toString = "%s:%s".format(name, valueType)
-
-    def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T]
-
-    protected def findAnnotationOf[T <: jl.annotation.Annotation](annot: Array[jl.annotation.Annotation])(implicit c: ClassManifest[T]): Option[T] = {
-      annot.collectFirst {
-        case x if (c.erasure isAssignableFrom x.annotationType) => x
-      }.asInstanceOf[Option[T]]
-    }
-
-    def get(obj: Any): Any
-  }
-
-  case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: Int, override val name: String, override val valueType: ValueType) extends Parameter(name, valueType) {
-    lazy val field = fieldOwner.getDeclaredField(name)
-    def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
-      val cc = owner.getConstructors()(0)
-      val annot: Array[jl.annotation.Annotation] = cc.getParameterAnnotations()(index)
-      findAnnotationOf[T](annot)
-    }
-
-    def get(obj: Any) = {
-      Reflect.readField(obj, field)
-    }
-
-  }
-
-  case class FieldParameter(owner: Class[_], ref: Class[_], override val name: String, override val valueType: ValueType) extends Parameter(name, valueType) with Logging {
-    lazy val field = {
-      try
-        owner.getDeclaredField(name)
-      catch {
-        case _ =>
-          warn("no such field %s in %s (ref:%s)", name, owner.getSimpleName, ref.getSimpleName)
-          null
-      }
-    }
-
-    def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
-      field match {
-        case null => None
-        case field =>
-          field.getAnnotation[T](c.erasure.asInstanceOf[Class[T]]) match {
-            case null => None
-            case a => Some(a.asInstanceOf[T])
-          }
-      }
-    }
-
-    def get(obj: Any) = {
-      Reflect.readField(obj, field)
-    }
-  }
-
-  case class MethodParameter(owner: jl.reflect.Method, index: Int, override val name: String, override val valueType: ValueType) extends Parameter(name, valueType) {
-    def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
-      val annot: Array[jl.annotation.Annotation] = owner.getParameterAnnotations()(index)
-      findAnnotationOf[T](annot)
-    }
-
-    def get(obj: Any) = {
-      sys.error("get for method parameter is not supported")
-    }
-  }
-
-  case class Method(owner: Class[_], jMethod: jl.reflect.Method, name: String, params: Array[MethodParameter], returnType: Type) extends Type {
-    override def toString = "Method(%s#%s, [%s], %s)".format(owner.getSimpleName, name, params.mkString(", "), returnType)
-
-    //lazy val jMethod = owner.getMethod(name, params.map(_.rawType): _*)
-
-    def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
-      jMethod.getAnnotation(c.erasure.asInstanceOf[Class[T]]) match {
-        case null => None
-        case a => Some(a.asInstanceOf[T])
-      }
-    }
-    def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T] = {
-      params(paramIndex).findAnnotationOf[T]
-    }
-
-    override def hashCode = {
-      owner.hashCode() + name.hashCode()
-    }
-  }
-
-  case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extends Type {
-    val name = cl.getSimpleName
-    override def toString = "Constructor(%s, [%s])".format(cl.getSimpleName, params.mkString(", "))
-
-    def newInstance(args: Array[AnyRef]): Any = {
-      val cc = cl.getConstructors()(0)
-      if (args.isEmpty)
-        cc.newInstance()
-      else
-        cc.newInstance(args: _*)
-    }
-  }
 
   implicit def toSchema(cl: Class[_]): ObjectSchema = ObjectSchema(cl)
 
@@ -292,35 +167,7 @@ object ObjectSchema extends Logging {
     filtered
   }
 
-  def findParentClasses(cl: Class[_]): Seq[Class[_]] = {
-    getParentsByReflection(cl)
-
-    //    findSignature(cl) match {
-    //      case Some(sig) if sig.table.length > 0 =>
-    //        val classInfo = parseEntries(sig).collectFirst {
-    //          case c@ClassInfoType(symbol, typeRefs) if symbol.name == cl.getSimpleName => c
-    //        }
-    //        def loadClass(path: String): Option[Class[_]] = {
-    //          val loader = Thread.currentThread().getContextClassLoader
-    //          try
-    //            Some(loader.loadClass(path))
-    //          catch {
-    //            case _ => None
-    //          }
-    //        }
-    //        if (classInfo.isDefined) {
-    //          val parents: Seq[String] = classInfo.get.typeRefs.collect {
-    //            case t@TypeRefType(ThisType(prefix), symbol, typeArgs) if !isSystemPrefix(prefix.path) => symbol.path
-    //          }
-    //          parents.flatMap(loadClass(_))
-    //        }
-    //        else {
-    //          // Use java reflection
-    //          getParentsByReflection(cl)
-    //        }
-    //      case _ => getParentsByReflection(cl)
-    //    }
-  }
+  def findParentClasses(cl: Class[_]): Seq[Class[_]] = getParentsByReflection(cl)
 
   def findParentSchemas(cl: Class[_]): Seq[ObjectSchema] = {
     findParentClasses(cl).map(ObjectSchema(_))

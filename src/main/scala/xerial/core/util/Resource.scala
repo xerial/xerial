@@ -5,6 +5,7 @@ import java.util.jar.{JarEntry, JarFile}
 import java.util.Enumeration
 import java.lang.reflect.Modifier
 import java.net.{URLClassLoader, URL}
+import xerial.core.log.Logging
 
 //--------------------------------------
 //
