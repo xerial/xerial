@@ -1,5 +1,3 @@
-package xerial.core.util.lens
-
 /*
  * Copyright 2012 Taro L. Saito
  *
@@ -15,6 +13,9 @@ package xerial.core.util.lens
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package xerial.core.util.lens
+
 
 import io.Source
 import xerial.core.XerialSpec
@@ -149,7 +150,7 @@ class ObjectSchemaTest extends XerialSpec {
 
     "find imported methods" in {
       val c = classOf[ImportSample].methods
-      c.size should be(1)
+      c.size should be (1)
     }
 
 
@@ -211,7 +212,7 @@ class ObjectSchemaTest extends XerialSpec {
       val s = ObjectSchema.of[Seq[String]]
       debug("schema:%s", s)
       s.name must be("Seq")
-      s.parameters.isEmpty must be(true)
+      s.parameters.isEmpty must be (true)
       debug {
         val sigLines = Source.fromString(s.findSignature.map(_.toString).get).getLines()
         val hashVar = sigLines.filter(line => line.contains("hash"))
@@ -254,18 +255,18 @@ class CommandLineAPI {
             name: String,
             @option(symbol = "h", description = "display help message")
             displayHelp: Option[Boolean]
-             ): String = {
+           ): String = {
     "hello"
   }
 }
 
 class CommandLineOption
-(
+  (
   @option(symbol = "h", description = "display help")
   val displayHelp: Option[Boolean],
   @option(symbol = "f", description = "input files")
   val files: Array[String]
-  ) {
+) {
   @option(symbol = "o", description = "outdir")
   var outDir: String = "temp"
 }
@@ -291,7 +292,5 @@ object ImportSample {
 }
 
 class ImportSample {
-
   import ImportSample._
-
 }

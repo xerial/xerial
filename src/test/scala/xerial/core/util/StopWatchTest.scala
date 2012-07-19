@@ -16,8 +16,6 @@
 
 package xerial.core.util
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import xerial.core.XerialSpec
 
 //--------------------------------------

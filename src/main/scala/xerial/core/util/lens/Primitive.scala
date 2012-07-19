@@ -44,15 +44,6 @@ object Primitive {
 
   val values = Seq(Boolean, Short, Byte, Char, Int, Float, Long, Double)
 
-  val javaPrimitiveObjectTypes =
-    Set[Class[_]](classOf[jl.Integer], classOf[jl.Short], classOf[jl.Long], classOf[jl.Character],
-      classOf[jl.Float], classOf[jl.Byte], classOf[jl.Double], classOf[jl.Boolean], classOf[jl.String]
-      //  , jl.Integer.TYPE, jl.Short.TYPE, jl.Character.TYPE, jl.Long.TYPE, jl.Float.TYPE, jl.Byte.TYPE, jl.Boolean.TYPE
-    )
-  val scalaPrimitiveTypes: Set[Class[_]] =
-    Set[Class[_]](classOf[Int], classOf[Short], classOf[Long], classOf[Char], classOf[Float], classOf[Byte],
-      classOf[Double], classOf[Boolean])
-
   def isPrimitive(cl: Class[_]): Boolean = {
     cl.isPrimitive || primitiveTable.contains(cl)
   }
