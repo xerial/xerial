@@ -103,7 +103,7 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
     updateValueHolder(name, p.valueType, value)
   }
 
-  private def updateValueHolder(name: String, valueType: ValueType, value: Any): Unit = {
+  private def updateValueHolder(name: String, valueType: ObjectType, value: Any): Unit = {
     trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
     if (canBuildFromBuffer(valueType.rawType)) {
       val t = valueType.asInstanceOf[GenericType]

@@ -7,7 +7,7 @@
 
 package xerial.core.lens
 
-import xerial.core.lens
+
 import collection.mutable
 import java.text.DateFormat
 import java.io.File
@@ -20,12 +20,12 @@ object TypeConverter {
   import TypeUtil._
   import java.lang.{reflect=>jr}
 
-  def convert(value: Any, targetType: ValueType): Any = {
+  def convert(value: Any, targetType: ObjectType): Any = {
     if (targetType.isOption) {
       if (isOption(value.getClass))
         value
       else {
-        val gt: Seq[ValueType] = targetType.asInstanceOf[GenericType].genericTypes
+        val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
         Some(convert(value, gt(0)))
       }
     }
@@ -39,7 +39,7 @@ object TypeConverter {
         value
       else if (TypeUtil.isBuffer(s)) {
         val buf = value.asInstanceOf[mutable.Buffer[_]]
-        val gt: Seq[ValueType] = targetType.asInstanceOf[GenericType].genericTypes
+        val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
         val e = gt(0).rawType
         type E = e.type
         if (TypeUtil.isArray(t)) {
@@ -82,10 +82,10 @@ object TypeConverter {
   /**
    * Convert the input value into the target type
    */
-  def convertToPrimitive[A](value: Any, targetType: Type): A = {
+  def convertToPrimitive[A](value: Any, targetType: ObjectType): A = {
     val s = value.toString
     val v: Any = targetType match {
-      case BasicType.String => s
+      case TextType.String => s
       case Primitive.Boolean => s.toBoolean
       case Primitive.Int => s.toInt
       case Primitive.Float => s.toFloat
@@ -94,8 +94,8 @@ object TypeConverter {
       case Primitive.Short => s.toShort
       case Primitive.Byte => s.toByte
       case Primitive.Char if (s.length == 1) => s(0)
-      case BasicType.File => new File(s)
-      case BasicType.Date => DateFormat.getDateInstance.parse(s)
+      case TextType.File => new File(s)
+      case TextType.Date => DateFormat.getDateInstance.parse(s)
       case _ =>
         throw new IllegalArgumentException("""Failed to convert "%s" to %s""".format(s, targetType.toString))
     }

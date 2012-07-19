@@ -68,7 +68,7 @@ object TypeUtil {
    * @param input
    * @param valueType
    */
-  def toBuffer(input: Any, valueType: ValueType): collection.mutable.Buffer[_] = {
+  def toBuffer(input: Any, valueType: ObjectType): collection.mutable.Buffer[_] = {
 
     def err = throw new IllegalArgumentException("cannot convert to ArrayBuffer: %s".format(valueType))
 
@@ -148,11 +148,11 @@ object TypeUtil {
       }
       v.asInstanceOf[A]
     }
-    else if (BasicType.isBasicType(cl)) {
-      val v: Any = BasicType(cl) match {
-        case BasicType.String => ""
-        case BasicType.Date => new java.util.Date(0)
-        case BasicType.File => new File("")
+    else if (TextType.isTextType(cl)) {
+      val v: Any = TextType(cl) match {
+        case TextType.String => ""
+        case TextType.Date => new java.util.Date(0)
+        case TextType.File => new File("")
       }
       v.asInstanceOf[A]
     }
