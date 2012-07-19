@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package xerial.core.util.lens
+package xerial.core.lens
 
 
 import io.Source
 import xerial.core.XerialSpec
-import xerial.core.util.cui.option
+import xerial.core.cui.option
 
 
 //--------------------------------------

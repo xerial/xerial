@@ -5,7 +5,7 @@
 //
 //--------------------------------------
 
-package xerial.core.util.cui
+package xerial.core.cui
 
 import xerial.core.XerialSpec
 

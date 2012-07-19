@@ -1,4 +1,4 @@
-package xerial.core.util.cui
+package xerial.core.cui
 
 //--------------------------------------
 //
@@ -7,11 +7,11 @@ package xerial.core.util.cui
 //
 //--------------------------------------
 
-import xerial.core.util.lens.{ObjectBuilder, GenericBuilder, ObjectSchema}
+import xerial.core.lens.{ObjectBuilder, GenericBuilder, ObjectSchema}
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
-import xerial.core.util.lens.ObjectSchema.{Method, Parameter}
+import xerial.core.lens.ObjectSchema.{Method, Parameter}
 import xerial.core.util.{TypeUtil, Logging, StringTemplate}
 
 /**

@@ -1,4 +1,4 @@
-package xerial.core.util.lens
+package xerial.core.lens
 
 import xerial.core.XerialSpec
 

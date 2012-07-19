@@ -1,4 +1,4 @@
-package xerial.core.util.lens
+package xerial.core.lens
 
 /*
  * Copyright 2012 Taro L. Saito
@@ -17,7 +17,7 @@ package xerial.core.util.lens
  */
 
 import collection.mutable.{ArrayBuffer, ArrayBuilder, Buffer, Map}
-import xerial.core.util.lens.ObjectSchema.{GenericType, FieldParameter, Parameter, ValueType}
+import xerial.core.lens.ObjectSchema.{GenericType, FieldParameter, Parameter, ValueType}
 import xerial.core.util.{Reflect, TypeUtil, Logging}
 
 

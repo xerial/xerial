@@ -4,9 +4,9 @@ package xerial.core.util
 import collection.mutable
 import java.io.File
 import java.text.DateFormat
-import xerial.core.util.lens.{Primitive, Type, BasicType, ObjectSchema}
+import xerial.core.lens.{Primitive, Type, BasicType, ObjectSchema}
 import mutable.ArrayBuffer
-import xerial.core.util.lens.ObjectSchema.{GenericType, ValueType}
+import xerial.core.lens.ObjectSchema.{GenericType, ValueType}
 import java.lang.{reflect=>jr}
 
 
