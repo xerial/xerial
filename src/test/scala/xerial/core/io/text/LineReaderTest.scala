@@ -1,7 +1,8 @@
 package xerial.core.io.text
 
 import xerial.core.XerialSpec
-import java.io.{StringReader, ByteArrayInputStream}
+import util.Random
+import java.io.{InputStreamReader, BufferedReader, StringReader, ByteArrayInputStream}
 
 //--------------------------------------
 //
@@ -85,6 +86,44 @@ class LineReaderTest extends XerialSpec {
       line(0) should be ("Hello World")
       line(1) should be ("Thanks for using xerial-core!!!")
       line(2) should be ("Taro L. Saito")
+    }
+    
+    val sampleData = {
+      val r = new Random(0)
+      def randomLine = r.nextString(r.nextInt(100))
+      
+      val b = new StringBuilder
+      for(i <- 0 until 100000)
+        b.append(randomLine)
+      
+      b.result.getBytes("UTF-8")
+    }
+    
+    "read lines faster than BufferedReader" in {
+      import xerial.core.util.StopWatch._
+      
+      val t = time("reader", repeat=10) {
+        block("LineReader") {
+          val l = LineReader(new ByteArrayInputStream(sampleData))
+          def loop {
+            if(l.nextLine.isDefined)
+              loop
+          }
+          loop
+        }
+        
+        block("BufferedReader") {
+          val l = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(sampleData)))
+          def loop {
+            if(l.readLine() != null)
+              loop
+          }
+          loop
+        }
+      }
+
+      t("LineReader") should be < (t("BufferedReader"))
+      
     }
 
 
