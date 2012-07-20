@@ -34,10 +34,7 @@ trait Type {
 }
 
 trait ObjectMethod extends Type {
-}
 
-trait ObjectName { this : ObjectType =>
-  override val name = this.getClass.getSimpleName.replaceAll("""\$""", "")
 }
 
 /**
@@ -46,12 +43,15 @@ trait ObjectName { this : ObjectType =>
  * @param rawType
  */
 abstract class ObjectType(val rawType: Class[_]) extends Type {
-  val name = this.getClass.getSimpleName
-
+  val name : String = this.getClass.getSimpleName
   override def toString = name
   def isOption = false
   def isBooleanType = false
   def isGenericType = false
+}
+
+trait ValueObject extends ObjectType {
+  override val name : String = this.getClass.getSimpleName.replaceAll("""\$""", "")
 }
 
 /**
@@ -102,13 +102,13 @@ object Primitive {
 }
 
 
-sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ObjectName
+sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ValueObject
 
 /**
  * Types that can be constructed from String
  * @param cl
  */
-sealed abstract class TextType(cl: Class[_]) extends ObjectType(cl) with ObjectName
+sealed abstract class TextType(cl: Class[_]) extends ObjectType(cl) with ValueObject
 
 object TextType {
   object String extends TextType(classOf[String])

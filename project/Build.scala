@@ -71,7 +71,7 @@ object XerialBuild extends Build {
     crossPaths := false,
     //crossScalaVersions := Seq("2.10.0-M1", "2.9.1-1", "2.9.1"),
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
-    pomExtra := { 
+    pomExtra := {
       <licenses>
         <license>
           <name>Apache 2</name>
