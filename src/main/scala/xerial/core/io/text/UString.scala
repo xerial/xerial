@@ -6,12 +6,12 @@ import collection.mutable.Builder
 
 //--------------------------------------
 //
-// UTF8String.scala
+// UStringala
 // Since: 2012/07/20 9:24
 //
 //--------------------------------------
 
-object UTF8String {
+object UString {
   val UTF8: Charset = Charset.forName("UTF-8")
 
   trait Copier[E] {
@@ -28,8 +28,8 @@ object UTF8String {
     def copy(src: Array[Char], offset: Int, len: Int) = new String(src, offset, len).getBytes(UTF8)
   }
 
-  def apply[E](input: Array[E], offset: Int, len: Int)(implicit b: Copier[E]) = new UTF8String(b.copy(input, offset, len))
-  def apply(str:String) = new UTF8String(str)
+  def apply[E](input: Array[E], offset: Int, len: Int)(implicit b: Copier[E]) = new UString(b.copy(input, offset, len))
+  def apply(str:String) = new UString(str)
 }
 
 
@@ -37,11 +37,11 @@ object UTF8String {
  * Raw byte array representation of a string before translating into java string (UCF)
  * @author leo
  */
-class UTF8String(private[text] val byte: Array[Byte]) extends CharSequence with IndexedSeqOptimized[Byte, UTF8String] with Ordered[UTF8String] {
+class UString(private[text] val byte: Array[Byte]) extends CharSequence with IndexedSeqOptimized[Byte, UString] with Ordered[UString] {
 
-  private[UTF8String] lazy val javaString: String = new String(byte, UTF8String.UTF8)
+  private[UString] lazy val javaString: String = new String(byte, UString.UTF8)
 
-  def this(s: String) = this(s.getBytes(UTF8String.UTF8))
+  def this(s: String) = this(s.getBytes(UString.UTF8))
 
   def apply(index: Int): Byte = byte(index)
   def getBytes: Array[Byte] = byte
@@ -69,11 +69,11 @@ class UTF8String(private[text] val byte: Array[Byte]) extends CharSequence with 
     return h
   }
 
-  override def canEqual(other: Any): Boolean = other.isInstanceOf[UTF8String]
+  override def canEqual(other: Any): Boolean = other.isInstanceOf[UString]
 
   override def equals(other: Any): Boolean = {
     if (canEqual(other)) {
-      val o: UTF8String = other.asInstanceOf[UTF8String]
+      val o: UString = other.asInstanceOf[UString]
       if (this.length != o.length)
         false
       else
@@ -83,15 +83,15 @@ class UTF8String(private[text] val byte: Array[Byte]) extends CharSequence with 
       false
   }
 
-  protected[this] def newBuilder : Builder[Byte, UTF8String] = new UTF8StringBuilder
+  protected[this] def newBuilder : Builder[Byte, UString] = new UTF8StringBuilder
 
-  def compare(that: UTF8String) = this.javaString.compare(that.javaString)
+  def compare(that: UString) = this.javaString.compare(that.javaString)
 }
 
 
-class UTF8StringBuilder extends Builder[Byte, UTF8String] {
+class UTF8StringBuilder extends Builder[Byte, UString] {
   private val b = Array.newBuilder[Byte]
   def +=(elem: Byte) = { b += elem; this }
   def clear() { b. clear }
-  def result() = new UTF8String(b.result)
+  def result() = new UString(b.result)
 }

@@ -47,7 +47,7 @@ class ByteBuffer(source: InputStream, private[text] val buffer: Array[Byte]) ext
   def length = buffer.length
   def apply(index: Int) = buffer(index)
   def feed(offset: Int, length: Int) = source.read(buffer, offset, length)
-  def toRawString(offset: Int, length: Int) = UTF8String(buffer, offset, length)
+  def toRawString(offset: Int, length: Int) = UString(buffer, offset, length)
   def close {
     source.close
   }
@@ -91,14 +91,14 @@ class ByteArrayBuilder(initialSize: Int) extends TextBuilder {
   private val out = new ByteArrayOutputStream(initialSize)
   def append(buf: TextBuffer, offset: Int, length: Int) =
     out.write(buf.asInstanceOf[ByteBuffer].buffer, offset, length)
-  def toRawString = new UTF8String(out.toByteArray)
+  def toRawString = new UString(out.toByteArray)
   def size = out.size
 }
 class CharArrayBuilder(initialSize: Int) extends TextBuilder {
   private val out = new StringBuilder
   def append(buf: TextBuffer, offset: Int, length: Int) =
     out.appendAll(buf.asInstanceOf[CharBuffer].buffer, offset, length)
-  def toRawString = new UTF8String(out.toString)
+  def toRawString = new UString(out.toString)
   def size = out.length
 }
 
@@ -118,7 +118,7 @@ object LineReader {
   private def bufferOf(s: CharSequence): TextBuffer = {
     s match {
       case str: String => new ByteBuffer(str.getBytes)
-      case u: UTF8String => new ByteBuffer(u.byte)
+      case u: UString => new ByteBuffer(u.byte)
       case _ => new CharBuffer(s)
     }
   }
@@ -132,7 +132,8 @@ private[text] class ReaderState(var cursor: Int) {
 
 
 /**
- * Fast line reader
+ * Fast line reader. When byte stream is passed to this reader, it is much faster
+ * than the standard BufferedReader because LineReader does not translate byte arrays into char arrays.
  *
  * @author leo
  */

@@ -4,32 +4,31 @@ import xerial.core.XerialSpec
 
 //--------------------------------------
 //
-// UTF8StringTest.scala
-// Since: 2012/07/20 10:31
+// UStringTest.scala Since: 2012/07/20 10:31
 //
 //--------------------------------------
 
 /**
  * @author leo
  */
-class UTF8StringTest extends XerialSpec {
+class UStringTest extends XerialSpec {
 
-  "UTF8String" should {
+  "UString" should {
     
     "generate a raw string" in {
-      val u = UTF8String("hello world!")
+      val u = UString("hello world!")
       debug(u)
       u.length should be (12)
     }
 
     "be held in Set" in {
-      val m = Set(UTF8String("hello"), UTF8String("UTF8"))
+      val m = Set(UString("hello"), UString("UTF8"))
       debug(m)
       m.size should be (2)
     }
     
     "be comparable with texts" in {
-      val s = UTF8String("%silk - version:1.0")
+      val s = UString("%silk - version:1.0")
       s(0) should be ('%')
       s.startsWith("%silk") should be (true)
     }
