@@ -28,6 +28,12 @@ class UTF8StringTest extends XerialSpec {
       m.size should be (2)
     }
     
+    "be comparable with texts" in {
+      val s = UTF8String("%silk - version:1.0")
+      s(0) should be ('%')
+      s.startsWith("%silk") should be (true)
+    }
+    
   }
   
 }

@@ -37,7 +37,7 @@ object UTF8String {
  * Raw byte array representation of a string before translating into java string (UCF)
  * @author leo
  */
-class UTF8String(private[UTF8String] val byte: Array[Byte]) extends CharSequence with IndexedSeqOptimized[Byte, UTF8String] with Ordered[UTF8String] {
+class UTF8String(private[text] val byte: Array[Byte]) extends CharSequence with IndexedSeqOptimized[Byte, UTF8String] with Ordered[UTF8String] {
 
   private[UTF8String] lazy val javaString: String = new String(byte, UTF8String.UTF8)
 
@@ -48,6 +48,7 @@ class UTF8String(private[UTF8String] val byte: Array[Byte]) extends CharSequence
   def length: Int = byte.length
   def seq = byte
 
+  // The following methods in CharSequences are defined for compatibility with java methods
   override def toString: String = javaString
   def charAt(index: Int): Char = javaString.charAt(index)
   def subSequence(start: Int, end: Int): CharSequence = javaString.subSequence(start, end)
