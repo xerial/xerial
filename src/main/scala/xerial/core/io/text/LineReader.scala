@@ -138,7 +138,7 @@ private[text] class ReaderState(var cursor: Int) {
  */
 class LineReader(buffer: TextBuffer,
                  private var bufferLimit: Int = 0,
-                 private var foundEOF: Boolean = false) {
+                 private var foundEOF: Boolean = false) extends Iterable[CharSequence] {
 
   private val markQueue = new ArrayDeque[ReaderState]
   private var current = new ReaderState(0)
@@ -365,4 +365,27 @@ class LineReader(buffer: TextBuffer,
     current = markQueue.pollLast()
   }
 
+  def iterator = new Iterator[CharSequence] {
+    var prev : Option[CharSequence] = None
+
+    def hasNext = {
+      if(prev.isDefined)
+        true
+      else {
+        prev = nextLine
+        prev.isDefined
+      }
+    }
+
+    def next() = {
+      if(hasNext) {
+        val line = prev.get
+        prev = None
+        line
+      }
+      else
+        throw new NoSuchElementException("next")
+    }
+
+  }
 }
