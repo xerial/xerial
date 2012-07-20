@@ -93,8 +93,10 @@ class LineReaderTest extends XerialSpec {
       def randomLine = r.nextString(r.nextInt(100))
       
       val b = new StringBuilder
-      for(i <- 0 until 100000)
+      for(i <- 0 until 100000) {
         b.append(randomLine)
+        b.append("\r\n") // add CRLF
+      }
       
       b.result.getBytes("UTF-8")
     }
