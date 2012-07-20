@@ -55,16 +55,19 @@ class ByteBuffer(source: InputStream, private[text] val buffer: Array[Byte]) ext
   def newBuilder(initialBufferSize: Int) = new ByteArrayBuilder(initialBufferSize)
 }
 
-class CharBuffer(source: Reader, private[text] val buffer: Array[Char]) extends TextBuffer {
-  def this(source: Reader, bufferSize: Int) = this(source, new Array[Char](bufferSize))
-
-  private def toArray(s: CharSequence) = {
+object CharBuffer {
+  private[CharBuffer] def toArray(s: CharSequence) = {
     val a = new Array[Char](s.length)
     for (i <- 0 until s.length)
       a(i) = s.charAt(i)
     a
   }
-  def this(s: CharSequence) = this(EmptyReader, toArray(s))
+}
+
+class CharBuffer(source: Reader, private[text] val buffer: Array[Char]) extends TextBuffer {
+  def this(source: Reader, bufferSize: Int) = this(source, new Array[Char](bufferSize))
+
+  def this(s: CharSequence) = this(EmptyReader, CharBuffer.toArray(s))
 
   def length = buffer.length
   def apply(index: Int) = buffer(index)
@@ -94,7 +97,7 @@ class ByteArrayBuilder(initialSize: Int) extends TextBuilder {
 class CharArrayBuilder(initialSize: Int) extends TextBuilder {
   private val out = new StringBuilder
   def append(buf: TextBuffer, offset: Int, length: Int) =
-    out.append(buf.asInstanceOf[CharBuffer].buffer, offset, length)
+    out.appendAll(buf.asInstanceOf[CharBuffer].buffer, offset, length)
   def toRawString = new UTF8String(out.toString)
   def size = out.length
 }
@@ -102,12 +105,12 @@ class CharArrayBuilder(initialSize: Int) extends TextBuilder {
 object LineReader {
   val EOF = -1;
 
-  def apply(in: InputStream) = apply(in, 8 * 1024) // 8kb buffer
-  def apply(in: InputStream, bufferSize: Int) = new LineReader(new ByteBuffer(in, bufferSize))
-  def apply(in: Reader) = apply(in, 8 * 1024) // 8kb buffer
-  def apply(in: Reader, bufferSize: Int) = new LineReader(new CharBuffer(in, bufferSize))
-  def apply(buffer: TextBuffer) = new LineReader(buffer)
-  def apply(s: CharSequence) = {
+  def apply(in: InputStream): LineReader = apply(in, 8 * 1024) // 8kb buffer
+  def apply(in: InputStream, bufferSize: Int): LineReader = new LineReader(new ByteBuffer(in, bufferSize))
+  def apply(in: Reader): LineReader = apply(in, 8 * 1024) // 8kb buffer
+  def apply(in: Reader, bufferSize: Int): LineReader = new LineReader(new CharBuffer(in, bufferSize))
+  def apply(buffer: TextBuffer): LineReader = new LineReader(buffer)
+  def apply(s: CharSequence): LineReader = {
     val buf = bufferOf(s)
     new LineReader(buf, buf.length, true)
   }
@@ -122,7 +125,7 @@ object LineReader {
 
 }
 
-private[LineReader] class ReaderState(var cursor: Int) {
+private[text] class ReaderState(var cursor: Int) {
   def this(other: ReaderState) = this(other.cursor)
   override def toString = "%d".format(cursor)
 }
@@ -147,11 +150,11 @@ class LineReader(buffer: TextBuffer,
   def reachedEOF = foundEOF && current.cursor >= bufferLimit
 
   def nextLine: Option[CharSequence] = {
-    var currentLine: TextBuilder = null
+    var lineBuf: TextBuilder = null
 
-    def getCurrentLine : Option[CharSequence] = {
-      if (currentLine != null && currentLine.size > 0)
-        Some(currentLine.toRawString)
+    def currentLine: Option[CharSequence] = {
+      if (lineBuf != null && lineBuf.size > 0)
+        Some(lineBuf.toRawString)
       else
         None
     }
@@ -162,7 +165,7 @@ class LineReader(buffer: TextBuffer,
         fill
 
       if (current.cursor >= bufferLimit)
-        getCurrentLine
+        currentLine
       else {
         var eol = false
         var i = current.cursor
@@ -185,19 +188,19 @@ class LineReader(buffer: TextBuffer,
           if (ch == '\r' && LA(1) == '\n')
             current.cursor += 1
 
-          if (currentLine == null) {
+          if (lineBuf == null) {
             Some(buffer.toRawString(start, len))
           }
           else {
-            currentLine.append(buffer, start, len);
+            lineBuf.append(buffer, start, len);
             //incrementLineCount();
-            getCurrentLine
+            currentLine
           }
         }
         else {
-          if (currentLine == null)
-            currentLine = buffer.newBuilder(16);
-          currentLine.append(buffer, start, len);
+          if (lineBuf == null)
+            lineBuf = buffer.newBuilder(16);
+          lineBuf.append(buffer, start, len);
           loop
         }
       }
@@ -237,144 +240,129 @@ class LineReader(buffer: TextBuffer,
   }
 
   private def fill: Boolean = {
-    if (reachedEOF) {
+    if (foundEOF)
       false
-    }
-    // Move the [mark ... limit)
-    if (!markQueue.isEmpty()) {
-      val mark = markQueue.peekFirst()
-      val lenToPreserve = bufferLimit - mark.cursor
-      if (lenToPreserve < buffer.length) {
-        // Move [mark.cursor, limit) to the [0, ..., mark.cursor)
-        if (lenToPreserve > 0)
-          buffer.slide(mark.cursor, lenToPreserve)
-        bufferLimit = lenToPreserve
-        current.cursor -= mark.cursor
-        val slideLen = mark.cursor
-        import collection.JavaConversions._
-        for (each <- markQueue)
-          each.cursor -= slideLen
+    else {
+      // Move the [mark ... limit)
+      if (!markQueue.isEmpty()) {
+        val mark = markQueue.peekFirst()
+        val lenToPreserve = bufferLimit - mark.cursor
+        if (lenToPreserve < buffer.length) {
+          // Move [mark.cursor, limit) to the [0, ..., mark.cursor)
+          if (lenToPreserve > 0)
+            buffer.slide(mark.cursor, lenToPreserve)
+          bufferLimit = lenToPreserve
+          current.cursor -= mark.cursor
+          val slideLen = mark.cursor
+          import collection.JavaConversions._
+          for (each <- markQueue)
+            each.cursor -= slideLen
+        }
+        else {
+          // The buffer got too big, invalidate the mark
+          markQueue.clear()
+          bufferLimit = 0
+          current.cursor = 0
+        }
       }
       else {
-        // The buffer got too big, invalidate the mark
-        markQueue.clear()
-        bufferLimit = 0
-        current.cursor = 0
+        bufferLimit = 0;
+        current.cursor = 0;
+      }
+      // Read the data from the stream, and fill the buffer
+      val readLen = buffer.length - bufferLimit
+      val readBytes = buffer.feed(current.cursor, readLen)
+      if (readBytes < readLen)
+        foundEOF = true
+
+      if (readBytes == -1)
+        false
+      else {
+        bufferLimit += readBytes
+        true
       }
     }
-    else {
-      bufferLimit = 0;
-      current.cursor = 0;
-    }
-    // Read the data from the stream, and fill the buffer
-    val readLen = buffer.length - bufferLimit
-    val readBytes = buffer.feed(current.cursor, readLen)
-    if (readBytes < readLen)
-      reachedEOF = true
-
-    if (readBytes == -1)
-      false
-    else {
-      bufferLimit += readBytes
-      true
-    }
   }
 
-  public Range getSelectedRange() {
+  def getSelectedRange: Range = {
     if (markQueue.isEmpty())
-      throw new NullPointerException("no mark is set");
-    return new Range(markQueue.getLast().cursor, current.cursor);
+      sys.error("no mark is set");
+    markQueue.getLast.cursor until current.cursor
   }
 
-  public CharSequence selectedRawString() {
-    Range r = getSelectedRange();
-    return buffer.toRawString(r.begin, r.size());
+  def selected = {
+    val r = getSelectedRange
+    buffer.toRawString(r.start, r.length)
   }
 
-  public CharSequence selectedRawStringWithTrimming() {
-    Range r = trim(getSelectedRange());
-    return buffer.toRawString(r.begin, r.size());
+  def trimSelected = {
+    val r = trim(getSelectedRange)
+    buffer.toRawString(r.start, r.length)
   }
 
-  private static class Range {
-    public final int begin;
-    public final int end;
+  private def trim(input: Range): Range = {
+    var start = input.start
+    var end = input.end
 
-    public Range (int begin, int end) {
-      this.begin = begin;
-      this.end = end;
+    def isWhiteSpace(c: Int): Boolean = (c == ' ' || c == '\t' || c == '\r' || c != '\n')
+
+    @tailrec
+    def trimHead(i: Int): Int = {
+      if (i < end) {
+        if (isWhiteSpace(buffer(i)))
+          trimHead(i + 1)
+        else
+          i
+      }
+      else
+        i
     }
 
-    public int size() {
-      return end - begin;
+    start = trimHead(start)
+
+    @tailrec
+    def trimTail(i: Int): Int = {
+      if (start < i) {
+        if (isWhiteSpace(buffer(i)))
+          trimTail(i - 1)
+        else
+          i
+      }
+      else
+        i
     }
 
-    @Override
-    public String toString() {
-      return String.format("[%d,%d)", begin, end);
-    }
+    end = trimTail(end)
+    if (start >= end)
+      start = end
+
+    Range(start, end)
   }
 
-  Range trim (Range input) {
-    int begin = input.begin;
-    int end = input.end;
-    for (;
-    begin < end;
-    begin ++)
-    {
-      int c = buffer.get(begin);
-      if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
-        break;
-    }
-    for (;
-    begin < end;
-    end --)
-    {
-      int c = buffer.get(end - 1);
-      if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
-        break;
-    }
-    if (begin >= end) {
-      begin = end;
-    }
-    int size = end - begin;
-    return new Range(begin, end);
-  }
-
-  Range trim () {
-    return trim(getSelectedRange());
-  }
-
-  public CharSequence selectedRawString(int margin) {
+  def selected(margin: Int) = {
     if (markQueue.isEmpty())
-      return null;
-    Range selected = getSelectedRange();
-    Range trimmed = new Range(selected.begin + margin, selected.end - margin);
-    return buffer.toRawString(trimmed.begin, trimmed.size());
+      sys.error("no mark is set")
+    val r = getSelectedRange
+    val trimmed = (r.start + margin) until (r.end - margin)
+    buffer.toRawString(trimmed.start, trimmed.length)
   }
 
-  public CharSequence selectedRawStringFromFirstMark() {
-    Range selected = new Range(markQueue.peekFirst().cursor, current.cursor);
-    return buffer.toRawString(selected.begin, selected.size());
+  def selectedFromFirstMark = {
+    val r = markQueue.peekFirst().cursor until current.cursor
+    buffer.toRawString(r.start, r.length)
   }
 
-  public int distanceFromFirstMark() {
-    return current.cursor - markQueue.peekFirst().cursor;
-  }
+  def distanceFromFirstMark = current.cursor - markQueue.peekFirst().cursor
 
-  public void mark() {
-    markQueue.add(new ScannerState(current));
-  }
+  def mark: Unit = markQueue.add(new ReaderState(current))
 
-  public void resetMarks() {
-    markQueue.clear();
-  }
+  def resetMarks: Unit = markQueue.clear()
 
   /**
    * Reset the stream position to the last marker.
    */
-  public void rewind() {
-    current = markQueue.pollLast();
+  def rewind: Unit = {
+    current = markQueue.pollLast()
   }
 
 }

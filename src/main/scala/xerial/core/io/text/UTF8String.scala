@@ -17,14 +17,14 @@ object UTF8String {
   trait Copier[E] {
     def copy(src: Array[E], offset: Int, len: Int): Array[Byte]
   }
-  private class CopierByte extends Copier[Byte] {
+  implicit object ByteCopier extends Copier[Byte] {
     def copy(src: Array[Byte], offset: Int, len: Int) = {
       val c = new Array[Byte](len)
       System.arraycopy(src, offset, c, 0, len)
       c
     }
   }
-  private class CopierChar extends Copier[Char] {
+  implicit object CharCopier extends Copier[Char] {
     def copy(src: Array[Char], offset: Int, len: Int) = new String(src, offset, len).getBytes(UTF8)
   }
 
