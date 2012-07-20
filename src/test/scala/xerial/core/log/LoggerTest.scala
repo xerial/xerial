@@ -27,7 +27,7 @@ class LoggerTest extends XerialSpec {
 
 
     "support nested logging" in {
-      val l = logger('sub)
+      val l = getLogger('sub)
       l.debug("hello sub logger")
     }
 
@@ -35,7 +35,7 @@ class LoggerTest extends XerialSpec {
       debug("sub log test")
       def loop(i: Int): Unit = {
         if (i >= 0) {
-          val l = logger('sub)
+          val l = getLogger('sub)
           l.debug("recursion: %d", i)
           loop(i - 1)
         }
@@ -64,7 +64,7 @@ class LoggerTest extends XerialSpec {
 
     "support file logger" in {
       pending
-      val l = logger('file)
+      val l = getLogger('file)
     }
 
   }

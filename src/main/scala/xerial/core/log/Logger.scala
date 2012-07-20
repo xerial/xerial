@@ -52,7 +52,7 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
  */
 trait Logging extends LogHelper {
 
-  private val logger = Logger(this.getClass)
+  private[this] val logger = Logger(this.getClass)
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.isEnabled(logLevel))
@@ -64,23 +64,20 @@ trait Logging extends LogHelper {
    * @param tag
    * @return
    */
-  protected def logger(tag: Symbol): Logger = Logger(logger, tag)
+  protected def getLogger(tag: Symbol): Logger = Logger(logger, tag)
 
   /**
    * Create a sub logger with a given tag name
    * @param tag
    * @return
    */
-  protected def logger(tag: String): Logger = logger(Symbol(tag))
+  protected def getLogger(tag: String): Logger = getLogger(Symbol(tag))
 
   protected def log[U](tag: String)(f: Logger => U) {
-    f(logger(tag))
+    f(getLogger(tag))
   }
 
 }
-
-
-
 
 
 
@@ -167,7 +164,7 @@ trait Logger extends LogHelper {
 
 object Logger {
 
-  private def defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
+  private[log] var defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
 
   private val rootLoggerName = "root"
   val rootLogger = new ConsoleLogger(rootLoggerName, defaultLogLevel)
@@ -193,7 +190,7 @@ object Logger {
     def property(key: String) = Option(System.getProperty(key))
 
     def getLogLevel = {
-      val l = property("loglevel:%s".format(name)) orElse {
+      val l = property("loglevel:%s".format(leafName(name))) orElse {
         property("loglevel:%s".format(leafName(name)))
       } getOrElse defaultLogLevel.name
       LogLevel(l)
@@ -224,6 +221,7 @@ object Logger {
   }
 
 
+
   def setLogLevelJMX(loggerName:String, logLevel:String) {
     val lc = JMX.newMBeanProxy(ManagementFactory.getPlatformMBeanServer, configMBeanName, classOf[LoggerConfig], true)
     lc.setLogLevel(loggerName, logLevel)
@@ -232,7 +230,14 @@ object Logger {
   def setLogLevelJMX(server:MBeanServerConnection, loggerName:String, logLevel:String) {
     val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
     lc.setLogLevel(loggerName, logLevel)
+    rootLogger.info("Set the loglevel of %s to %s", loggerName, logLevel)
   }
+  def setDefaultLogLevelJMX(server:MBeanServerConnection, logLevel:String) {
+    val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
+    lc.setDefaultLogLevel(logLevel)
+    rootLogger.info("Set the default loglevel to %s", logLevel)
+  }
+
 
   def getJMXServerAddress(pid:Int) : Option[String] = {
     Option(sun.management.ConnectorAddressLink.importFrom(pid))
@@ -242,10 +247,31 @@ object Logger {
    *
    */
   private def getJMXServer(pid:Int) : Option[MBeanServerConnection] = {
-    getJMXServerAddress(pid).map { addr =>
+    rootLogger.info("Searching for JMX server pid:%d", pid)
+    val server = getJMXServerAddress(pid).map { addr =>
       JMXConnectorFactory.connect(new JMXServiceURL(addr))
     } map (_.getMBeanServerConnection)
+
+    if(server.isEmpty)
+      rootLogger.warn("No JMX server (pid:%d) is found", pid)
+    else
+      rootLogger.info("Found a JMX server pid:%d", pid)
+    server
   }
+
+
+  def setLogLevel(pid:Int, loggerName:String, logLevel:String) {
+    for(server <- getJMXServer(pid)) {
+      setLogLevelJMX(server, loggerName, logLevel)
+    }
+  }
+
+  def setDefaultLogLevel(pid:Int, logLevel:String) {
+    for(server <- getJMXServer(pid)) {
+      setDefaultLogLevelJMX(server, logLevel)
+    }
+  }
+
 
   def main(args:Array[String]) {
     def at(index:Int) : Option[String] = {
@@ -256,8 +282,8 @@ object Logger {
     }
 
     // Resolve MBean port number
-    for(pid <- at(0); server <- getJMXServer(pid.toInt); loggerName <- at(1); logLevel <- at(2)) {
-      setLogLevelJMX(server, loggerName, logLevel)
+    for(pid <- at(0); loggerName <- at(1); logLevel <- at(2)) {
+      setLogLevel(pid.toInt, loggerName, logLevel)
     }
   }
 
@@ -270,10 +296,14 @@ import javax.management.MXBean
  */
 @MXBean abstract trait LoggerConfig {
   def setLogLevel(name: String, logLevel: String): Unit
+  def setDefaultLogLevel(logLevel:String) : Unit
+  def getDefaultLogLevel : String
 }
 
 
 class LoggerConfigImpl extends LoggerConfig {
+
+  def getDefaultLogLevel = Logger.defaultLogLevel.toString
 
   def setLogLevel(loggerName: String, logLevel: String)  {
     System.setProperty("loglevel:%s".format(loggerName), logLevel)
@@ -281,6 +311,12 @@ class LoggerConfigImpl extends LoggerConfig {
     val level = LogLevel(logLevel)
     logger.logLevel = level
     Logger.rootLogger.info("set the log level of %s to %s", loggerName, level)
+  }
+
+  def setDefaultLogLevel(logLevel:String) {
+    val level = LogLevel(logLevel)
+    System.setProperty("loglevel", level.toString)
+    Logger.rootLogger.info("set the default log level to %s", level)
   }
 }
 
