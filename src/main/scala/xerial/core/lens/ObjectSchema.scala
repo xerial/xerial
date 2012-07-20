@@ -162,7 +162,13 @@ object ObjectSchema extends Logging {
 
   private val sigCache = new WeakHashMap[Class[_], Option[ScalaSig]]
 
+  /**
+   * Find the Scala signature of the specified class
+   * @param cl
+   * @return scala signature of the class
+   */
   def findSignature(cl: Class[_]): Option[ScalaSig] = {
+    // Find an enclosing object containing the target class definition
     def enclosingObject(cl: Class[_]): Option[Class[_]] = {
       val pos = cl.getName.lastIndexOf("$")
       val parentClassName = cl.getName.slice(0, pos)
@@ -173,7 +179,6 @@ object ObjectSchema extends Logging {
         case e => None
       }
     }
-
 
     sigCache.getOrElseUpdate(cl, {
       val sig =
@@ -189,6 +194,7 @@ object ObjectSchema extends Logging {
           // ScalaSigParser throws NPE when noe signature for the class is found
           case _ => None
         }
+      // If no signature is found, search an enclosing object
       sig.orElse(enclosingObject(cl).flatMap(findSignature(_)))
     })
   }
@@ -300,6 +306,11 @@ object ObjectSchema extends Logging {
 
   private def parseEntries(sig: ScalaSig) = (0 until sig.table.length).map(sig.parseEntry(_))
 
+  /**
+   * Find parameters defined in the class
+   * @param cl
+   * @return
+   */
   def parametersOf(cl: Class[_]): Array[Parameter] = {
     findSignature(cl) match {
       case None => Array.empty
@@ -307,6 +318,8 @@ object ObjectSchema extends Logging {
         val entries = parseEntries(sig)
 
         val parents = findParentSchemas(cl)
+        val logger = getLogger("parameter")
+        logger.trace("parents: %s", parents.mkString(", "))
         val parentParams = parents.flatMap {
           p => p.parameters
         }.collect {
@@ -374,33 +387,38 @@ object ObjectSchema extends Logging {
           case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
         }
 
-        val methods = targetMethodSymbol.map {
+        def isAccessibleParams(params:Seq[MethodSymbol]) : Boolean = {
+          params.forall(p => !p.isByNameParam)
+        }
+
+        val methods = targetMethodSymbol.flatMap {
           s =>
             try {
+              trace("method: %s", s)
               s match {
                 case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
                   val jMethod = cl.getMethod(m.name)
-                  Some(Method(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
+                  Seq(Method(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
                 }
-                case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_])) => {
+                case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_]))
+                  if isAccessibleParams(paramSymbols.asInstanceOf[Seq[MethodSymbol]]) => {
                   val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
                   val jMethod = cl.getMethod(m.name, resolveMethodArgTypes(params): _*)
                   val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(jMethod, index, name, vt)
-                  Some(Method(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
+                  Seq(Method(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
                 }
-                case _ => None
+                case _ => Seq.empty
               }
             }
             catch {
               case e => {
                 warn("error occurred when accessing method %s : %s", s, e)
-                None
+                e.printStackTrace()
+                Seq.empty
               }
             }
         }
-        methods.collect {
-          case Some(x) => x
-        }.toArray
+        methods.toArray
       }
     }
 
@@ -460,7 +478,7 @@ object ObjectSchema extends Logging {
 
 
     if (typeSignature.typeArgs.isEmpty) {
-      StandardType(clazz)
+      ObjectType(clazz)
     }
     else {
       val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.map {

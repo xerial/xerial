@@ -46,10 +46,11 @@ object ObjectBuilder extends Logging {
     // collect default values of the object
     val schema = ObjectSchema(cl)
     val prop = Map.newBuilder[String, Any]
-
+    trace("class %s. values to set: %s", cl.getSimpleName, prop)
     // get the default values (including constructor parameters and fields)
     val default = TypeUtil.newInstance(cl)
     for (p <- schema.parameters) {
+      trace("set parameter: %s", p)
       prop += p.name -> p.get(default)
     }
 

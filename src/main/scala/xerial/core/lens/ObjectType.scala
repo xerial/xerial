@@ -18,13 +18,13 @@ import java.{lang => jl}
 
 object ObjectType {
 
-  def apply(cl: Class[_]): Option[ObjectType] = {
+  def apply(cl: Class[_]): ObjectType = {
     if (Primitive.isPrimitive(cl))
-      Some(Primitive(cl))
+      Primitive(cl)
     else if (TextType.isTextType(cl))
-      Some(TextType(cl))
+      TextType(cl)
     else
-      None
+      StandardType(cl)
   }
 
 }

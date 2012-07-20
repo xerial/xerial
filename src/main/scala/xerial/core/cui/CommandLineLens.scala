@@ -85,7 +85,7 @@ sealed abstract class CLOptionItem(val param: Parameter) {
  * @param annot
  * @param param
  */
-class CLOption(val annot: option, param: Parameter) extends CLOptionItem(param) {
+case class CLOption(val annot: option, override val param: Parameter) extends CLOptionItem(param) {
   override def takesArgument: Boolean = !param.valueType.isBooleanType
 }
 
@@ -94,7 +94,7 @@ class CLOption(val annot: option, param: Parameter) extends CLOptionItem(param) 
  * @param arg
  * @param param
  */
-class CLArgument(val arg: argument, param: Parameter) extends CLOptionItem(param) {
+case class CLArgument(val arg: argument, override val param: Parameter) extends CLOptionItem(param) {
   def name: String = {
     var n = arg.name
     if (n.isEmpty)
@@ -141,6 +141,7 @@ trait OptionSchema extends Logging {
     l.map("[%s]".format(_)).mkString(" ")
   }
 
+  override def toString = "options:[%s], args:[%s]".format(options.mkString(", "), args.mkString(", "))
 }
 
 /**
@@ -231,15 +232,19 @@ class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Ar
  *
  * @author leo
  */
-class OptionParser(val schema: OptionSchema) {
+class OptionParser(val schema: OptionSchema) extends Logging {
 
   def this(m: Method) = this(new MethodOptionSchema(m))
 
   import OptionParser._
 
   def build[A](args: Array[String], b: GenericBuilder): OptionParserResult = {
+    trace("schema: " + schema)
+
     val result = parse(args)
+    val logger = getLogger("build")
     for (each <- result.mapping) {
+      logger.trace("build option: %s", each)
       each match {
         case OptSetFlag(opt) => b.set(opt.param.name, "true")
         case OptMapping(opt, value) => b.set(opt.param.name, value)
@@ -359,8 +364,12 @@ class OptionParser(val schema: OptionSchema) {
     val optionValues = collection.mutable.Map[CLOptionItem, ArrayBuffer[String]]()
     val unusedArguments = new ArrayBuffer[String]
 
+    val logger = getLogger("traverse")
+
     def traverseArg(l: List[String]): Unit = {
       var argIndex = 0
+
+      logger.trace("index:%d, remaining:%s", argIndex, l)
 
       def appendOptionValue(ci: CLOptionItem, value: String): Unit = {
         val holder = optionValues.getOrElseUpdate(ci, new ArrayBuffer[String]())

@@ -83,13 +83,13 @@ class UString(private[text] val byte: Array[Byte]) extends CharSequence with Ind
       false
   }
 
-  protected[this] def newBuilder : Builder[Byte, UString] = new UTF8StringBuilder
+  protected[this] def newBuilder : Builder[Byte, UString] = new UStringBuilder
 
   def compare(that: UString) = this.javaString.compare(that.javaString)
 }
 
 
-class UTF8StringBuilder extends Builder[Byte, UString] {
+class UStringBuilder extends Builder[Byte, UString] {
   private val b = Array.newBuilder[Byte]
   def +=(elem: Byte) = { b += elem; this }
   def clear() { b. clear }
