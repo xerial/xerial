@@ -426,6 +426,7 @@ stty -icanon min 1 -echo > /dev/null 2>&1
 "$java_cmd" \
   $(get_mem_opts $sbt_mem) \
   $(get_jvm_opts) \
+  -Dcom.sun.management.jmxremote \
   ${JAVA_OPTS:-$default_jvm_opts} \
   ${extra_jvm_opts} \
   ${java_args[@]} \
