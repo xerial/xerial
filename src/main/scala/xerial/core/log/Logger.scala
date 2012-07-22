@@ -248,14 +248,17 @@ object Logger {
    */
   private def getJMXServer(pid:Int) : Option[MBeanServerConnection] = {
     rootLogger.info("Searching for JMX server pid:%d", pid)
-    val server = getJMXServerAddress(pid).map { addr =>
+    val addr = getJMXServerAddress(pid)
+    val server = addr.map { addr =>
       JMXConnectorFactory.connect(new JMXServiceURL(addr))
-    } map (_.getMBeanServerConnection)
+    }.map (_.getMBeanServerConnection)
 
     if(server.isEmpty)
       rootLogger.warn("No JMX server (pid:%d) is found", pid)
-    else
-      rootLogger.info("Found a JMX server pid:%d", pid)
+    else {
+      rootLogger.info("Found a JMX server", pid)
+      rootLogger.debug("Server address: %s", addr.get)
+    }
     server
   }
 
@@ -310,13 +313,13 @@ class LoggerConfigImpl extends LoggerConfig {
     val logger = Logger.apply(loggerName)
     val level = LogLevel(logLevel)
     logger.logLevel = level
-    Logger.rootLogger.info("set the log level of %s to %s", loggerName, level)
+    Logger.rootLogger.info("Set the log level of %s to %s", loggerName, level)
   }
 
   def setDefaultLogLevel(logLevel:String) {
     val level = LogLevel(logLevel)
     System.setProperty("loglevel", level.toString)
-    Logger.rootLogger.info("set the default log level to %s", level)
+    Logger.rootLogger.info("Set the default log level to %s", level)
   }
 }
 

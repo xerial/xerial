@@ -20,7 +20,7 @@ object Main {
   }
 }
 
-class Main extends CommandModule with Logging {
+class Main extends CommandModule {
   val moduleName = "xerial"
 
   @command(description = "Set the log level of the JVM. Use jps to lookup JVM process IDs.")
