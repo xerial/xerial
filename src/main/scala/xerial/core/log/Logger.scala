@@ -181,9 +181,26 @@ object Logger {
   def apply(cl: Class[_], symbol: Symbol): Logger = apply(apply(cl), symbol)
 
 
+  def getDefaultLogLevel(loggerName:String) : LogLevel ={
+    def property(key:String) : Option[String] = Option(System.getProperty(key))
+    def parents : Seq[String] = {
+      val c = loggerName.split(".")
+      val p = for(i <- 1 until c.length) yield {
+        c.take(i).mkString(".")
+      }
+      p.reverse
+    } 
+
+    property("loglevel:%s".format(loggerName))
+    property("loglevel:%s".format(leafName(loggerName)))
+
+
+  }
+
   /**
-   * Get the logger of the specified name. LogWriter names are
-   * dot-separated list of package names. LogWriter naming should be the same with java package/class naming convention.
+   * Get the logger of the specified name. Logger names are
+   * dot-separated list as of the package names.
+   * This naming should be the same with java package/class naming convention.
    */
   private def getLogger(name: String): Logger = {
 
@@ -221,7 +238,6 @@ object Logger {
   }
 
 
-
   def setLogLevelJMX(loggerName:String, logLevel:String) {
     val lc = JMX.newMBeanProxy(ManagementFactory.getPlatformMBeanServer, configMBeanName, classOf[LoggerConfig], true)
     lc.setLogLevel(loggerName, logLevel)
@@ -248,14 +264,13 @@ object Logger {
    */
   private def getJMXServer(pid:Int) : Option[MBeanServerConnection] = {
     rootLogger.info("Searching for JMX server pid:%d", pid)
-    val addr = getJMXServerAddress(pid)
-    val server = addr.map { addr =>
+    val server = getJMXServerAddress(pid).map { addr =>
       JMXConnectorFactory.connect(new JMXServiceURL(addr))
-    }.map (_.getMBeanServerConnection)
+    } map (_.getMBeanServerConnection)
 
     if(server.isEmpty)
       rootLogger.warn("No JMX server (pid:%d) is found", pid)
-    else {
+    else
       rootLogger.info("Found a JMX server", pid)
       rootLogger.debug("Server address: %s", addr.get)
     }
@@ -272,21 +287,6 @@ object Logger {
   def setDefaultLogLevel(pid:Int, logLevel:String) {
     for(server <- getJMXServer(pid)) {
       setDefaultLogLevelJMX(server, logLevel)
-    }
-  }
-
-
-  def main(args:Array[String]) {
-    def at(index:Int) : Option[String] = {
-      if(args.isDefinedAt(index))
-        Some(args(index))
-      else
-        None
-    }
-
-    // Resolve MBean port number
-    for(pid <- at(0); loggerName <- at(1); logLevel <- at(2)) {
-      setLogLevel(pid.toInt, loggerName, logLevel)
     }
   }
 
@@ -313,7 +313,7 @@ class LoggerConfigImpl extends LoggerConfig {
     val logger = Logger.apply(loggerName)
     val level = LogLevel(logLevel)
     logger.logLevel = level
-    Logger.rootLogger.info("Set the log level of %s to %s", loggerName, level)
+    Logger.rootLogger.info("set the log level of %s to %s", loggerName, level)
   }
 
   def setDefaultLogLevel(logLevel:String) {
