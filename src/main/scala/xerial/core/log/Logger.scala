@@ -191,10 +191,9 @@ object Logger {
       p.reverse
     } 
 
-    property("loglevel:%s".format(loggerName))
-    property("loglevel:%s".format(leafName(loggerName)))
-
-
+    val l = Seq(loggerName, leafName(loggerName)) ++ parents
+    val ll : Option[String] = (for(k <- l.map("loglevel:%s".format(_)); prop <- property(k)) yield prop).headOption
+    ll.map(LogLevel(_)).getOrElse(defaultLogLevel)
   }
 
   /**
@@ -264,19 +263,19 @@ object Logger {
    */
   private def getJMXServer(pid:Int) : Option[MBeanServerConnection] = {
     rootLogger.info("Searching for JMX server pid:%d", pid)
-    val server = getJMXServerAddress(pid).map { addr =>
-      JMXConnectorFactory.connect(new JMXServiceURL(addr))
+    val addr = getJMXServerAddress(pid)
+    val server : Option[MBeanServerConnection] = addr.map{ a =>
+      JMXConnectorFactory.connect(new JMXServiceURL(a))
     } map (_.getMBeanServerConnection)
 
     if(server.isEmpty)
       rootLogger.warn("No JMX server (pid:%d) is found", pid)
-    else
+    else {
       rootLogger.info("Found a JMX server", pid)
       rootLogger.debug("Server address: %s", addr.get)
     }
     server
   }
-
 
   def setLogLevel(pid:Int, loggerName:String, logLevel:String) {
     for(server <- getJMXServer(pid)) {
