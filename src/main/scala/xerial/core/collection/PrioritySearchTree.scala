@@ -19,6 +19,7 @@ abstract class Tree[+A] {
   def left: Tree[A]
   def right: Tree[A]
   def iterator: Iterator[A]
+  def boundary: A
 }
 
 
@@ -46,11 +47,13 @@ abstract class Node[+A] extends Tree[A] {
   def iterator: Iterator[A] = left.iterator ++ right.iterator
 }
 
-case class RedTree[+A](elem: A, left: Tree[A], right: Tree[A]) extends Node[A] {
+case class RedTree[+A](elem: A, b:Option[A], left: Tree[A], right: Tree[A]) extends Node[A] {
   def isBlack = false
+  def boundary = b.getOrElse(elem)
 }
-case class BlackTree[+A](elem: A, left: Tree[A], right: Tree[A]) extends Node[A] {
+case class BlackTree[+A](elem: A, b:Option[A], left: Tree[A], right: Tree[A]) extends Node[A] {
   def isBlack = true
+  def boundary = b.getOrElse(elem)
 }
 
 
@@ -65,6 +68,7 @@ abstract class Leaf[+A] extends Tree[A] {
   def right = null
   def iterator: Iterator[A]
   def +[A1 >: A](e: A1): Leaf[A1]
+  def boundary = elem
 }
 
 /**
@@ -104,7 +108,7 @@ object Empty extends Leaf[Nothing] {
 
 object PrioritySearchTree {
 
-  def empty[A](implicit iv: IntervalOps[A, _]) = new PrioritySearchTree[A](impl.Empty)
+  def empty[A, V](implicit iv: IntervalOps[A, V]) = new PrioritySearchTree[A, V](impl.Empty)
 
 }
 
@@ -114,17 +118,17 @@ object PrioritySearchTree {
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) extends Iterable[A] with Logging {
+class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) extends Iterable[A] with Logging {
 
   import impl._
 
-  type pst = PrioritySearchTree[A]
+  type pst = PrioritySearchTree[A, V]
   private var count = 0
 
   def +(e: A): pst = insert(e)
   def insert(e: A): pst = {
     count += 1
-    new PrioritySearchTree[A](insert(e, root))
+    new PrioritySearchTree[A, V](insert(e, root))
   }
 
   override def size = count
@@ -135,9 +139,9 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
 
   private def mkTree[B](isBlack: Boolean, e: B, l: Tree[B], r: Tree[B]): Tree[B] = {
     if (isBlack)
-      BlackTree(e, l, r)
+      BlackTree(e, None, l, r)
     else
-      RedTree(e, l, r)
+      RedTree(e, None, l, r)
   }
 
 
@@ -145,15 +149,20 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
     val b = leaf.elem
 
     val r = if (iv.xIsSmaller(a, b))
-      RedTree(leaf.elem, Real(Single(a)), leaf)
+      RedTree(leaf.elem, None, Real(Single(a)), leaf)
     else if (iv.xIsSmaller(b, a))
-      RedTree(a, leaf, Ghost(Single(a)))
+      RedTree(a, None, leaf, Ghost(Single(a)))
     else // a == b
       leaf + a
 
     //debug("add %s to leaf %s", a, leaf)
     //debug("result %s", r)
     r
+  }
+
+  protected def blacken(t:Tree[A]) : Tree[A] = t match {
+    case RedTree(e, b, l, r) => BlackTree(e, b, l, r)
+    case _ => t
   }
 
 
@@ -168,20 +177,19 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
         case _ =>
           val te = t.elem
           if (iv.xIsSmaller(e, te))
-            fixupLeft(mkTree(t.isBlack, te, insertTo(t.left), t.right))
+            balanceLeft(t.isBlack, te, insertTo(t.left), t.right)
           else if(iv.xIsSmaller(te, e))
-            fixupRight(mkTree(t.isBlack, te, t.left, insertTo(t.right)))
+            balanceRight(t.isBlack, te, t.left, insertTo(t.right))
           else { // e.x == te.x
             if (iv.yIsSmaller(e, te))
-              fixupRight(mkTree(t.isBlack, te, t.left, insertTo(t.right)))
+              balanceRight(t.isBlack, te, t.left, insertTo(t.right))
             else
-              fixupRight(mkTree(t.isBlack, e, t.left, insertTo(t.right)))
+              balanceRight(t.isBlack, e, t.left, insertTo(t.right))
           }
       }
-
     }
 
-    val newTree = insertTo(tt)
+    val newTree = blacken(insertTo(tt))
     trace("new tree : %s", newTree)
     newTree
   }
@@ -204,46 +212,82 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
    * b   c
    *
    */
-  protected def fixupLeft(l: Tree[A]): Tree[A] = {
-    debug("fixup left: %s", l)
-    l match {
-      case RedTree(v, RedTree(w, a, b), c) if iv.yIsSmaller(v, w) => {
-        RedTree(w, a, RedTree(v, b, c))
-      }
-      case _ => l
-    }
-  }
-
-  protected def fixupRight(r: Tree[A]): Tree[A] = {
-    debug("fixup right: %s", r)
-    r match {
-      case RedTree(v, a, RedTree(w, b, c)) if iv.yIsSmaller(v, w) => {
-        RedTree(w, RedTree(v, a, b), c)
-      }
-      case _ => r
-    }
-  }
+//  protected def fixupLeft(t: Tree[A]): Tree[A] = {
+//    debug("fixup left: %s", t)
+//    t match {
+//      case RedTree(v, RedTree(w, a, b), c) if iv.yIsSmaller(v, w) => {
+//        RedTree(w, a, RedTree(v, b, c))
+//      }
+//      case _ => t
+//    }
+//  }
+//
+//  protected def fixupRight(t: Tree[A]): Tree[A] = {
+//    debug("fixup right: %s", t)
+//    t match {
+//      case RedTree(v, a, RedTree(w, b, c)) if iv.yIsSmaller(v, w) => {
+//        RedTree(w, RedTree(v, a, b), c)
+//      }
+//      case _ => t
+//    }
+//  }
+//
+//  protected def balance(t:Tree[A]) : Tree[A] = {
+//    (t.elem, t.left, t.right) match {
+//      case (z, RedTree(x, a, b), RedTree(y, c, d)) =>
+//        RedTree(z, BlackTree(x, a, b), BlackTree(y, c, d))
+//      case (z, RedTree(x, a, RedTree(y, b, c)), d) =>
+//        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
+//      case (z, RedTree(y, RedTree(x, a, b), c), d) =>
+//        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
+//      case (x, a, RedTree(y, b, RedTree(z, c, d))) =>
+//        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
+//      case (x, a, RedTree(z, RedTree(y, b, c), d)) =>
+//        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
+//      case _ => t
+//    }
+//  }
 
 
   private def eq(a: A, b: A): Boolean = a.asInstanceOf[AnyRef] eq b.asInstanceOf[AnyRef]
 
+  private def newBoundary(c:A, l:A, r:A): Option[A] = {
 
-  protected def balanceLeft[A1 >: A](isBlack: Boolean, e: A, left: Tree[A1], right: Tree[A1]): Tree[A1] = left match {
-    case RedTree(y, RedTree(x, a, b), c) =>
-      RedTree(y, BlackTree(x, a, b), BlackTree(e, c, right))
-    case RedTree(x, a, RedTree(y, b, c)) =>
-      RedTree(y, BlackTree(x, a, b), BlackTree(e, c, right))
+    val b = if(iv.yIsSmaller(l, r)) {
+      if(iv.yIsSmaller(c, r))
+        Some(iv.clone(c, iv.x(c), iv.y(r)))
+      else
+        None
+    }
+    else {
+      if(iv.yIsSmaller(c, l))
+        Some(iv.clone(c, iv.x(c), iv.y(l)))
+      else
+        None
+    }
+    debug("newBoundary of %s, %s, %s : %s", c, l, r, b)
+    b
+  }
+
+  protected def balanceLeft(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = left match {
+    case yt@RedTree(y, yb, xt@RedTree(x, xb, a, b), c) =>
+      RedTree(y, newBoundary(yt.boundary, xt.boundary, e), BlackTree(x, xb, a, b), BlackTree(e, None, c, right))
+    case xt@RedTree(x, xb, a, yt@RedTree(y, yb, b, c)) =>
+      RedTree(y, newBoundary(yt.boundary, xt.boundary, e), BlackTree(x, xb, a, b), BlackTree(e, None, c, right))
     case _ =>
       mkTree(isBlack, e, left, right)
   }
 
-  protected def balanceRight[A1 >: A](isBlack: Boolean, e: A, left: Tree[A1], right: Tree[A1]): Tree[A1] = right match {
-    case RedTree(z, RedTree(y, b, c), d) =>
-      RedTree(y, BlackTree(e, left, b), BlackTree(z, c, d))
-    case RedTree(y, b, RedTree(z, c, d)) =>
-      RedTree(y, BlackTree(e, left, b), BlackTree(z, c, d))
+  protected def balanceRight(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = {
+    debug("balance right: e:%s, l:%s, r:%s", e, left, right)
+    right match {
+    case zt@RedTree(z, zb, yt@RedTree(y, yb, b, c), d) =>
+      RedTree(y, newBoundary(yt.boundary, e, zt.boundary), BlackTree(e, None, left, b), BlackTree(z, zb, c, d))
+    case yt@RedTree(y, yb, b, zt@RedTree(z, zb, c, d)) =>
+      RedTree(y, newBoundary(yt.boundary, e, zt.boundary), BlackTree(e, None, left, b), BlackTree(z, zb, c, d))
     case _ =>
       mkTree(isBlack, e, left, right)
+  }
   }
 
 }

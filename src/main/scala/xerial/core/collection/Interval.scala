@@ -20,6 +20,7 @@ trait Point2D[A, @specialized(Int, Long) V] {
   def minX(a:A, b:A) : A
   def minY(a:A, b:A) : A
 
+  def clone(a:A, newX:V, newY:V) : A
 }
 
 
@@ -94,6 +95,7 @@ object Interval {
   implicit object IntIntervalOps extends IntInterval[Interval] {
     def start(a:Interval) = a.start
     def end(a:Interval) = a.end
+    def clone(a: Interval, newX: Int, newY: Int) = new Interval(newX, newY)
   }
 
   def apply(s:Int, e:Int) = new Interval(s, e)
