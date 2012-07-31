@@ -106,30 +106,28 @@ object Empty extends Leaf[Nothing] {
 
 object PrioritySearchTree {
 
-  def empty[A, V](implicit iv: IntervalOps[A, V]) = new PrioritySearchTree[A, V](impl.Empty)
+  def empty[A](implicit iv: IntervalOps[A, _]) = new PrioritySearchTree[A](impl.Empty, 0)
 
 }
 
 /**
- * Persistent balanced priority search tree. x-coordinate is maintained as binary search tree, and the y-coordinate is
+ * Persistent balanced priority search tree implementation. x-values are maintained in binary search tree, and the y-value of the node in the path from the root to leaves
+ * are sorted in the descending order. This property is good for answering 3-sided queries [x1, x2] x [y1, infinity).
  * @param root
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) extends Iterable[A] with Logging {
+class PrioritySearchTree[A](private val root: impl.Tree[A], override val size:Int)(implicit iv: Point2D[A, _]) extends Iterable[A] with Logging {
 
   import impl._
 
-  type pst = PrioritySearchTree[A, V]
-  private var count = 0
+  type pst = PrioritySearchTree[A]
 
   def +(e: A): pst = insert(e)
   def insert(e: A): pst = {
-    count += 1
-    new PrioritySearchTree[A, V](insert(e, root))
+    new PrioritySearchTree[A](insert(e, root), size+1)
   }
 
-  override def size = count
   override def toString = root.toString
 
   def iterator = root.iterator
@@ -146,16 +144,12 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
   private def addToLeaf(a: A, leaf: Leaf[A]): Tree[A] = {
     val b = leaf.elem
 
-    val r = if (iv.xIsSmaller(a, b))
+    if (iv.xIsSmaller(a, b))
       RedTree(leaf.elem, leaf.elem, Real(Single(a)), leaf)
     else if (iv.xIsSmaller(b, a))
       RedTree(a, a, leaf, Ghost(Single(a)))
     else // a == b
       leaf + a
-
-    //debug("add %s to leaf %s", a, leaf)
-    //debug("result %s", r)
-    r
   }
 
   protected def blacken(t:Tree[A]) : Tree[A] = t match {
@@ -165,7 +159,6 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
 
 
   protected def insert(e: A, tt: Tree[A]): Tree[A] = {
-    debug("insert %s", e)
 
     def insertTo(t: Tree[A]): Tree[A] = {
       t match {
@@ -188,48 +181,11 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
     }
 
     val newTree = blacken(insertTo(tt))
-    trace("new tree : %s", newTree)
+    //trace("new tree : %s", newTree)
     newTree
   }
 
-  /**
-   *
-   * v
-   * / \
-   * w   c
-   * / \
-   * a   b
-   *
-   * |
-   * V
-   *
-   * w
-   * / \
-   * a   v
-   * / \
-   * b   c
-   *
-   */
-//  protected def fixupLeft(t: Tree[A]): Tree[A] = {
-//    debug("fixup left: %s", t)
-//    t match {
-//      case RedTree(v, RedTree(w, a, b), c) if iv.yIsSmaller(v, w) => {
-//        RedTree(w, a, RedTree(v, b, c))
-//      }
-//      case _ => t
-//    }
-//  }
-//
-//  protected def fixupRight(t: Tree[A]): Tree[A] = {
-//    debug("fixup right: %s", t)
-//    t match {
-//      case RedTree(v, a, RedTree(w, b, c)) if iv.yIsSmaller(v, w) => {
-//        RedTree(w, RedTree(v, a, b), c)
-//      }
-//      case _ => t
-//    }
-//  }
-//
+
 //  protected def balance(t:Tree[A]) : Tree[A] = {
 //    (t.elem, t.left, t.right) match {
 //      case (z, RedTree(x, a, b), RedTree(y, c, d)) =>
@@ -262,7 +218,6 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
   }
 
   protected def balanceRight(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = {
-    debug("balance right: e:%s, l:%s, r:%s", e, left, right)
     right match {
     case zt@RedTree(zb, z, yt@RedTree(yb, y, b, c), d) =>
       RedTree(newKey(yb, e, zb), y, BlackTree(e, e, left, b), BlackTree(zb, z, c, d))

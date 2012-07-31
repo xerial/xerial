@@ -8,6 +8,7 @@
 package xerial.core.collection
 
 import xerial.core.XerialSpec
+import util.Random
 
 /**
  * @author leo
@@ -16,7 +17,7 @@ class PrioritySearchTreeTest extends XerialSpec {
 
   "PrioritySearchTree" should {
     "insert new nodes" in {
-      var p = PrioritySearchTree.empty[Interval, Int]
+      var p = PrioritySearchTree.empty[Interval]
       p += Interval(3, 5)
       p += Interval(4, 9)
       p += Interval(4, 12)
@@ -30,6 +31,18 @@ class PrioritySearchTreeTest extends XerialSpec {
       debug(p)
 
       debug(p.mkString(", "))
+    }
+
+    "insert many nodes" in {
+      val r = new Random(0)
+      var p = PrioritySearchTree.empty[Interval]
+      val n = 50
+      for(i <- 0 until n) {
+        val s = r.nextInt(10000)
+        p += Interval(s, s+100)
+      }
+      p.size should be (n)
+      debug(p)
     }
 
   }
