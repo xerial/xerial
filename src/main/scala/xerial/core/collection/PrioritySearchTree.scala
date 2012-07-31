@@ -19,7 +19,6 @@ abstract class Tree[+A] {
   def left: Tree[A]
   def right: Tree[A]
   def iterator: Iterator[A]
-  def boundary: A
 }
 
 
@@ -47,13 +46,11 @@ abstract class Node[+A] extends Tree[A] {
   def iterator: Iterator[A] = left.iterator ++ right.iterator
 }
 
-case class RedTree[+A](elem: A, b:Option[A], left: Tree[A], right: Tree[A]) extends Node[A] {
+case class RedTree[+A](key:A, elem: A, left: Tree[A], right: Tree[A]) extends Node[A] {
   def isBlack = false
-  def boundary = b.getOrElse(elem)
 }
-case class BlackTree[+A](elem: A, b:Option[A], left: Tree[A], right: Tree[A]) extends Node[A] {
+case class BlackTree[+A](key:A, elem: A, left: Tree[A], right: Tree[A]) extends Node[A] {
   def isBlack = true
-  def boundary = b.getOrElse(elem)
 }
 
 
@@ -68,7 +65,6 @@ abstract class Leaf[+A] extends Tree[A] {
   def right = null
   def iterator: Iterator[A]
   def +[A1 >: A](e: A1): Leaf[A1]
-  def boundary = elem
 }
 
 /**
@@ -139,9 +135,9 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
 
   private def mkTree[B](isBlack: Boolean, e: B, l: Tree[B], r: Tree[B]): Tree[B] = {
     if (isBlack)
-      BlackTree(e, None, l, r)
+      BlackTree(e, e, l, r)
     else
-      RedTree(e, None, l, r)
+      RedTree(e, e, l, r)
   }
 
 
@@ -149,9 +145,9 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
     val b = leaf.elem
 
     val r = if (iv.xIsSmaller(a, b))
-      RedTree(leaf.elem, None, Real(Single(a)), leaf)
+      RedTree(leaf.elem, leaf.elem, Real(Single(a)), leaf)
     else if (iv.xIsSmaller(b, a))
-      RedTree(a, None, leaf, Ghost(Single(a)))
+      RedTree(a, a, leaf, Ghost(Single(a)))
     else // a == b
       leaf + a
 
@@ -161,7 +157,7 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
   }
 
   protected def blacken(t:Tree[A]) : Tree[A] = t match {
-    case RedTree(e, b, l, r) => BlackTree(e, b, l, r)
+    case RedTree(k, e, l, r) => BlackTree(k, e, l, r)
     case _ => t
   }
 
@@ -251,29 +247,14 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
 
   private def eq(a: A, b: A): Boolean = a.asInstanceOf[AnyRef] eq b.asInstanceOf[AnyRef]
 
-  private def newBoundary(c:A, l:A, r:A): Option[A] = {
+  private def newKey(c:A, l:A, r:A): A = iv.yUpperBound(iv.yUpperBound(c, l), r)
 
-    val b = if(iv.yIsSmaller(l, r)) {
-      if(iv.yIsSmaller(c, r))
-        Some(iv.clone(c, iv.x(c), iv.y(r)))
-      else
-        None
-    }
-    else {
-      if(iv.yIsSmaller(c, l))
-        Some(iv.clone(c, iv.x(c), iv.y(l)))
-      else
-        None
-    }
-    debug("newBoundary of %s, %s, %s : %s", c, l, r, b)
-    b
-  }
 
   protected def balanceLeft(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = left match {
-    case yt@RedTree(y, yb, xt@RedTree(x, xb, a, b), c) =>
-      RedTree(y, newBoundary(yt.boundary, xt.boundary, e), BlackTree(x, xb, a, b), BlackTree(e, None, c, right))
-    case xt@RedTree(x, xb, a, yt@RedTree(y, yb, b, c)) =>
-      RedTree(y, newBoundary(yt.boundary, xt.boundary, e), BlackTree(x, xb, a, b), BlackTree(e, None, c, right))
+    case yt@RedTree(yb, y, xt@RedTree(xb, x, a, b), c) =>
+      RedTree(newKey(yb, xb, e), y, BlackTree(xb, x, a, b), BlackTree(e, e, c, right))
+    case xt@RedTree(xb, x, a, yt@RedTree(yb, y, b, c)) =>
+      RedTree(newKey(xb, yb, e), y, BlackTree(xb, x, a, b), BlackTree(e, e, c, right))
     case _ =>
       mkTree(isBlack, e, left, right)
   }
@@ -281,10 +262,10 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
   protected def balanceRight(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = {
     debug("balance right: e:%s, l:%s, r:%s", e, left, right)
     right match {
-    case zt@RedTree(z, zb, yt@RedTree(y, yb, b, c), d) =>
-      RedTree(y, newBoundary(yt.boundary, e, zt.boundary), BlackTree(e, None, left, b), BlackTree(z, zb, c, d))
-    case yt@RedTree(y, yb, b, zt@RedTree(z, zb, c, d)) =>
-      RedTree(y, newBoundary(yt.boundary, e, zt.boundary), BlackTree(e, None, left, b), BlackTree(z, zb, c, d))
+    case zt@RedTree(zb, z, yt@RedTree(yb, y, b, c), d) =>
+      RedTree(newKey(yb, e, zb), y, BlackTree(e, e, left, b), BlackTree(zb, z, c, d))
+    case yt@RedTree(yb, y, b, zt@RedTree(zb, z, c, d)) =>
+      RedTree(newKey(yb, e, zb), y, BlackTree(e, e, left, b), BlackTree(zb, z, c, d))
     case _ =>
       mkTree(isBlack, e, left, right)
   }
