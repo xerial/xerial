@@ -13,20 +13,19 @@ import xerial.core.log.Logging
 package impl {
 
 abstract class Tree[+A] {
-  def isLeaf: Boolean
   def isBlack: Boolean
-  def elem: A
   def left: Tree[A]
   def right: Tree[A]
   def iterator: Iterator[A]
-  def key : A
+  def key: A = null.asInstanceOf[A]
+  def holder : Holder[A]
 }
 
 
 abstract class Holder[+A] {
   def elem: A
   def +[A1 >: A](e: A1): Holder[A1]
-  def iterator : Iterator[A]
+  def iterator: Iterator[A]
 }
 
 case class Single[+A](elem: A) extends Holder[A] {
@@ -34,6 +33,7 @@ case class Single[+A](elem: A) extends Holder[A] {
   override def toString = "[%s]".format(elem)
   def iterator = Iterator.single(elem)
 }
+
 case class Multiple[+A](elems: Seq[A]) extends Holder[A] {
   require(elems.length > 1, "elems must have more than one element")
   def elem: A = elems(0)
@@ -43,63 +43,25 @@ case class Multiple[+A](elems: Seq[A]) extends Holder[A] {
 }
 
 abstract class Node[+A] extends Tree[A] {
-  def isLeaf = false
-  def iterator: Iterator[A] = left.iterator ++ right.iterator
+  def iterator: Iterator[A] = left.iterator ++ holder.iterator ++ right.iterator
 }
 
-case class RedTree[+A](key:A, elem: A, left: Tree[A], right: Tree[A]) extends Node[A] {
+case class RedTree[+A](override val key: A, holder: Holder[A], left: Tree[A], right: Tree[A]) extends Node[A] {
   def isBlack = false
 }
-case class BlackTree[+A](key:A, elem: A, left: Tree[A], right: Tree[A]) extends Node[A] {
+
+case class BlackTree[+A](override val key: A, holder: Holder[A], left: Tree[A], right: Tree[A]) extends Node[A] {
   def isBlack = true
 }
 
-
-/**
- * In PST, every value is stored in a leaf node of the tree.
- * @tparam A
- */
-abstract class Leaf[+A] extends Tree[A] {
-  def isLeaf = true
+object Empty extends Tree[Nothing] {
   def isBlack = true
   def left = null
   def right = null
-  def iterator: Iterator[A]
-  def +[A1 >: A](e: A1): Leaf[A1]
-  def key = elem
-}
-
-/**
- * Ghost place holder of values. The actual values appears some nodes up in the tree
- * @param holder
- * @tparam A
- */
-case class Ghost[+A](holder: Holder[A]) extends Leaf[A] {
-  override def toString = "*%s".format(holder)
-  def elem = holder.elem
-  def +[A1 >: A](e: A1) = Ghost(holder + e)
-  def iterator: Iterator[A] = holder.iterator
-}
-
-/**
- * Real holder of the values. No ancestor holds the values in this container
- * @param holder
- * @tparam A
- */
-case class Real[+A](holder: Holder[A]) extends Leaf[A] {
-  override def toString = "%s".format(holder)
-  def elem = holder.elem
-  def +[A1 >: A](e: A1) = Real(holder + e)
-  def iterator: Iterator[A] = holder.iterator
-}
-
-object Empty extends Leaf[Nothing] {
-  def elem = null.asInstanceOf[Nothing]
   override def toString = "Empty"
+  def holder : Holder[Nothing] = null.asInstanceOf[Holder[Nothing]]
   def iterator: Iterator[Nothing] = Iterator.empty
-  def +[A1 >: Nothing](e: A1) = Real(Single(e))
 }
-
 
 }
 
@@ -117,7 +79,7 @@ object PrioritySearchTree {
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A](private val root: impl.Tree[A], override val size:Int)(implicit iv: Point2D[A, _]) extends Iterable[A] with Logging {
+class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: Int)(implicit iv: Point2D[A, _]) extends Iterable[A] with Logging {
 
   import impl._
 
@@ -125,7 +87,7 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size:In
 
   def +(e: A): pst = insert(e)
   def insert(e: A): pst = {
-    new PrioritySearchTree[A](insert(e, root), size+1)
+    new PrioritySearchTree[A](insert(e, root), size + 1)
   }
 
   override def toString = root.toString
@@ -133,26 +95,15 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size:In
   def iterator = root.iterator
 
 
-  private def mkTree[B](isBlack: Boolean, key:B, e: B, l: Tree[B], r: Tree[B]): Tree[B] = {
+  private def mkTree[B](isBlack: Boolean, key: B, h: Holder[B], l: Tree[B], r: Tree[B]): Tree[B] = {
     if (isBlack)
-      BlackTree(key, e, l, r)
+      BlackTree(key, h, l, r)
     else
-      RedTree(key, e, l, r)
+      RedTree(key, h, l, r)
   }
 
 
-  private def addToLeaf(a: A, leaf: Leaf[A]): Tree[A] = {
-    val b = leaf.elem
-
-    if (iv.xIsSmaller(a, b))
-      RedTree(leaf.elem, leaf.elem, Real(Single(a)), leaf)
-    else if (iv.xIsSmaller(b, a))
-      RedTree(a, a, leaf, Ghost(Single(a)))
-    else // a == b
-      leaf + a
-  }
-
-  protected def blacken(t:Tree[A]) : Tree[A] = t match {
+  protected def blacken(t: Tree[A]): Tree[A] = t match {
     case RedTree(k, e, l, r) => BlackTree(k, e, l, r)
     case _ => t
   }
@@ -160,72 +111,73 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size:In
 
   protected def insert(e: A, tt: Tree[A]): Tree[A] = {
 
-    def insertTo(t: Tree[A]): Tree[A] = {
-      t match {
-        case n@Empty => n + e
-        case g@Ghost(_) => addToLeaf(e, g)
-        case r@Real(_) => addToLeaf(e, r)
-        case _ =>
-          val te = t.elem
-          if (iv.xIsSmaller(e, te))
-            balanceLeft(t.isBlack, te, insertTo(t.left), t.right)
-          else if(iv.xIsSmaller(te, e))
-            balanceRight(t.isBlack, te, t.left, insertTo(t.right))
-          else { // e.x == te.x
-            if (iv.yIsSmaller(e, te))
-              balanceRight(t.isBlack, te, t.left, insertTo(t.right))
-            else
-              balanceRight(t.isBlack, e, t.left, insertTo(t.right))
-          }
-      }
+    def insertTo(t: Tree[A]): Tree[A] = t match {
+      case n@Empty => RedTree(e, Single(e), Empty, Empty)
+      case _ =>
+        val k = t.key
+        val h = t.holder
+        if (iv.xIsSmaller(e, t.key))
+          balanceLeft(t.isBlack, k, h, insertTo(t.left), t.right)
+        else if (iv.xIsSmaller(t.key, e))
+          balanceRight(t.isBlack, k, h, t.left, insertTo(t.right))
+        else {
+          // e.x == te.x
+          mkTree(t.isBlack, iv.yUpperBound(k, e), h + e, t.left, t.right)
+        }
     }
 
+
     val newTree = blacken(insertTo(tt))
-    //trace("new tree : %s", newTree)
+    trace("insert %s, new tree:\n%s", e, newTree)
     newTree
   }
 
 
-//  protected def balance(t:Tree[A]) : Tree[A] = {
-//    (t.elem, t.left, t.right) match {
-//      case (z, RedTree(x, a, b), RedTree(y, c, d)) =>
-//        RedTree(z, BlackTree(x, a, b), BlackTree(y, c, d))
-//      case (z, RedTree(x, a, RedTree(y, b, c)), d) =>
-//        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
-//      case (z, RedTree(y, RedTree(x, a, b), c), d) =>
-//        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
-//      case (x, a, RedTree(y, b, RedTree(z, c, d))) =>
-//        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
-//      case (x, a, RedTree(z, RedTree(y, b, c), d)) =>
-//        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
-//      case _ => t
-//    }
-//  }
+  //  protected def balance(t:Tree[A]) : Tree[A] = {
+  //    (t.elem, t.left, t.right) match {
+  //      case (z, RedTree(x, a, b), RedTree(y, c, d)) =>
+  //        RedTree(z, BlackTree(x, a, b), BlackTree(y, c, d))
+  //      case (z, RedTree(x, a, RedTree(y, b, c)), d) =>
+  //        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
+  //      case (z, RedTree(y, RedTree(x, a, b), c), d) =>
+  //        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
+  //      case (x, a, RedTree(y, b, RedTree(z, c, d))) =>
+  //        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
+  //      case (x, a, RedTree(z, RedTree(y, b, c), d)) =>
+  //        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
+  //      case _ => t
+  //    }
+  //  }
 
 
   private def eq(a: A, b: A): Boolean = a.asInstanceOf[AnyRef] eq b.asInstanceOf[AnyRef]
 
-  private def newKey(c:A, l:A, r:A): A = iv.yUpperBound(iv.yUpperBound(c, l), r)
+  private def newKey(c: A, l: A, r: A): A = {
+    def m(k1: A, k2: A): A = Option(k2).map {
+      iv.yUpperBound(k1, _)
+    } getOrElse k1
+    val k = m(m(c, l), r)
+    k
+  }
 
-
-  protected def balanceLeft(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = left match {
+  protected def balanceLeft(isBlack: Boolean, k: A, h: Holder[A], left: Tree[A], right: Tree[A]): Tree[A] = left match {
     case yt@RedTree(yb, y, xt@RedTree(xb, x, a, b), c) =>
-      RedTree(newKey(yb, xb, e), y, BlackTree(xb, x, a, b), BlackTree(e, e, c, right))
+      RedTree(newKey(yb, xb, k), y, BlackTree(xb, x, a, b), BlackTree(k, h, c, right))
     case xt@RedTree(xb, x, a, yt@RedTree(yb, y, b, c)) =>
-      RedTree(newKey(xb, yb, e), y, BlackTree(xb, x, a, b), BlackTree(e, e, c, right))
+      RedTree(newKey(xb, yb, k), y, BlackTree(xb, x, a, b), BlackTree(k, h, c, right))
     case _ =>
-      mkTree(isBlack, newKey(e, left.key, right.key), e, left, right)
+      mkTree(isBlack, newKey(k, left.key, right.key), h, left, right)
   }
 
-  protected def balanceRight(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = {
+  protected def balanceRight(isBlack: Boolean, k: A, h:Holder[A], left: Tree[A], right: Tree[A]): Tree[A] = {
     right match {
-    case zt@RedTree(zb, z, yt@RedTree(yb, y, b, c), d) =>
-      RedTree(newKey(yb, e, zb), y, BlackTree(e, e, left, b), BlackTree(zb, z, c, d))
-    case yt@RedTree(yb, y, b, zt@RedTree(zb, z, c, d)) =>
-      RedTree(newKey(yb, e, zb), y, BlackTree(e, e, left, b), BlackTree(zb, z, c, d))
-    case _ =>
-      mkTree(isBlack, newKey(e, left.key, right.key), e, left, right)
-  }
+      case zt@RedTree(zb, z, yt@RedTree(yb, y, b, c), d) =>
+        RedTree(newKey(yb, k, zb), y, BlackTree(k, h, left, b), BlackTree(zb, z, c, d))
+      case yt@RedTree(yb, y, b, zt@RedTree(zb, z, c, d)) =>
+        RedTree(newKey(yb, k, zb), y, BlackTree(k, h, left, b), BlackTree(zb, z, c, d))
+      case _ =>
+        mkTree(isBlack, newKey(k, left.key, right.key), h, left, right)
+    }
   }
 
 }
