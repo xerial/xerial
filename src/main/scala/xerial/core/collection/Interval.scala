@@ -13,6 +13,7 @@ trait Point2D[A, @specialized(Int, Long) V] {
   def y(a:A):V
 
   def xIsSmaller(a:A, b:A) : Boolean
+  def xEquals(a:A, b:A) : Boolean
   def yIsSmaller(a:A, b:A) : Boolean
   def xIsSmallerThanOrEq(a:A, b:A) : Boolean
   def yIsSmallerThanOrEq(a:A, b:A) : Boolean
@@ -45,6 +46,7 @@ trait IntervalOps[A, @specialized(Int, Long) V] extends Point2D[A, V] {
 
 trait IntInterval[A] extends IntervalOps[A, Int]{
   def xIsSmaller(a:A, b:A) : Boolean = x(a) < x(b)
+  def xEquals(a:A, b:A) : Boolean = x(a) == x(b)
   def yIsSmaller(a:A, b:A) : Boolean = y(a) < y(b)
   def xIsSmallerThanOrEq(a:A, b:A) : Boolean = x(a) <= x(b)
   def yIsSmallerThanOrEq(a:A, b:A) : Boolean = y(a) <= y(b)
@@ -62,6 +64,7 @@ trait IntInterval[A] extends IntervalOps[A, Int]{
 
 trait LongInterval[A] extends IntervalOps[A, Long] {
   def xIsSmaller(a:A, b:A) : Boolean = x(a) < x(b)
+  def xEquals(a:A, b:A) : Boolean = x(a) == y(a)
   def yIsSmaller(a:A, b:A) : Boolean = y(a) < y(b)
   def xIsSmallerThanOrEq(a:A, b:A) : Boolean = x(a) <= x(b)
   def yIsSmallerThanOrEq(a:A, b:A) : Boolean = y(a) <= y(b)

@@ -36,10 +36,6 @@ case class BlackTree[+A](elem: A, left: Tree[A], right: Tree[A]) extends Node[A]
   def isBlack = true
 }
 
-case class EmptyNode[A](left:PlaceHolder[A], right:PlaceHolder[A]) extends Node[A] {
-  def isBlack = false
-  def elem = null.asInstanceOf[A]
-}
 
 abstract class PlaceHolder[+A] extends Tree[A] {
   def isLeaf = true
@@ -106,11 +102,15 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
       RedTree(e, l, r)
   }
 
-  private def newPlaceHolder(newElem:A, p:PlaceHolder[A]) : Tree[A] = {
-    if (iv.xIsSmallerThanOrEq(newElem, p.elem))
-      EmptyNode(Leaf(newElem), p)
+  private def newPlaceHolder(a:A, p:PlaceHolder[A]) : Tree[A] = {
+    val b = p.elem
+    debug("new place holder for %s and %s", a, b)
+    if (iv.xIsSmaller(a, b))
+      RedTree(b, Leaf(a), p)
+    else if(iv.xIsSmaller(b, a))
+      RedTree(a, p, BlankLeaf(a))
     else
-      EmptyNode(p, Leaf(newElem))
+      fixupRight(RedTree(b, Empty, RedTree(a, Empty, RedTree(BlankLeaf(a), p)))
   }
 
   protected def insert(e: A, tt: Tree[A]): Tree[A] = {
@@ -121,26 +121,66 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
       case b@BlankLeaf(elem) => newPlaceHolder(e,b)
       case l@Leaf(elem) => newPlaceHolder(e,l)
       case _ =>
-        if (iv.xIsSmallerThanOrEq(e, t.elem))
-          mkTree(t.isBlack, t.elem, insertTo(t.left), t.right)
+        if (iv.xIsSmaller(e, t.elem))
+          fixupLeft(mkTree(t.isBlack, t.elem, insertTo(t.left), t.right))
         else
-          mkTree(t.isBlack, t.elem, t.left, insertTo(t.right))
+          fixupRight(mkTree(t.isBlack, t.elem, t.left, insertTo(t.right)))
     }
 
     val newTree = insertTo(tt)
     trace("new tree : %s", newTree)
-    val p = pushDown(e, newTree)
-    trace("push down: %s", p)
-    p
+    //val p = pushDown(e, newTree)
+    //trace("push down: %s", p)
+    newTree
   }
+
+  /**
+   *
+   *     v
+   *    / \
+   *   w   c
+   *  / \
+   * a   b
+   *
+   *    |
+   *    V
+   *
+   *     w
+   *    / \
+   *   a   v
+   *      / \
+   *     b   c
+   *
+   */
+  protected def fixupLeft(l:Tree[A]) : Tree[A] = {
+    debug("fixup left: %s", l)
+    l match {
+      case RedTree(v, RedTree(w, a, b), c) if iv.yIsSmaller(v, w) => {
+        RedTree(w, a, RedTree(v, b, c))
+      }
+      case _ => l
+    }
+  }
+
+  protected def fixupRight(r:Tree[A]) : Tree[A] = {
+    debug("fixup right: %s", r)
+    r match {
+      case RedTree(v, a, RedTree(w, b, c)) if iv.yIsSmaller(v, w) => {
+        RedTree(w, RedTree(v, a, b), c)
+      }
+      case _ => r
+    }
+  }
+    
+  
 
   private def eq(a:A, b:A) : Boolean = a.asInstanceOf[AnyRef] eq b.asInstanceOf[AnyRef]
 
   private def pushDown(isBlack:Boolean, e:A, v:A, l:Tree[A], r:Tree[A]) : Tree[A] = {
-    val (n, ee) = if(iv.yIsSmallerThanOrEq(e, v)) (v, e) else  (e, v)
+    val (n, ee) = if(iv.yIsSmaller(e, v)) (v, e) else  (e, v)
     if(!eq(e, ee))
       debug("push down %s under %s", ee, n)
-    if(iv.xIsSmallerThanOrEq(ee, n))
+    if(iv.xIsSmaller(ee, n))
       mkTree(isBlack, n, pushDown(ee, l), r)
     else
       mkTree(isBlack, n, l, pushDown(ee, r))
@@ -148,13 +188,6 @@ class PrioritySearchTree[A](root: impl.Tree[A])(implicit iv: Point2D[A, _]) exte
 
   protected def pushDown(e:A, t:Tree[A]) : Tree[A] = t match {
     case Empty => sys.error("cannot reach empty leaf: " + t)
-    case EmptyNode(l, r) =>
-      if(eq(e, l.elem))
-        RedTree(e, BlankLeaf(e), r)
-      else if(eq(e, r.elem))
-        RedTree(e, l, BlankLeaf(e))
-      else
-        RedTree(e, l, r)
     case BlankLeaf(l) => t
     case Leaf(l) => t
     case RedTree(v, l, r) => pushDown(false, e, v, l, r)
