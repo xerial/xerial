@@ -20,6 +20,7 @@ class PrioritySearchTreeTest extends XerialSpec {
       p += Interval(3, 5)
       p += Interval(4, 9)
       p += Interval(4, 12)
+      p += Interval(4, 9)
       p += Interval(10, 15)
       debug(p)
 

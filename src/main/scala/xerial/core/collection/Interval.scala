@@ -86,7 +86,7 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
 
 class Interval(val start:Int, val end:Int) {
   def size = end - start
-  override def toString = "[%d,%d)".format(start, end)
+  override def toString = "%d:%d".format(start, end)
 }
 
 object Interval {
