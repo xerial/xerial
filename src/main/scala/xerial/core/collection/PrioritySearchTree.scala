@@ -128,7 +128,7 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
 
 
     val newTree = blacken(insertTo(tt))
-    trace("insert %s, new tree:\n%s", e, newTree)
+    //trace("insert %s, new tree:\n%s", e, newTree)
     newTree
   }
 

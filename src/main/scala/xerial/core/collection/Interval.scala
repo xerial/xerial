@@ -14,15 +14,19 @@ trait Point2D[A, @specialized(Int, Long) V] {
 
   def yUpperBound(a:A, b:A) : A
 
-  def xIsSmaller(a:A, b:A) : Boolean
-  def xEquals(a:A, b:A) : Boolean
-  def yIsSmaller(a:A, b:A) : Boolean
-  def xIsSmallerThanOrEq(a:A, b:A) : Boolean
-  def yIsSmallerThanOrEq(a:A, b:A) : Boolean
-  def minX(a:A, b:A) : A
-  def minY(a:A, b:A) : A
-  def maxX(a:A, b:A) : A
-  def maxY(a:A, b:A) : A
+  def compareX(a:A, b:A) : Int
+  def compareY(a:A, b:A) : Int
+
+  def xIsSmaller(a:A, b:A) : Boolean = compareX(a, b) < 0
+  def xEquals(a:A, b:A) : Boolean = compareX(a, b) == 0
+  def yIsSmaller(a:A, b:A) : Boolean = compareY(a, b) < 0
+
+  def xIsSmallerThanOrEq(a:A, b:A) : Boolean = compareX(a, b) <= 0
+  def yIsSmallerThanOrEq(a:A, b:A) : Boolean = compareY(a, b) <= 0
+  def minX(a:A, b:A) : A = if(compareX(a, b) <= 0) a else b
+  def minY(a:A, b:A) : A = if(compareY(a, b) <= 0) a else b
+  def maxX(a:A, b:A) : A = if(compareX(a, b) >= 0) a else b
+  def maxY(a:A, b:A) : A = if(compareY(a, b) >= 0) a else b
 
 }
 
@@ -50,15 +54,8 @@ trait IntervalOps[A, @specialized(Int, Long) V] extends Point2D[A, V] {
 
 trait IntInterval[A] extends IntervalOps[A, Int]{
 
-  def xIsSmaller(a:A, b:A) : Boolean = x(a) < x(b)
-  def xEquals(a:A, b:A) : Boolean = x(a) == x(b)
-  def yIsSmaller(a:A, b:A) : Boolean = y(a) < y(b)
-  def xIsSmallerThanOrEq(a:A, b:A) : Boolean = x(a) <= x(b)
-  def yIsSmallerThanOrEq(a:A, b:A) : Boolean = y(a) <= y(b)
-  def minX(a:A, b:A) = if(x(a) <= x(b)) a else b
-  def minY(a:A, b:A) = if(y(a) <= y(b)) a else b
-  def maxX(a:A, b:A) = if(x(a) <= x(b)) a else b
-  def maxY(a:A, b:A) = if(y(a) <= y(b)) a else b
+  def compareX(a:A, b:A) = x(a) - x(b)
+  def compareY(a:A, b:A) = y(a) - y(b)
 
   def precede(a:A, b:A) : Boolean = end(a) < start(b)
   def follow(a:A, b:A) : Boolean = end(b) < start(a)
@@ -70,15 +67,9 @@ trait IntInterval[A] extends IntervalOps[A, Int]{
 }
 
 trait LongInterval[A] extends IntervalOps[A, Long] {
-  def xIsSmaller(a:A, b:A) : Boolean = x(a) < x(b)
-  def xEquals(a:A, b:A) : Boolean = x(a) == y(a)
-  def yIsSmaller(a:A, b:A) : Boolean = y(a) < y(b)
-  def xIsSmallerThanOrEq(a:A, b:A) : Boolean = x(a) <= x(b)
-  def yIsSmallerThanOrEq(a:A, b:A) : Boolean = y(a) <= y(b)
-  def minX(a:A, b:A) = if(x(a) <= x(b)) a else b
-  def minY(a:A, b:A) = if(y(a) <= y(b)) a else b
-  def maxX(a:A, b:A) = if(x(a) <= x(b)) a else b
-  def maxY(a:A, b:A) = if(y(a) <= y(b)) a else b
+
+  def compareX(a:A, b:A) = (x(a) - x(b)).toInt
+  def compareY(a:A, b:A) = (y(a) - y(b)).toInt
 
   def precede(a:A, b:A) : Boolean = end(a) < start(b)
   def follow(a:A, b:A) : Boolean = end(b) < start(a)
