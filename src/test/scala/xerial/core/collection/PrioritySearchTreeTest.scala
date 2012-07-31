@@ -23,6 +23,10 @@ class PrioritySearchTreeTest extends XerialSpec {
       p += Interval(4, 9)
       p += Interval(10, 15)
       p += Interval(6, 11)
+      p += Interval(4, 20)
+      p += Interval(20, 25)
+      p += Interval(28, 32)
+      p += Interval(1, 20)
       debug(p)
 
       debug(p.mkString(", "))

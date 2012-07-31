@@ -19,6 +19,7 @@ abstract class Tree[+A] {
   def left: Tree[A]
   def right: Tree[A]
   def iterator: Iterator[A]
+  def key : A
 }
 
 
@@ -65,6 +66,7 @@ abstract class Leaf[+A] extends Tree[A] {
   def right = null
   def iterator: Iterator[A]
   def +[A1 >: A](e: A1): Leaf[A1]
+  def key = elem
 }
 
 /**
@@ -133,11 +135,11 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
   def iterator = root.iterator
 
 
-  private def mkTree[B](isBlack: Boolean, e: B, l: Tree[B], r: Tree[B]): Tree[B] = {
+  private def mkTree[B](isBlack: Boolean, key:B, e: B, l: Tree[B], r: Tree[B]): Tree[B] = {
     if (isBlack)
-      BlackTree(e, e, l, r)
+      BlackTree(key, e, l, r)
     else
-      RedTree(e, e, l, r)
+      RedTree(key, e, l, r)
   }
 
 
@@ -256,7 +258,7 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
     case xt@RedTree(xb, x, a, yt@RedTree(yb, y, b, c)) =>
       RedTree(newKey(xb, yb, e), y, BlackTree(xb, x, a, b), BlackTree(e, e, c, right))
     case _ =>
-      mkTree(isBlack, e, left, right)
+      mkTree(isBlack, newKey(e, left.key, right.key), e, left, right)
   }
 
   protected def balanceRight(isBlack: Boolean, e: A, left: Tree[A], right: Tree[A]): Tree[A] = {
@@ -267,7 +269,7 @@ class PrioritySearchTree[A, V](root: impl.Tree[A])(implicit iv: Point2D[A, V]) e
     case yt@RedTree(yb, y, b, zt@RedTree(zb, z, c, d)) =>
       RedTree(newKey(yb, e, zb), y, BlackTree(e, e, left, b), BlackTree(zb, z, c, d))
     case _ =>
-      mkTree(isBlack, e, left, right)
+      mkTree(isBlack, newKey(e, left.key, right.key), e, left, right)
   }
   }
 
