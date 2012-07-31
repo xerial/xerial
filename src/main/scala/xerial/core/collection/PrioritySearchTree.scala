@@ -18,7 +18,7 @@ abstract class Tree[+A] {
   def right: Tree[A]
   def iterator: Iterator[A]
   def key: A = null.asInstanceOf[A]
-  def holder : Holder[A]
+  def holder: Holder[A]
 }
 
 
@@ -59,7 +59,7 @@ object Empty extends Tree[Nothing] {
   def left = null
   def right = null
   override def toString = "Empty"
-  def holder : Holder[Nothing] = null.asInstanceOf[Holder[Nothing]]
+  def holder: Holder[Nothing] = null.asInstanceOf[Holder[Nothing]]
   def iterator: Iterator[Nothing] = Iterator.empty
 }
 
@@ -108,7 +108,6 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
     case _ => t
   }
 
-
   protected def insert(e: A, tt: Tree[A]): Tree[A] = {
 
     def insertTo(t: Tree[A]): Tree[A] = t match {
@@ -132,26 +131,6 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
     newTree
   }
 
-
-  //  protected def balance(t:Tree[A]) : Tree[A] = {
-  //    (t.elem, t.left, t.right) match {
-  //      case (z, RedTree(x, a, b), RedTree(y, c, d)) =>
-  //        RedTree(z, BlackTree(x, a, b), BlackTree(y, c, d))
-  //      case (z, RedTree(x, a, RedTree(y, b, c)), d) =>
-  //        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
-  //      case (z, RedTree(y, RedTree(x, a, b), c), d) =>
-  //        RedTree(y, BlackTree(x, a, b), BlackTree(z, c, d))
-  //      case (x, a, RedTree(y, b, RedTree(z, c, d))) =>
-  //        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
-  //      case (x, a, RedTree(z, RedTree(y, b, c), d)) =>
-  //        RedTree(y, BlackTree(z, a, b), BlackTree(x, c, d))
-  //      case _ => t
-  //    }
-  //  }
-
-
-  private def eq(a: A, b: A): Boolean = a.asInstanceOf[AnyRef] eq b.asInstanceOf[AnyRef]
-
   private def newKey(c: A, l: A, r: A): A = {
     def m(k1: A, k2: A): A = Option(k2).map {
       iv.yUpperBound(k1, _)
@@ -169,7 +148,7 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
       mkTree(isBlack, newKey(k, left.key, right.key), h, left, right)
   }
 
-  protected def balanceRight(isBlack: Boolean, k: A, h:Holder[A], left: Tree[A], right: Tree[A]): Tree[A] = {
+  protected def balanceRight(isBlack: Boolean, k: A, h: Holder[A], left: Tree[A], right: Tree[A]): Tree[A] = {
     right match {
       case zt@RedTree(zb, z, yt@RedTree(yb, y, b, c), d) =>
         RedTree(newKey(yb, k, zb), y, BlackTree(k, h, left, b), BlackTree(zb, z, c, d))
@@ -178,6 +157,7 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
       case _ =>
         mkTree(isBlack, newKey(k, left.key, right.key), h, left, right)
     }
+
   }
 
 }
