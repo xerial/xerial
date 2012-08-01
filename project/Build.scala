@@ -148,7 +148,7 @@ object XerialBuild extends Build {
 
   lazy val core = Project(
     id = "xerial-core",
-    base = file("."),
+    base = file("xerial-core"),
     settings = buildSettings ++ distSettings ++ Seq(packageDistTask)
       ++ Seq(libraryDependencies ++= bootLib ++ testLib ++ reflectionLib)
   )
