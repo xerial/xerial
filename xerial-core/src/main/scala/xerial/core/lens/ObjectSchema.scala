@@ -20,7 +20,6 @@ import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
 import xerial.core.log.Logging
 import java.{lang => jl}
-import xerial.core.util.Reflect
 
 //--------------------------------------
 //

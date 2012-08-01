@@ -1,9 +1,9 @@
 package xerial.core
 
-import org.scalatest.WordSpec
+import io.Resource
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
-import org.scalatest._
 import xerial.core.log.Logging
+import org.scalatest.{OptionValues, GivenWhenThen, WordSpec}
 
 
 //--------------------------------------
@@ -16,5 +16,5 @@ import xerial.core.log.Logging
 /**
  * @author leo
  */
-trait XerialSpec extends WordSpec with ShouldMatchers with MustMatchers with GivenWhenThen with OptionValues with Logging
+trait XerialSpec extends WordSpec with ShouldMatchers with MustMatchers with GivenWhenThen with OptionValues with Resource with Logging
 

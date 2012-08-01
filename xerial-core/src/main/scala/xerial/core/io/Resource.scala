@@ -1,18 +1,30 @@
-package xerial.core.util
-
-import java.io.{File, BufferedInputStream, InputStream}
-import java.util.jar.{JarEntry, JarFile}
-import java.util.Enumeration
-import java.lang.reflect.Modifier
-import java.net.{URLClassLoader, URL}
-import xerial.core.log.Logging
-
 //--------------------------------------
 //
 // Resource.scala
 // Since: 2012/07/17 9:12
 //
 //--------------------------------------
+
+package xerial.core.io
+
+import java.io.{File, BufferedInputStream}
+import java.util.jar.JarFile
+import java.lang.reflect.Modifier
+import java.net.{URLClassLoader, URL}
+import xerial.core.log.Logging
+
+
+/**
+ * Extend this trait to add support your class for reading resources
+ */
+trait Resource {
+
+  def open[U](resourceFileName: String)(f: BufferedInputStream => U): U = {
+    Resource.open(this.asInstanceOf[AnyRef].getClass, resourceFileName)(f)
+  }
+
+}
+
 
 /**
  * Resource file manager.
@@ -28,28 +40,27 @@ object Resource extends Logging {
    * @param body code block
    * @tparam U
    */
-  def open[U](referenceClass: Class[_], resourceFileName: String)(body: BufferedInputStream => U) {
+  def open[U](referenceClass: Class[_], resourceFileName: String)(body: BufferedInputStream => U): U = {
     val u = find(referenceClass, resourceFileName)
     if (u.isEmpty)
       sys.error("Resource %s (in %s) not found".format(resourceFileName, referenceClass.getSimpleName))
 
-    u.map {
-      url =>
-        val s = new BufferedInputStream(url.openStream())
-        try
-          body(s)
-        finally
-          s.close
-    }
+    val s = new BufferedInputStream(u.get.openStream())
+    try
+      body(s)
+    finally
+      s.close
   }
 
 
   private def packagePath(referenceClass: Class[_]): String = {
     return packagePath(referenceClass.getPackage)
   }
+
   private def packagePath(basePackage: Package): String = {
     return packagePath(basePackage.getName)
   }
+
   private def packagePath(packageName: String): String = {
     val packageAsPath: String = packageName.replaceAll("\\.", "/")
     if (packageAsPath.endsWith("/")) packageAsPath else packageAsPath + "/"
@@ -63,7 +74,7 @@ object Resource extends Logging {
     def stream(c: ClassLoader): Stream[URLClassLoader] = {
       c match {
         case null => Stream.empty
-        case u:URLClassLoader => u #:: stream(c.getParent)
+        case u: URLClassLoader => u #:: stream(c.getParent)
         case _ => stream(c.getParent)
       }
     }
@@ -81,8 +92,8 @@ object Resource extends Logging {
     prependSlash(path + resourceFileName)
   }
 
-  private def prependSlash(name:String) : String = {
-    if(name.startsWith("/"))
+  private def prependSlash(name: String): String = {
+    if (name.startsWith("/"))
       name
     else
       "/" + name
@@ -98,16 +109,16 @@ object Resource extends Logging {
    * @param absoluteResourcePath
    * @return
    */
-  def find(absoluteResourcePath: String) : Option[URL] =
+  def find(absoluteResourcePath: String): Option[URL] =
     find("", if (absoluteResourcePath.startsWith("/")) absoluteResourcePath.substring(1) else absoluteResourcePath)
 
   /**
    * Finds the [[java.net.URL]] of the resource
    *
    * @param packageName
-   *            the base package name to find the resource
+   * the base package name to find the resource
    * @param resourceFileName
-   *            the resource file name relative to the package folder
+   * the resource file name relative to the package folder
    * @return the URL of the specified resource
    */
   def find(packageName: String, resourceFileName: String): Option[URL] = {
@@ -126,9 +137,9 @@ object Resource extends Logging {
    * VirtualFile is a common interface to handle system files and file resources in JAR.
    *
    * System file resources have an URL prefixed with "file:".
-   *   e.g., "file:/C:/Program Files/Software/classes/org/xerial/util/FileResource.java"
+   * e.g., "file:/C:/Program Files/Software/classes/org/xerial/util/FileResource.java"
    * JAR file contents have an URL prefixed with "jar:file:
-   *   e.g., "jar:file:/C:/Program Files/Software/something.jar!/org/xerial/util/FileResource.java"
+   * e.g., "jar:file:/C:/Program Files/Software/something.jar!/org/xerial/util/FileResource.java"
    *
    * @author leo
    *
@@ -141,11 +152,13 @@ object Resource extends Logging {
      * @return
      */
     def logicalPath: String
+
     /**
      * is directory?
      * @return true when the file is a directory, otherwise false
      */
     def isDirectory: Boolean
+
     /**
      * Gets the URL of this file
      * @return
@@ -153,6 +166,7 @@ object Resource extends Logging {
     def url: URL
 
   }
+
   /**
    * A virtual file implementation for usual files
    *
@@ -206,6 +220,7 @@ object Resource extends Logging {
     b.result()
 
   }
+
   /**
    * Create a list of all resources under the given resourceURL recursively. If the
    * resourceURL is a file, this method searches directories under the path. If the resource is contained
@@ -262,8 +277,10 @@ object Resource extends Logging {
    * @param packageName
    * @return
    */
-  def listResources(packageName:String) : Seq[VirtualFile] =
-    listResources(packageName, {f:String => true})
+  def listResources(packageName: String): Seq[VirtualFile] =
+    listResources(packageName, {
+      f: String => true
+    })
 
 
   /**
@@ -300,16 +317,18 @@ object Resource extends Logging {
   }
 
   def findClasses[A](packageName: String, toSearch: Class[A], classLoader: ClassLoader = Thread.currentThread.getContextClassLoader): Seq[Class[A]] = {
-        val classFileList = listResources(packageName, { f:String => f.endsWith(".class") }, classLoader)
+    val classFileList = listResources(packageName, {
+      f: String => f.endsWith(".class")
+    }, classLoader)
 
-    def componentName(path:String) : Option[String] = {
+    def componentName(path: String): Option[String] = {
       val dot: Int = path.lastIndexOf(".")
       if (dot <= 0)
         None
       else
         Some(path.substring(0, dot).replaceAll("/", "."))
     }
-    def findClass(name:String) : Option[Class[_]] = {
+    def findClass(name: String): Option[Class[_]] = {
       try
         Some(Class.forName(name, false, classLoader))
       catch {
@@ -320,7 +339,7 @@ object Resource extends Logging {
     val b = Seq.newBuilder[Class[A]]
     for (vf <- classFileList; cn <- componentName(vf.logicalPath)) {
       val className: String = packageName + "." + cn
-      for(cl <- findClass(className)) {
+      for (cl <- findClass(className)) {
         if (!Modifier.isAbstract(cl.getModifiers) && toSearch.isAssignableFrom(cl)) {
           b += cl.asInstanceOf[Class[A]]
         }

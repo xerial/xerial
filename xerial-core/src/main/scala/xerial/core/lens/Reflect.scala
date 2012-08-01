@@ -1,6 +1,4 @@
-package xerial.core.util
-
-import xerial.core.lens.{TypeUtil, TypeConverter}
+package xerial.core.lens
 
 
 //--------------------------------------
@@ -16,13 +14,13 @@ import xerial.core.lens.{TypeUtil, TypeConverter}
  */
 object Reflect {
 
-  import java.lang.{reflect=>jr}
+  import java.lang.{reflect => jr}
 
   /**
    * Set the accessibility flag of fields and methods if they are not accessible, then
    * do some operation, and reset the accessibility properly upon the completion.
    */
-  private[util] def access[A <: jr.AccessibleObject, B](f: A)(body: => B): B = {
+  private[lens] def access[A <: jr.AccessibleObject, B](f: A)(body: => B): B = {
     val accessible = f.isAccessible
     try {
       if (!accessible)
@@ -105,7 +103,6 @@ object Reflect {
       case _ => classOf[Any]
     }
   }
-
 
 
 }

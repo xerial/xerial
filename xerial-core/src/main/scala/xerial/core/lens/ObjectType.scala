@@ -7,8 +7,6 @@
 
 package xerial.core.lens
 
-import xerial.core.util.Reflect
-import xerial.core.log.Logging
 
 /**
  * @author leo
