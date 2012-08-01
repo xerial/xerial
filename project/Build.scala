@@ -20,7 +20,7 @@ import java.io.File
 import sbt._
 import Keys._
 import sbt.classpath.ClasspathUtilities
-import sbtrelease.Release._
+import sbtrelease.ReleasePlugin._
 
 object XerialBuild extends Build {
 
@@ -132,7 +132,7 @@ object XerialBuild extends Build {
     )
 
     val bootLib = Seq(
-      "org.codehaus.plexus" % "plexus-classworlds" % "2.4"
+      "org.codehaus.plexus" % "plexus-classworlds" % "2.4" % "provided"
     )
 
     val reflectionLib = Seq(
