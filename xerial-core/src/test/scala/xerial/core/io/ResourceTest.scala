@@ -1,5 +1,6 @@
 package xerial.core.io
 
+import text.LineReader
 import xerial.core.XerialSpec
 import collection.JavaConversions._
 
@@ -48,5 +49,19 @@ class ResourceTest extends XerialSpec {
 
     }
 
+  }
+
+  "Resource trait" should {
+    "find files using the context class" in {
+      new Resource {
+        open("hello.txt") { f =>
+          val s = LineReader(f).toSeq
+          s.length should be (1)
+          s(0).toString should be ("Hello World!")
+        }
+      }
+
+
+    }
   }
 }
