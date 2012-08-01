@@ -13,11 +13,13 @@ import xerial.core.log.Logging
 object RedBlackTree {
 
   abstract class Tree[+A] {
+    def isEmpty : Boolean
     def isBlack: Boolean
     def left: Tree[A]
     def right: Tree[A]
     def iterator: Iterator[A]
-    def key: A = null.asInstanceOf[A]
+    def key : A
+    def getKey : Option[A]
     def holder: Holder[A]
   }
 
@@ -42,23 +44,29 @@ object RedBlackTree {
   }
 
 
-  abstract class Node[+A] extends Tree[A] {
+  abstract class NonEmpty[+A] extends Tree[A] {
+    def isEmpty = false
     def iterator: Iterator[A] = left.iterator ++ holder.iterator ++ right.iterator
+    def getKey = Some(key)
   }
 
-  case class RedTree[B](override val key: B, holder: Holder[B], left: Tree[B], right: Tree[B]) extends Node[B] {
+  case class RedTree[B](override val key: B, holder: Holder[B], left: Tree[B], right: Tree[B]) extends NonEmpty[B] {
     def isBlack = false
   }
 
-  case class BlackTree[B](override val key: B, holder: Holder[B], left: Tree[B], right: Tree[B]) extends Node[B] {
+  case class BlackTree[B](override val key: B, holder: Holder[B], left: Tree[B], right: Tree[B]) extends NonEmpty[B] {
     def isBlack = true
   }
 
   object Empty extends Tree[Nothing] {
+    override def toString = "Empty"
+
+    def isEmpty = true
     def isBlack = true
     def left = null
     def right = null
-    override def toString = "Empty"
+    def key = throw new NoSuchElementException("No key for Empty node")
+    def getKey : Option[Nothing] = None
     def holder: Holder[Nothing] = null.asInstanceOf[Holder[Nothing]]
     def iterator: Iterator[Nothing] = Iterator.empty
   }
@@ -81,22 +89,31 @@ object RedBlackTree {
 
 import RedBlackTree._
 
+/**
+ * Base class for implementing red-black tree backed data structures
+ *
+ * @param root
+ * @param size
+ * @tparam A
+ * @tparam Repr
+ */
 abstract class RedBlackTree[A, Repr](protected val root:Tree[A], override val size:Int) extends Iterable[A] with Logging {
 
   protected def isSmaller(a:A, b:A) : Boolean
   protected def update(t:Tree[A], e:A) : Tree[A]
   /**
-   * Create a new key from the current element and its left/right children. The default is the current element
+   * Create a new key from the current element and its left/right children. Use the current element as the key in default
    * @param e current element
    * @param l
    * @param r
    * @return
    */
-  protected def newKey(e:A, l:A, r:A) : A = e
+  protected def newKey(e:A, l:Option[A], r:Option[A]) : A = e
 
   protected def wrap(t:Tree[A], newSize:Int) : Repr
 
   def iterator = root.iterator
+
 
   override def toString = root.toString
   def +(e: A): Repr = insert(e)
@@ -104,7 +121,7 @@ abstract class RedBlackTree[A, Repr](protected val root:Tree[A], override val si
 
   protected def insert(e: A, tt: Tree[A]): Tree[A] = {
     def insertTo(t: Tree[A]): Tree[A] = t match {
-      case n@Empty => RedTree(e, Single(e), Empty, Empty)
+      case Empty => RedTree(e, Single(e), Empty, Empty)
       case _ =>
         val k = t.key
         val h = t.holder
@@ -121,21 +138,24 @@ abstract class RedBlackTree[A, Repr](protected val root:Tree[A], override val si
 
   protected def balanceLeft(isBlack: Boolean, z: A, zh: Holder[A], l: Tree[A], r: Tree[A]): Tree[A] = l match {
     case RedTree(y, yh, RedTree(x, xh, a, b), c) =>
-      RedTree(newKey(y, x, z), yh, BlackTree(x, xh, a, b), BlackTree(z, zh, c, r))
+      RedTree(newKey(y, Some(x), Some(z)), yh, BlackTree(x, xh, a, b), BlackTree(z, zh, c, r))
     case RedTree(x, xh, a, RedTree(y, yh, b, c)) =>
-      RedTree(newKey(y, x, z), yh, BlackTree(x, xh, a, b), BlackTree(z, zh, c, r))
+      RedTree(newKey(y, Some(x), Some(z)), yh, BlackTree(x, xh, a, b), BlackTree(z, zh, c, r))
     case _ =>
-      mkTree(isBlack, newKey(z, l.key, r.key), zh, l, r)
+      mkTree(isBlack, newKey(z, l.getKey, r.getKey), zh, l, r)
   }
 
   protected def balanceRight(isBlack: Boolean, x: A, xh: Holder[A], l: Tree[A], r: Tree[A]): Tree[A] = r match {
     case RedTree(z, zh, RedTree(y, yh, b, c), d) =>
-      RedTree(newKey(y, x, z), yh, BlackTree(x, xh, l, b), BlackTree(z, zh, c, d))
+      RedTree(newKey(y, Some(x), Some(z)), yh, BlackTree(x, xh, l, b), BlackTree(z, zh, c, d))
     case RedTree(y, yh, b, RedTree(z, zh, c, d)) =>
-      RedTree(newKey(y, x, z), yh, BlackTree(x, xh, l, b), BlackTree(z, zh, c, d))
+      RedTree(newKey(y, Some(x), Some(z)), yh, BlackTree(x, xh, l, b), BlackTree(z, zh, c, d))
     case _ =>
-      mkTree(isBlack, newKey(x, l.key, r.key), xh, l, r)
+      mkTree(isBlack, newKey(x, l.getKey, r.getKey), xh, l, r)
   }
+
+
+
 
 }
 
@@ -158,8 +178,8 @@ class PrioritySearchTree[A](root: Tree[A], size: Int)(implicit iv: Point2D[A, _]
 
   protected def isSmaller(a:A, b:A) : Boolean = iv.xIsSmaller(a, b)
   protected def update(t:Tree[A], e:A) : Tree[A] = mkTree(t.isBlack, iv.yUpperBound(t.key, e), t.holder + e, t.left, t.right)
-  override protected def newKey(c: A, l: A, r: A): A = {
-    def m(k1: A, k2: A): A = Option(k2).map(iv.yUpperBound(k1, _)).getOrElse(k1)
+  override protected def newKey(c: A, l: Option[A], r: Option[A]): A = {
+    def m(k1: A, k2: Option[A]): A = k2.map(iv.yUpperBound(k1, _)).getOrElse(k1)
     m(m(c, l), r)
   }
 
