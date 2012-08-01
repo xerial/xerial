@@ -17,7 +17,7 @@
 package xerial.core.lens
 
 import xerial.core.log.Logging
-import javassist.{CtNewConstructor, CtClass, ClassPool, CtNewMethod}
+import javassist._
 
 
 //--------------------------------------
@@ -115,8 +115,7 @@ object EqGen extends Logging {
   def eqMethod(cl: Class[_]) = {
     eqMethodCache.getOrElseUpdate(cl, {
       val p = ClassPool.getDefault
-      p.appendClassPath("xerial-core/target/classes")
-      p.appendClassPath("xerial-core/target/test-classes")
+      p.appendClassPath(new LoaderClassPath(cl.getClassLoader))
       val c = p.makeClass(cl.getName + "$Eq")
       c.setInterfaces(Array(p.get(classOf[HasEq].getName)))
       val code = buildEqCode(cl)
