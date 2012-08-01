@@ -65,7 +65,7 @@ trait Eq {
 
 trait FastEq {
   override def equals(other: Any) = {
-    if (other != null && Eq.cls(this) == Eq.cls(other)) {
+    if (other != null && this.getClass == other.getClass) {
       if (this eq other.asInstanceOf[AnyRef]) // if two object refs are identical
         true
       else
@@ -99,8 +99,10 @@ object EqGen extends Logging {
     }
     val n = cl.getName
     val b = new StringBuilder
-    b append "public static boolean cmp(%s a, %s b) {\n".format(n, n)
+    b append "public boolean compare(Object ao, Object bo) {\n"
 //    b append """ System.out.println("hello compare: " + a.toString() + " cmp " + b.toString() );""" + "\n";
+    b append " %s a = (%s) ao; \n".format(n, n)
+    b append " %s b = (%s) bo; \n".format(n, n)
     b append " boolean diff = false;\n "
     b append cmpCode.mkString("\n ")
     b append " return !diff;\n"
@@ -108,9 +110,9 @@ object EqGen extends Logging {
     b.result
   }
 
-  private val eqMethodCache = collection.mutable.Map[Class[_], HasEq]()
+  private val eqMethodCache = collection.mutable.HashMap[Class[_], HasEq]()
 
-  def eqMethod(cl: Class[_]): HasEq = {
+  def eqMethod(cl: Class[_]) = {
     eqMethodCache.getOrElseUpdate(cl, {
       val p = ClassPool.getDefault
       p.appendClassPath("xerial-core/target/classes")
@@ -122,8 +124,10 @@ object EqGen extends Logging {
       val m = CtNewMethod.make(code, c)
       c.addMethod(m)
       val cmpCls = c.toClass
-      cmpCls.newInstance.asInstanceOf[HasEq]
+      val h = cmpCls.newInstance.asInstanceOf[HasEq]
       //cmpCls.getMethod("cmp", cl, cl)
+      //debug(h.getClass.getMethods.mkString(","))
+      h
     })
   }
 

@@ -12,6 +12,7 @@ import xerial.core.XerialSpec
 object EqTest {
   case class A(id:Int, name:String, flag:Long) extends Eq
   case class B(id:Int, name:String, flag:Long) extends FastEq
+  case class C(id:Int, name:String, flag:Long)
   class MyClass(val id:Int, val name:String) extends Eq
   case class MyClass2(id:Int, name:String) extends FastEq
 }
@@ -45,19 +46,24 @@ class EqTest extends XerialSpec {
     "generate fast comparison code" in {
       import xerial.core.util.StopWatch._
 
-
       val c1 = new A(1, "leo", 1L)
       val c2 = new A(1, "leo", 2L)
       val d1 = new B(1, "leo", 1L)
       val d2 = new B(1, "leo", 2L)
       d1.equals(d2)
+      val e1 = new C(1, "leo", 1L)
+      val e2 = new C(1, "leo", 2L)
 
-      time("cmp", repeat=1000) {
-        block("reflection", repeat=100) {
+      val r = 10000
+      time("cmp", repeat=10) {
+        block("reflection", repeat=r) {
           c1.equals(c2)
         }
-        block("javassist", repeat=100) {
+        block("javassist", repeat=r) {
           d1.equals(d2)
+        }
+        block("case class", repeat=r) {
+          e1.equals(e2)
         }
       }
 
