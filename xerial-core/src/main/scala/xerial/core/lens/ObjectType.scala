@@ -46,6 +46,7 @@ abstract class ObjectType(val rawType: Class[_]) extends Type {
   def isOption = false
   def isBooleanType = false
   def isGenericType = false
+  def isPrimitive : Boolean = false
 }
 
 trait ValueObject extends ObjectType {
@@ -100,7 +101,9 @@ object Primitive {
 }
 
 
-sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ValueObject
+sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ValueObject {
+  override def isPrimitive = true
+}
 
 /**
  * Types that can be constructed from String

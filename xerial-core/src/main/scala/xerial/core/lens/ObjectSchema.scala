@@ -209,6 +209,7 @@ object ObjectSchema extends Logging {
       }
     }
 
+    trace("find field owner: %s, %s", name, baseClass)
     if (isFieldOwner(baseClass))
       Some(baseClass)
     else {
@@ -480,7 +481,7 @@ object ObjectSchema extends Logging {
       ObjectType(clazz)
     }
     else {
-      val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.map {
+      val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
         case x: TypeRefType => resolveClass(x)
       }
       new GenericType(clazz, typeArgs)

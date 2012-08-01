@@ -16,6 +16,8 @@
 
 package xerial.core.lens
 
+import xerial.core.log.Logging
+import javassist.{CtNewConstructor, CtClass, ClassPool, CtNewMethod}
 
 
 //--------------------------------------
@@ -27,25 +29,27 @@ package xerial.core.lens
 
 /**
  * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class
-  *
+ *
  * @author leo
  */
 trait Eq {
+
   override lazy val hashCode = {
-    val schema = ObjectSchema(this.getClass)
-    val hash = schema.parameters.foldLeft(0){(hash, p) =>
-      val value = p.get(this)
-      (hash * 31) + (if(value != null) value.hashCode() else 0)
+    val schema = ObjectSchema(Eq.cls(this))
+    val hash = schema.parameters.foldLeft(0) {
+      (hash, p) =>
+        val value = p.get(this)
+        (hash * 31) + (if (value != null) value.hashCode() else 0)
     }
     hash % 1907
   }
 
   override def equals(other: Any) = {
-    if (other != null && this.getClass == other.getClass) {
+    if (other != null && Eq.cls(this) == Eq.cls(other)) {
       if (this eq other.asInstanceOf[AnyRef]) // if two object refs are identical
         true
       else {
-        val schema = ObjectSchema(this.getClass)
+        val schema = ObjectSchema(Eq.cls(this))
         // search for non-equal parameters
         val eq = schema.parameters.find(p =>
           !p.get(this).equals(p.get(other))
@@ -57,4 +61,75 @@ trait Eq {
     else
       false
   }
+}
+
+trait FastEq {
+  override def equals(other: Any) = {
+    if (other != null && Eq.cls(this) == Eq.cls(other)) {
+      if (this eq other.asInstanceOf[AnyRef]) // if two object refs are identical
+        true
+      else
+        EqGen.compare(Eq.cls(this), this, other.asInstanceOf[AnyRef])
+    }
+    else
+      false
+  }
+
+}
+
+import java.lang.{reflect => jr}
+
+trait HasEq {
+  def compare(a: AnyRef, b: AnyRef): Boolean
+}
+
+object Eq  {
+
+  def cls[A](a: A): Class[_] = a.asInstanceOf[AnyRef].getClass
+}
+
+object EqGen extends Logging {
+  def buildEqCode(cl: Class[_]): String = {
+    val schema = ObjectSchema(cl)
+    val cmpCode = for (p <- schema.parameters) yield {
+      if(Primitive.isPrimitive(p.valueType.rawType))
+        "if(diff) return false; else{diff = a.%s() != b.%s();};".format(p.name, p.name)
+      else
+        "if(diff) return false; else{diff = !a.%s().equals(b.%s());};".format(p.name, p.name)
+    }
+    val n = cl.getName
+    val b = new StringBuilder
+    b append "public static boolean cmp(%s a, %s b) {\n".format(n, n)
+//    b append """ System.out.println("hello compare: " + a.toString() + " cmp " + b.toString() );""" + "\n";
+    b append " boolean diff = false;\n "
+    b append cmpCode.mkString("\n ")
+    b append " return !diff;\n"
+    b append "}\n"
+    b.result
+  }
+
+  private val eqMethodCache = collection.mutable.Map[Class[_], HasEq]()
+
+  def eqMethod(cl: Class[_]): HasEq = {
+    eqMethodCache.getOrElseUpdate(cl, {
+      val p = ClassPool.getDefault
+      p.appendClassPath("xerial-core/target/classes")
+      p.appendClassPath("xerial-core/target/test-classes")
+      val c = p.makeClass(cl.getName + "$Eq")
+      c.setInterfaces(Array(p.get(classOf[HasEq].getName)))
+      val code = buildEqCode(cl)
+      trace(code)
+      val m = CtNewMethod.make(code, c)
+      c.addMethod(m)
+      val cmpCls = c.toClass
+      cmpCls.newInstance.asInstanceOf[HasEq]
+      //cmpCls.getMethod("cmp", cl, cl)
+    })
+  }
+
+  def compare(cl: Class[_], a: AnyRef, b: AnyRef): Boolean = {
+    //eqMethod(cl).invoke(null, a, b).asInstanceOf[Boolean]
+    eqMethod(cl).compare(a, b)
+  }
+
 }
