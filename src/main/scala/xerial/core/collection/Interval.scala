@@ -7,10 +7,14 @@
 
 package xerial.core.collection
 
+import xerial.core.lens.Eq
+
 
 trait Point2D[A, @specialized(Int, Long) V] {
   def x(a:A):V
   def y(a:A):V
+
+  def ==(a:A, b:A) : Boolean = xEquals(a, b) && yEquals(a, b)
 
   def yUpperBound(a:A, b:A) : A
 
@@ -20,6 +24,7 @@ trait Point2D[A, @specialized(Int, Long) V] {
   def xIsSmaller(a:A, b:A) : Boolean = compareX(a, b) < 0
   def xEquals(a:A, b:A) : Boolean = compareX(a, b) == 0
   def yIsSmaller(a:A, b:A) : Boolean = compareY(a, b) < 0
+  def yEquals(a:A, b:A) : Boolean = compareY(a, b) == 0
 
   def xIsSmallerThanOrEq(a:A, b:A) : Boolean = compareX(a, b) <= 0
   def yIsSmallerThanOrEq(a:A, b:A) : Boolean = compareY(a, b) <= 0
@@ -84,11 +89,11 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
  * Concrete Interval class
  */
 
-class Interval(val start:Int, val end:Int) {
+class Interval(val start:Int, val end:Int) extends Eq {
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 }
-class LInterval(val start:Long, val end:Long) {
+class LInterval(val start:Long, val end:Long) extends Eq {
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 }

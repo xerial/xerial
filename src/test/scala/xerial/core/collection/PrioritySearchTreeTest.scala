@@ -31,7 +31,12 @@ class PrioritySearchTreeTest extends XerialSpec {
       debug(p)
 
       debug(p.mkString(", "))
+
+      p.get(Interval(4, 20)) should be ('defined)
+      p.get(Interval(4, 8)) should be ('empty)
     }
+
+
 
     "insert many nodes" in {
       val r = new Random(0)
