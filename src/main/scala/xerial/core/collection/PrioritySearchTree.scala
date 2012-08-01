@@ -36,7 +36,8 @@ import RedBlackTree._
 /**
  * Base class for implementing red-black tree backed data structures
  *
- * @tparam A
+ * @tparam A key type
+ * @tparam B value type associated to the key
  */
 abstract class RedBlackTree[A, B] extends Logging {
 
@@ -181,6 +182,14 @@ class PrioritySearchTree[A](t: Tree[A, Holder[A]], size: Int)(implicit iv: Point
 
   protected def isSmaller(a:A, b:A) : Boolean = iv.xIsSmaller(a, b)
   protected def updateTree(t:Tree[A, Holder[A]], key:A, value:Holder[A]) : Tree[A, Holder[A]] = mkTree(t.isBlack, iv.yUpperBound(t.key, key), t.value + key, t.left, t.right)
+
+  /**
+   * Create a new key so that it becomes the y-upper bound of the children
+   * @param c
+   * @param l
+   * @param r
+   * @return
+   */
   override protected def newKey(c: A, l: Option[A], r: Option[A]): A = {
     def m(k1: A, k2: Option[A]): A = k2.map(iv.yUpperBound(k1, _)).getOrElse(k1)
     m(m(c, l), r)
