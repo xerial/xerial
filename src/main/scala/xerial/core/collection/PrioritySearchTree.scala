@@ -21,8 +21,7 @@ abstract class Tree[+A] {
   def holder: Holder[A]
 }
 
-
-abstract class Holder[+A] {
+abstract class Holder[+A] extends Iterable[A] {
   def elem: A
   def +[A1 >: A](e: A1): Holder[A1]
   def iterator: Iterator[A]
@@ -44,6 +43,7 @@ case class Multiple[+A](elems: Seq[A]) extends Holder[A] {
 
 abstract class Node[+A] extends Tree[A] {
   def iterator: Iterator[A] = left.iterator ++ holder.iterator ++ right.iterator
+
 }
 
 case class RedTree[+A](override val key: A, holder: Holder[A], left: Tree[A], right: Tree[A]) extends Node[A] {
@@ -86,14 +86,11 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
   type pst = PrioritySearchTree[A]
 
   def +(e: A): pst = insert(e)
-  def insert(e: A): pst = {
-    new PrioritySearchTree[A](insert(e, root), size + 1)
-  }
+  def insert(e: A): pst = new PrioritySearchTree[A](insert(e, root), size + 1)
 
   override def toString = root.toString
 
   def iterator = root.iterator
-
 
   private def mkTree[B](isBlack: Boolean, key: B, h: Holder[B], l: Tree[B], r: Tree[B]): Tree[B] = {
     if (isBlack)
@@ -102,14 +99,14 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
       RedTree(key, h, l, r)
   }
 
+  //def contains(e:A) : Boolean = root.lookup(e)
 
-  protected def blacken(t: Tree[A]): Tree[A] = t match {
+  private def blacken(t: Tree[A]): Tree[A] = t match {
     case RedTree(k, e, l, r) => BlackTree(k, e, l, r)
     case _ => t
   }
 
   protected def insert(e: A, tt: Tree[A]): Tree[A] = {
-
     def insertTo(t: Tree[A]): Tree[A] = t match {
       case n@Empty => RedTree(e, Single(e), Empty, Empty)
       case _ =>
@@ -125,40 +122,32 @@ class PrioritySearchTree[A](private val root: impl.Tree[A], override val size: I
         }
     }
 
+    blacken(insertTo(tt))
+  }
 
-    val newTree = blacken(insertTo(tt))
-    //trace("insert %s, new tree:\n%s", e, newTree)
-    newTree
+  protected def balanceLeft(isBlack: Boolean, k: A, h: Holder[A], l: Tree[A], r: Tree[A]): Tree[A] = l match {
+    case RedTree(y, yh, RedTree(x, xh, a, b), c) =>
+      RedTree(newKey(y, x, k), yh, BlackTree(x, xh, a, b), BlackTree(k, h, c, r))
+    case RedTree(x, xh, a, RedTree(y, yh, b, c)) =>
+      RedTree(newKey(x, y, k), yh, BlackTree(x, xh, a, b), BlackTree(k, h, c, r))
+    case _ =>
+      mkTree(isBlack, newKey(k, l.key, r.key), h, l, r)
+  }
+
+  protected def balanceRight(isBlack: Boolean, k: A, h: Holder[A], l: Tree[A], r: Tree[A]): Tree[A] = r match {
+    case zt@RedTree(zb, z, RedTree(yb, y, b, c), d) =>
+      RedTree(newKey(yb, k, zb), y, BlackTree(k, h, l, b), BlackTree(zb, z, c, d))
+    case yt@RedTree(yb, y, b, RedTree(zb, z, c, d)) =>
+      RedTree(newKey(yb, k, zb), y, BlackTree(k, h, l, b), BlackTree(zb, z, c, d))
+    case _ =>
+      mkTree(isBlack, newKey(k, l.key, r.key), h, l, r)
   }
 
   private def newKey(c: A, l: A, r: A): A = {
-    def m(k1: A, k2: A): A = Option(k2).map {
-      iv.yUpperBound(k1, _)
-    } getOrElse k1
-    val k = m(m(c, l), r)
-    k
+    def m(k1: A, k2: A): A = Option(k2).map(iv.yUpperBound(k1, _)).getOrElse(k1)
+    m(m(c, l), r)
   }
 
-  protected def balanceLeft(isBlack: Boolean, k: A, h: Holder[A], left: Tree[A], right: Tree[A]): Tree[A] = left match {
-    case yt@RedTree(yb, y, xt@RedTree(xb, x, a, b), c) =>
-      RedTree(newKey(yb, xb, k), y, BlackTree(xb, x, a, b), BlackTree(k, h, c, right))
-    case xt@RedTree(xb, x, a, yt@RedTree(yb, y, b, c)) =>
-      RedTree(newKey(xb, yb, k), y, BlackTree(xb, x, a, b), BlackTree(k, h, c, right))
-    case _ =>
-      mkTree(isBlack, newKey(k, left.key, right.key), h, left, right)
-  }
-
-  protected def balanceRight(isBlack: Boolean, k: A, h: Holder[A], left: Tree[A], right: Tree[A]): Tree[A] = {
-    right match {
-      case zt@RedTree(zb, z, yt@RedTree(yb, y, b, c), d) =>
-        RedTree(newKey(yb, k, zb), y, BlackTree(k, h, left, b), BlackTree(zb, z, c, d))
-      case yt@RedTree(yb, y, b, zt@RedTree(zb, z, c, d)) =>
-        RedTree(newKey(yb, k, zb), y, BlackTree(k, h, left, b), BlackTree(zb, z, c, d))
-      case _ =>
-        mkTree(isBlack, newKey(k, left.key, right.key), h, left, right)
-    }
-
-  }
 
 }
 
