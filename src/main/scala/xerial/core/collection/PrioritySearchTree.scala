@@ -13,6 +13,21 @@ import xerial.core.log.Logging
 object RedBlackTree {
 
 
+  abstract class Tree[A, B] {
+    def isEmpty : Boolean
+    def isBlack: Boolean
+    def left: Tree[A, B]
+    def right: Tree[A, B]
+    def iterator: Iterator[(A, B)] = Iterator.empty
+    def key : A
+    def value : B
+    def getKey : Option[A] = None
+    def update(k:A, v:B) : Tree[A, B]
+    def insert(k:A, v:B) : Tree[A, B]
+
+    def lookup(e:A) : Tree[A, B]
+  }
+
 
 }
 
@@ -27,7 +42,7 @@ abstract class RedBlackTree[A, B] extends Logging {
 
   protected def isSmaller(a:A, b:A) : Boolean
 
-  protected def updateTree(t:Tree, key:A, value:B) : Tree
+  protected def updateTree(t:Tree[A, B], key:A, value:B) : Tree[A, B]
   /**
    * Create a new key from the current key and its left/right children. This method returns the curent key in default
    * @param key current key
@@ -38,36 +53,19 @@ abstract class RedBlackTree[A, B] extends Logging {
   protected def newKey(key:A, lkey:Option[A], rkey:Option[A]) : A = key
   protected def newValue(key:A, value:B) : B = value
 
-  def mkTree(isBlack: Boolean, key: A, h: B, l: Tree, r: Tree): Tree = {
+  def mkTree(isBlack: Boolean, key: A, h: B, l: Tree[A, B], r: Tree[A, B]): Tree[A, B] = {
     if (isBlack)
       BlackTree(key, h, l, r)
     else
       RedTree(key, h, l, r)
   }
 
-  //def contains(e:A) : Boolean = root.lookup(e)
-
-  def blacken(t: Tree): Tree = t match {
+  def blacken(t: Tree[A, B]): Tree[A, B] = t match {
     case RedTree(k, e, l, r) => BlackTree(k, e, l, r)
     case _ => t
   }
 
-  abstract class Tree {
-    def isEmpty : Boolean
-    def isBlack: Boolean
-    def left: Tree
-    def right: Tree
-    def iterator: Iterator[(A, B)]
-    def key : A
-    def value : B
-    def getKey : Option[A]
-    def update(k:A, v:B) : Tree = blacken(insert(k, v))
-    protected[RedBlackTree] def insert(k:A, v:B) : Tree
-
-    def lookup(e:A) : Tree
-  }
-
-  object Empty extends Tree {
+  object Empty extends Tree[A, B] {
     override def toString = "Empty"
 
     def value = throw new NoSuchElementException("Empty node has no value")
@@ -76,20 +74,20 @@ abstract class RedBlackTree[A, B] extends Logging {
     def left = null
     def right = null
     def key = throw new NoSuchElementException("No key for Empty node")
-    def getKey : Option[A] = None
-    def iterator: Iterator[(A, B)] = Iterator.empty
-    protected[RedBlackTree] def insert(k:A, v:B) = RedTree(k, newValue(k, v), Empty, Empty)
+    def update(k:A, v:B) = blacken(insert(k, v))
+    def insert(k:A, v:B) = RedTree(k, newValue(k, v), Empty, Empty)
 
-    def lookup(e:A) : Tree = this
+    def lookup(e:A) : Tree[A, B] = this
   }
 
-  abstract class NonEmpty extends Tree {
+  abstract class NonEmpty extends Tree[A, B] {
     def isEmpty = false
-    def iterator: Iterator[(A, B)] = left.iterator ++ Iterator.single((key, value)) ++ right.iterator
-    def getKey = Some(key)
+    override def iterator: Iterator[(A, B)] = left.iterator ++ Iterator.single((key, value)) ++ right.iterator
+    override def getKey = Some(key)
     def value : B
 
-    protected[RedBlackTree] def insert(k: A, v: B): Tree = {
+    def update(k:A, v:B) : Tree[A, B] = blacken(insert(k, v))
+    def insert(k: A, v: B): Tree[A, B] = {
       if (isSmaller(k, key))
         balanceLeft(isBlack, key, value, left.insert(k, v), right)
       else if (isSmaller(key, k))
@@ -98,7 +96,7 @@ abstract class RedBlackTree[A, B] extends Logging {
         updateTree(this, k, v) // k.x == this.key.x
     }
 
-    private def balanceLeft(isBlack: Boolean, z: A, zv: B, l: Tree, r: Tree): Tree = l match {
+    private def balanceLeft(isBlack: Boolean, z: A, zv: B, l: Tree[A, B], r: Tree[A, B]): Tree[A, B] = l match {
       case RedTree(y, yv, RedTree(x, xv, a, b), c) =>
         RedTree(newKey(y, Some(x), Some(z)), yv, BlackTree(x, xv, a, b), BlackTree(z, zv, c, r))
       case RedTree(x, xv, a, RedTree(y, yv, b, c)) =>
@@ -107,7 +105,7 @@ abstract class RedBlackTree[A, B] extends Logging {
         mkTree(isBlack, newKey(z, l.getKey, r.getKey), zv, l, r)
     }
 
-    private def balanceRight(isBlack: Boolean, x: A, xv: B, l: Tree, r: Tree): Tree = r match {
+    private def balanceRight(isBlack: Boolean, x: A, xv: B, l: Tree[A, B], r: Tree[A, B]): Tree[A, B] = r match {
       case RedTree(z, zv, RedTree(y, yv, b, c), d) =>
         RedTree(newKey(y, Some(x), Some(z)), yv, BlackTree(x, xv, l, b), BlackTree(z, zv, c, d))
       case RedTree(y, yv, b, RedTree(z, zv, c, d)) =>
@@ -116,7 +114,7 @@ abstract class RedBlackTree[A, B] extends Logging {
         mkTree(isBlack, newKey(x, l.getKey, r.getKey), xv, l, r)
     }
 
-    def lookup(e:A) : Tree = {
+    def lookup(e:A) : Tree[A, B] = {
       if(isSmaller(e, key))
         left.lookup(e)
       else if(isSmaller(key, e))
@@ -127,40 +125,39 @@ abstract class RedBlackTree[A, B] extends Logging {
 
   }
 
-  case class RedTree(override val key: A, value:B, left: Tree, right: Tree) extends NonEmpty {
+  case class RedTree(override val key: A, value:B, left: Tree[A, B], right: Tree[A, B]) extends NonEmpty {
     def isBlack = false
   }
 
-  case class BlackTree(override val key: A, value: B, left: Tree, right: Tree) extends NonEmpty {
+  case class BlackTree(override val key: A, value: B, left: Tree[A, B], right: Tree[A, B]) extends NonEmpty {
     def isBlack = true
   }
-
 
 
 }
 
 object PrioritySearchTree {
-  abstract class Holder[+A] extends Iterable[A] {
+  abstract class Holder[A] extends Iterable[A] {
     def elem: A
-    def +[A1 >: A](e: A1): Holder[A1]
+    def +(e: A): Holder[A]
     def iterator: Iterator[A]
   }
 
-  case class Single[+A](elem: A) extends Holder[A] {
-    def +[A1 >: A](e: A1) = Multiple(Seq(elem, e))
+  case class Single[A](elem: A) extends Holder[A] {
+    def +(e: A) = Multiple(Seq(elem, e))
     override def toString = "[%s]".format(elem)
     def iterator = Iterator.single(elem)
   }
 
-  case class Multiple[+A](elems: Seq[A]) extends Holder[A] {
+  case class Multiple[A](elems: Seq[A]) extends Holder[A] {
     require(elems.length > 1, "elems must have more than one element")
     def elem: A = elems(0)
-    def +[A1 >: A](e: A1) = Multiple(elems :+ e)
+    def +(e: A) = Multiple(elems :+ e)
     override def toString = "[%s]".format(elems.mkString(", "))
     def iterator = elems.iterator
   }
 
-  def empty[A](implicit iv: IntervalOps[A, _]) = new PrioritySearchTree[A](null, 0)
+  def empty[A](implicit iv: IntervalOps[A, Int]) = new PrioritySearchTree[A](null, 0)
 }
 
 
@@ -174,16 +171,16 @@ import PrioritySearchTree._
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A](t: RedBlackTree[A, Holder[A]]#Tree, size: Int)(implicit iv: Point2D[A, _])
+class PrioritySearchTree[A](t: Tree[A, Holder[A]], size: Int)(implicit iv: Point2D[A, Int])
   extends RedBlackTree[A, Holder[A]] with Iterable[A] {
   type self = PrioritySearchTree[A]
 
-  protected def root : RedBlackTree[A, Holder[A]]#Tree = if(t == null) Empty else t
+  protected def root : Tree[A, Holder[A]] = if(t == null) Empty else t
 
   override def toString = t.toString
 
   protected def isSmaller(a:A, b:A) : Boolean = iv.xIsSmaller(a, b)
-  protected def updateTree(t:Tree, key:A, value:Holder[A]) : Tree = mkTree(t.isBlack, iv.yUpperBound(t.key, key), t.value + key, t.left, t.right)
+  protected def updateTree(t:Tree[A, Holder[A]], key:A, value:Holder[A]) : Tree[A, Holder[A]] = mkTree(t.isBlack, iv.yUpperBound(t.key, key), t.value + key, t.left, t.right)
   override protected def newKey(c: A, l: Option[A], r: Option[A]): A = {
     def m(k1: A, k2: Option[A]): A = k2.map(iv.yUpperBound(k1, _)).getOrElse(k1)
     m(m(c, l), r)
@@ -201,6 +198,12 @@ class PrioritySearchTree[A](t: RedBlackTree[A, Holder[A]]#Tree, size: Int)(impli
       case t => t.value.find(iv.==(_, k))
     }
   }
+
+//  def overlapping(start:Int, end:Int) : Iterator[A] = {
+//
+//  }
+//
+
 
 }
 

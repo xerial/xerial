@@ -15,6 +15,10 @@ import util.Random
  */
 class PrioritySearchTreeTest extends XerialSpec {
 
+  case class GInterval(chr:String, override val start:Int, override val end:Int) extends Interval(start, end) {
+    override def toString = "%s-%d:%d".format(chr, start, end)
+  }
+
   "PrioritySearchTree" should {
     "insert new nodes" in {
       var p = PrioritySearchTree.empty[Interval]
@@ -34,6 +38,12 @@ class PrioritySearchTreeTest extends XerialSpec {
 
       p.get(Interval(4, 20)) should be ('defined)
       p.get(Interval(4, 8)) should be ('empty)
+
+      p.get(GInterval("chr1", 3, 5)) should be ('defined)
+
+      p += GInterval("chr1", 8, 19)
+      debug(p)
+      debug(p.mkString(", "))
     }
 
 
@@ -47,7 +57,6 @@ class PrioritySearchTreeTest extends XerialSpec {
         p += Interval(s, s+100)
       }
       p.size should be (n)
-      debug(p)
     }
 
   }
