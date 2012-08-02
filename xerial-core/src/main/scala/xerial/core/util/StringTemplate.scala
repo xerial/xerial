@@ -29,6 +29,7 @@ object StringTemplate {
 
   def eval(template: String)(properties: Map[Any, String]) = new StringTemplate(template).eval(properties)
 
+
 }
 
 

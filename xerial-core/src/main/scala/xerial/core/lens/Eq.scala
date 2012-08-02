@@ -18,6 +18,7 @@ package xerial.core.lens
 
 import xerial.core.log.Logging
 import javassist._
+import xerial.core.util.StringTemplate
 
 
 //--------------------------------------
@@ -93,22 +94,22 @@ object EqGen extends Logging {
     val schema = ObjectSchema(cl)
     val cmpCode = for (p <- schema.parameters) yield {
       if(Primitive.isPrimitive(p.valueType.rawType))
-        "if(diff) return false; else{diff = a.%s() != b.%s();};".format(p.name, p.name)
+        "if(a.%s() != b.%s()) return false;".format(p.name, p.name)
       else
-        "if(diff) return false; else{diff = !a.%s().equals(b.%s());};".format(p.name, p.name)
+        "if(!a.%s().equals(b.%s())) return false;".format(p.name, p.name)
     }
-    val n = cl.getName
-    val b = new StringBuilder
-    b append "public boolean compare(Object ao, Object bo) {\n"
-//    b append """ System.out.println("hello compare: " + a.toString() + " cmp " + b.toString() );""" + "\n";
-    b append " %s a = (%s) ao; \n".format(n, n)
-    b append " %s b = (%s) bo; \n".format(n, n)
-    b append " boolean diff = false;\n "
-    b append cmpCode.mkString("\n ")
-    b append " return !diff;\n"
-    b append "}\n"
-    b.result
+    val t = """|public boolean compare(Object ao, Object bo) {
+    | if(bo == null || ao.getClass() != bo.getClass())
+    |   return false;
+    | $type$ a = ($type$) ao;
+    | $type$ b = ($type$) bo;
+    | $cond$
+    | return true; }""".stripMargin
+    val code =StringTemplate.eval(t)(Map("type"->cl.getName, "cond"-> cmpCode.mkString("\n else ")))
+    trace("generated a equality check code:\n%s", code)
+    code
   }
+  
 
   private val eqMethodCache = collection.mutable.HashMap[Class[_], HasEq]()
 
