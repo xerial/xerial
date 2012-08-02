@@ -66,14 +66,11 @@ trait Eq {
 
 trait FastEq {
   override def equals(other: Any) = {
-    if (other != null && this.getClass == other.getClass) {
-      if (this eq other.asInstanceOf[AnyRef]) // if two object refs are identical
-        true
-      else
-        EqGen.compare(Eq.cls(this), this, other.asInstanceOf[AnyRef])
-    }
-    else
-      false
+    EqGen.compare(Eq.cls(this), this, other.asInstanceOf[AnyRef])
+  }
+
+  override lazy val hashCode = {
+    EqGen.hash(Eq.cls(this), this)
   }
 
 }
@@ -82,6 +79,7 @@ import java.lang.{reflect => jr}
 
 trait HasEq {
   def compare(a: AnyRef, b: AnyRef): Boolean
+  def genHash(a: AnyRef): Int
 }
 
 object Eq  {
@@ -109,8 +107,38 @@ object EqGen extends Logging {
     trace("generated a equality check code:\n%s", code)
     code
   }
-  
 
+  def buildHashCode(cl:Class[_]): String = {
+    val schema = ObjectSchema(cl)
+    val getter = for(p <- schema.parameters; val n = p.name) yield {
+      def default = Seq("(int) v.%s()".format(n))
+      def splitDouble = Seq("(int) ((v.%s() >> 32) & 0xFFFFFFFFL)".format(n), "(int) (v.%s() & 0xFFFFFFFFL)".format(n))
+      ObjectType(p.valueType.rawType) match {
+        case Primitive.Boolean => Seq("v.%s() ? 1 : 0".format(n))
+        case Primitive.Int => default
+        case Primitive.Short => default
+        case Primitive.Char => default
+        case Primitive.Byte => default
+        case Primitive.Long => splitDouble
+        case Primitive.Float => Seq("(int) (v.%s() & ~0)".format(n))
+        case Primitive.Double => splitDouble
+        case _ => Seq("(v.%s() != null) ? v.%s().hashCode() : 0".format(n, n))
+      }
+    }
+    val comp = getter.flatten.map(s => "h *= 31; h += %s;".format(s)).mkString("\n  ")
+    val t =
+      """|public int genHash(Object o) {
+        |  $type$ v = ($type$) o;
+        |  int h = 0;
+        |  $comp$
+        |  return h;
+        |}
+      """.stripMargin
+    val code = StringTemplate.eval(t)(Map("type"->cl.getName, "comp" -> comp))
+    trace("generated a hash code:\n%s", code)
+    code
+  }
+  
   private val eqMethodCache = collection.mutable.HashMap[Class[_], HasEq]()
 
   def eqMethod(cl: Class[_]) = {
@@ -119,21 +147,20 @@ object EqGen extends Logging {
       p.appendClassPath(new LoaderClassPath(cl.getClassLoader))
       val c = p.makeClass(cl.getName + "$Eq")
       c.setInterfaces(Array(p.get(classOf[HasEq].getName)))
-      val code = buildEqCode(cl)
-      trace(code)
-      val m = CtNewMethod.make(code, c)
-      c.addMethod(m)
+      c.addMethod(CtNewMethod.make(buildEqCode(cl), c))
+      c.addMethod(CtNewMethod.make(buildHashCode(cl), c))
       val cmpCls = c.toClass
-      val h = cmpCls.newInstance.asInstanceOf[HasEq]
-      //cmpCls.getMethod("cmp", cl, cl)
-      //debug(h.getClass.getMethods.mkString(","))
-      h
+      cmpCls.newInstance.asInstanceOf[HasEq]
     })
   }
 
   def compare(cl: Class[_], a: AnyRef, b: AnyRef): Boolean = {
     //eqMethod(cl).invoke(null, a, b).asInstanceOf[Boolean]
     eqMethod(cl).compare(a, b)
+  }
+
+  def hash(cl:Class[_], a:AnyRef) : Int = {
+    eqMethod(cl).genHash(a)
   }
 
 }

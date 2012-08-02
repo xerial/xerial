@@ -43,6 +43,15 @@ class EqTest extends XerialSpec {
       c should not be (new MyClass2(1, "yui"))
     }
 
+    "shoud generate hash code" in {
+      val c = new MyClass2(1, "leo")
+
+      c.hashCode should be (new MyClass2(1, "leo").hashCode)
+      c.hashCode should not be (new MyClass2(1, "leo0").hashCode)
+      c.hashCode should not be (new MyClass2(34, "leo").hashCode)
+
+    }
+
     "generate fast comparison code" in {
       import xerial.core.util.StopWatch._
 
