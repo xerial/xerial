@@ -213,7 +213,7 @@ object Shell extends Logging {
       val ret: Option[String] = java_home match {
         case Some(x) => Some(javaBin(x).trim)
         case None => {
-          val javaPath = (Process("which java") !!).trim
+          val javaPath = (Process("which %s".format(javaCmdName)) !!).trim
           if (javaPath.isEmpty)
             None
           else

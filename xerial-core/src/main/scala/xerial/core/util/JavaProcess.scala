@@ -25,12 +25,14 @@ object JavaProcess extends Logging {
    * @return
    */
   def list : Iterable[JProcess] = {
-    for{
-      line <- scala.sys.process.Process("jps -v").lines.toSeq
-      m <- jpsPattern.findFirstMatchIn(line)
-    } yield {
-      JProcess(m.group(1).toInt, m.group(2), m.group(3))
-    }
+    val cmd = Shell.findJavaCommand("jps")
+    if(cmd.isEmpty)
+      sys.error("no jps command is found. Set PATH or JAVA_HOME properly.")
+    else
+      for{
+        line <- scala.sys.process.Process("%s -v".format(cmd.get)).lines.toSeq
+        m <- jpsPattern.findFirstMatchIn(line)
+      } yield  JProcess(m.group(1).toInt, m.group(2), m.group(3))
   }
 
 }
