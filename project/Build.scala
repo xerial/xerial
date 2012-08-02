@@ -96,7 +96,7 @@ object XerialBuild extends Build {
         </developers>
     },
     useGpg := true,
-    useGpgAgent := true
+    useGpgAgent := false
   )
 
 
