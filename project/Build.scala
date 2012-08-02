@@ -21,6 +21,7 @@ import sbt._
 import Keys._
 import sbt.classpath.ClasspathUtilities
 import sbtrelease.ReleasePlugin._
+import com.jsuereth.pgp.sbtplugin.PgpPlugin._
 
 object XerialBuild extends Build {
 
@@ -93,7 +94,9 @@ object XerialBuild extends Build {
             <url>http://xerial.org/leo</url>
           </developer>
         </developers>
-    }
+    },
+    useGpg := true,
+    useGpgAgent := true
   )
 
 
