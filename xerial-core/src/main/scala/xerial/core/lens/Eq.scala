@@ -23,17 +23,18 @@ import xerial.core.util.StringTemplate
 
 //--------------------------------------
 //
-// HashKey.scala
+// Eq.scala
 // Since: 2012/04/02 15:47
 //
 //--------------------------------------
 
+
 /**
- * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class
+ * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class using Reflection
  *
  * @author leo
  */
-trait Eq {
+trait EqByReflection {
 
   override lazy val hashCode = {
     val schema = ObjectSchema(Eq.cls(this))
@@ -64,7 +65,12 @@ trait Eq {
   }
 }
 
-trait FastEq {
+/**
+ * Add value based [Any#equals] comparison and [Any#hashCode] support to an arbitrary class
+ *
+ * @author leo
+ */
+trait Eq {
   override def equals(other: Any) = {
     EqGen.compare(Eq.cls(this), this, other.asInstanceOf[AnyRef])
   }
@@ -72,8 +78,8 @@ trait FastEq {
   override lazy val hashCode = {
     EqGen.hash(Eq.cls(this), this)
   }
-
 }
+
 
 import java.lang.{reflect => jr}
 
@@ -83,10 +89,12 @@ trait HasEq {
 }
 
 object Eq  {
-
   def cls[A](a: A): Class[_] = a.asInstanceOf[AnyRef].getClass
 }
 
+/**
+ * This class generates a code of the equality check and hash code from a given class definition
+ */
 object EqGen extends Logging {
   def buildEqCode(cl: Class[_]): String = {
     val schema = ObjectSchema(cl)
@@ -139,10 +147,10 @@ object EqGen extends Logging {
     code
   }
   
-  private val eqMethodCache = collection.mutable.HashMap[Class[_], HasEq]()
+  private val eqCodeCache = collection.mutable.HashMap[Class[_], HasEq]()
 
-  def eqMethod(cl: Class[_]) = {
-    eqMethodCache.getOrElseUpdate(cl, {
+  def eqCodeOf(cl: Class[_]) = {
+    eqCodeCache.getOrElseUpdate(cl, {
       val p = ClassPool.getDefault
       p.appendClassPath(new LoaderClassPath(cl.getClassLoader))
       val c = p.makeClass(cl.getName + "$Eq")
@@ -154,13 +162,7 @@ object EqGen extends Logging {
     })
   }
 
-  def compare(cl: Class[_], a: AnyRef, b: AnyRef): Boolean = {
-    //eqMethod(cl).invoke(null, a, b).asInstanceOf[Boolean]
-    eqMethod(cl).compare(a, b)
-  }
-
-  def hash(cl:Class[_], a:AnyRef) : Int = {
-    eqMethod(cl).genHash(a)
-  }
+  def compare(cl: Class[_], a: AnyRef, b: AnyRef): Boolean = eqCodeOf(cl).compare(a, b)
+  def hash(cl:Class[_], a:AnyRef) : Int = eqCodeOf(cl).genHash(a)
 
 }

@@ -10,11 +10,11 @@ package xerial.core.lens
 import xerial.core.XerialSpec
 
 object EqTest {
-  case class A(id:Int, name:String, flag:Long) extends Eq
-  case class B(id:Int, name:String, flag:Long) extends FastEq
+  case class A(id:Int, name:String, flag:Long) extends EqByReflection
+  case class B(id:Int, name:String, flag:Long) extends Eq
   case class C(id:Int, name:String, flag:Long)
-  class MyClass(val id:Int, val name:String) extends Eq
-  case class MyClass2(id:Int, name:String) extends FastEq
+  class MyClass(val id:Int, val name:String) extends EqByReflection
+  case class MyClass2(id:Int, name:String) extends Eq
 }
 
 
@@ -54,12 +54,11 @@ class EqTest extends XerialSpec {
 
     "generate fast comparison code" in {
       import xerial.core.util.StopWatch._
-
       val c1 = new A(1, "leo", 1L)
       val c2 = new A(1, "leo", 2L)
       val d1 = new B(1, "leo", 1L)
       val d2 = new B(1, "leo", 2L)
-      d1.equals(d2)
+      d1.equals(d2) // This generates javassist code
       val e1 = new C(1, "leo", 1L)
       val e2 = new C(1, "leo", 2L)
 

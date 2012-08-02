@@ -2,6 +2,7 @@ package xerial.core
 
 import io.Resource
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
+import util.StopWatch
 import xerial.core.log.Logging
 import org.scalatest.{OptionValues, GivenWhenThen, WordSpec}
 

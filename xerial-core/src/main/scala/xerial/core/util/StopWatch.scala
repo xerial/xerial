@@ -18,7 +18,7 @@ package xerial.core.util
 
 import java.lang.IllegalStateException
 import collection.mutable.{ListBuffer, Stack, LinkedHashMap}
-import xerial.core.log.{Logger, LogLevel}
+import xerial.core.log.{Logging, Logger, LogLevel}
 
 
 //--------------------------------------
@@ -100,8 +100,8 @@ object StopWatch {
   }
 
   def reportLog(m: TimeReport, logLevel: LogLevel): Unit = {
-    val l = if (this.isInstanceOf[Logger])
-      this.asInstanceOf[Logger]
+    val l = if (this.isInstanceOf[Logging])
+      this.asInstanceOf[Logging]
     else
       Logger(this.getClass)
 
