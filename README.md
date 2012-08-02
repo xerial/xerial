@@ -8,7 +8,8 @@ Core utilities for xerial projects.
  * Command line to object mapper
  * StopWatch for measuring code performance
  * Resource for reading files in classpath and jar files
- * ObjectSchema for getting full-fledged type information including generic types 
+ * ObjectSchema for getting full-fledged type information including generic types
+ * Eq trait for injecting field-value based hashCode and equals method to any objects
 
 ## Release plan
 
