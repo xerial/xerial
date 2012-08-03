@@ -101,11 +101,9 @@ object StopWatch {
 
   def reportLog(m: TimeReport, logLevel: LogLevel): Unit = {
     val l = if (this.isInstanceOf[Logging])
-      this.asInstanceOf[Logging]
+      this.asInstanceOf[Logging].log(logLevel, m.report)
     else
-      Logger(this.getClass)
-
-    l.log(logLevel, m.report)
+      Logger(this.getClass).log(logLevel, m.report)
   }
 }
 

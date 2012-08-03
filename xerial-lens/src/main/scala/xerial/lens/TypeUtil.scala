@@ -77,7 +77,7 @@ object TypeUtil {
     if (!canBuildFromBuffer(valueType.rawType))
       err
 
-    val cl: Class[_] = input.getClass
+    val cl: Class[_] = cls(input)
     if (isArray(cl)) {
       val a = input.asInstanceOf[Array[_]]
       a.toBuffer
@@ -204,7 +204,7 @@ object TypeUtil {
         if (companion.isDefined) {
           val methodName = "init$default$%d".format(i + 1)
           try {
-            val m = companion.get.getClass.getDeclaredMethod(methodName)
+            val m = cls(companion.get).getDeclaredMethod(methodName)
             m.invoke(companion.get)
           }
           catch {

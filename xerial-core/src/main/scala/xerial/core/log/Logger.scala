@@ -50,7 +50,7 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
 /**
  * Adding log functions to your class.
  */
-trait Logging extends LogHelper {
+trait Logging {
 
   private[this] val logger = Logger(this.getClass)
 
@@ -77,8 +77,40 @@ trait Logging extends LogHelper {
     f(getLogger(tag))
   }
 
-}
+  protected def fatal(message: => Any): Unit = log(LogLevel.FATAL, message)
+  protected def error(message: => Any): Unit = log(LogLevel.ERROR, message)
+  protected def warn(message: => Any): Unit = log(LogLevel.WARN, message)
+  protected def info(message: => Any): Unit = log(LogLevel.INFO, message)
+  protected def debug(message: => Any): Unit = log(LogLevel.DEBUG, message)
+  protected def trace(message: => Any): Unit = log(LogLevel.TRACE, message)
 
+  protected def fatal(format: String, a1: => Any): Unit = fatal(format.format(a1))
+  protected def fatal(format: String, a1: => Any, a2: => Any): Unit = fatal(format.format(a1, a2))
+  protected def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = fatal(format.format(a1, a2, a3))
+  protected def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = fatal(format.format(a1, a2, a3, a4))
+  protected def error(format: String, a1: => Any): Unit = error(format.format(a1))
+  protected def error(format: String, a1: => Any, a2: => Any): Unit = error(format.format(a1, a2))
+  protected def error(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = error(format.format(a1, a2, a3))
+  protected def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = error(format.format(a1, a2, a3, a4))
+  protected def warn(format: String, a1: => Any): Unit = warn(format.format(a1))
+  protected def warn(format: String, a1: => Any, a2: => Any): Unit = warn(format.format(a1, a2))
+  protected def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = warn(format.format(a1, a2, a3))
+  protected def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = warn(format.format(a1, a2, a3, a4))
+  protected def info(format: String, a1: => Any): Unit = info(format.format(a1))
+  protected def info(format: String, a1: => Any, a2: => Any): Unit = info(format.format(a1, a2))
+  protected def info(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = info(format.format(a1, a2, a3))
+  protected def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = info(format.format(a1, a2, a3, a4))
+  protected def debug(format: String, a1: => Any): Unit = debug(format.format(a1))
+  protected def debug(format: String, a1: => Any, a2: => Any): Unit = debug(format.format(a1, a2))
+  protected def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = debug(format.format(a1, a2, a3))
+  protected def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = debug(format.format(a1, a2, a3, a4))
+  protected def trace(format: String, a1: => Any): Unit = trace(format.format(a1))
+  protected def trace(format: String, a1: => Any, a2: => Any): Unit = trace(format.format(a1, a2))
+  protected def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = trace(format.format(a1, a2, a3))
+  protected def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = trace(format.format(a1, a2, a3, a4))
+
+
+}
 
 
 
