@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package xerial.silk.util
+package xerial.core.cui
 
 import java.lang.reflect.InvocationTargetException
 import xerial.core.cui._

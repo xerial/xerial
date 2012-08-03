@@ -7,8 +7,8 @@
 
 package xerial.core.cui
 
-import xerial.core.log.{Logging, Logger}
-import xerial.silk.util.{CommandModule, CommandLauncher}
+import xerial.core.log.Logger
+
 
 /**
  * @author leo
