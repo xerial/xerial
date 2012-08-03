@@ -87,3 +87,5 @@ publish-xerial:
 publish-sonatype: 
 	$(SBT) -Dxerial.profile=sonatype publish 
 
+unidoc: 
+	$(SBT) unidoc
