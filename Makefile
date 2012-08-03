@@ -80,3 +80,10 @@ debug:
 
 trace:
 	$(SBT) -Dloglevel=trace $(TESTCASE)
+
+publish-xerial:
+	$(SBT) publish
+
+publish-sonatype: 
+	$(SBT) -Dxerial.profile=sonatype publish 
+
