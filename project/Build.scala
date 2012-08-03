@@ -28,18 +28,25 @@ object XerialBuild extends Build {
   val SCALA_VERSION = "2.9.2"
 
   def releaseResolver(v:String) : Resolver = {
-    val profile = System.getProperty("silk.profile", "default")
+    val profile = System.getProperty("xerial.profile", "default")
     profile match {
       case "default" =>  {
         val repoPath = "/home/web/maven.xerial.org/repository/" + (if (v.trim.endsWith("SNAPSHOT")) "snapshot" else "artifact")
         Resolver.ssh("Xerial Repo", "www.xerial.org", repoPath) as(System.getProperty("user.name"), new File(Path.userHome.absolutePath, ".ssh/id_rsa")) withPermissions("0664")
+      }
+      case "sonatype" => {
+        val nexus = "https://oss.sonatype.org/"
+	if(v.trim.endsWith("SNAPSHOT"))
+	  "snapshots" at nexus + "content/repositories/snapshots"
+	else
+	  "releases" at nexus + "service/local/staging/deploy/maven2"
       }
       case "sourceforge" => {
         val repoPath = "/home/groups/x/xe/xerial/htdocs/maven/" + (if (v.trim.endsWith("SNAPSHOT")) "snapshot" else "release")
         Resolver.ssh("Sourceforge Repo", "shell.sourceforge.jp", repoPath) as("xerial", new File(Path.userHome.absolutePath, ".ssh/id_dsa")) withPermissions("0664")
       }
       case p => {
-        error("unknown silk.profile:%s".format(p))
+        error("unknown xerial.profile:%s".format(p))
       }
     }
   }
@@ -82,6 +89,7 @@ object XerialBuild extends Build {
         <scm>
           <connection>scm:git:github.com/xerial/xerial-core.git</connection>
           <developerConnection>scm:git:git@github.com:xerial/xerial-core.git</developerConnection>
+	  <url>github.com/xerial/xerial-core.git</url>
         </scm>
         <properties>
           <scala.version>2.9.2</scala.version>
