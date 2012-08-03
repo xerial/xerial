@@ -36,7 +36,7 @@ package:
 	$(SBT) package
 
 # This file will be generated after 'make dist'
-VERSION_FILE:=xerial-core/target/dist/VERSION
+VERSION_FILE:=target/dist/VERSION
 
 dist: $(VERSION_FILE)
 
@@ -52,8 +52,8 @@ XERIAL_DIR=$(XERIAL_BASE_DIR)/$(PROG)-$(VERSION)
 install: $(VERSION_FILE)
 	if [ -d "$(XERIAL_DIR)" ]; then rm -rf "$(XERIAL_DIR)"; fi
 	$(INSTALL) -d "$(XERIAL_DIR)"
-	chmod 755 xerial-core/target/dist/bin/$(PROG)
-	cp -r xerial-core/target/dist/* $(XERIAL_DIR)
+	chmod 755 target/dist/bin/$(PROG)
+	cp -r target/dist/* $(XERIAL_DIR)
 	ln -sfn "xerial-$(VERSION)" "$(XERIAL_BASE_DIR)/current"
 	$(INSTALL) -d "$(PREFIX)/bin"
 	ln -sf "../$(PROG)/current/bin/$(PROG)" "$(PREFIX)/bin/$(PROG)"

@@ -55,14 +55,13 @@ object XerialBuild extends Build {
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
-    description := "Xerial Core Utilties",
+    description := "Xerial: A Scalable Database Engine",
     scalaVersion := SCALA_VERSION,
     resolvers <++= version { (v) =>
       Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases",
-      //"sbt-idea-repo" at "http://mpeltonen.github.com/maven/",
       "UTGB Maven repository" at "http://maven.utgenome.org/repository/artifact/",
       "Xerial Maven repository" at "http://www.xerial.org/maven/repository/artifact",
-        "Local Maven repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository",
+      "Local Maven repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository",
       releaseResolver(v)
     )},
     publishMavenStyle := true,
@@ -87,9 +86,9 @@ object XerialBuild extends Build {
         </license>
       </licenses>
         <scm>
-          <connection>scm:git:github.com/xerial/xerial-core.git</connection>
-          <developerConnection>scm:git:git@github.com:xerial/xerial-core.git</developerConnection>
-	  <url>github.com/xerial/xerial-core.git</url>
+          <connection>scm:git:github.com/xerial/xerial.git</connection>
+          <developerConnection>scm:git:git@github.com:xerial/xerial.git</developerConnection>
+	  <url>github.com/xerial/xerial.git</url>
         </scm>
         <properties>
           <scala.version>2.9.2</scala.version>
@@ -155,13 +154,21 @@ object XerialBuild extends Build {
   import Dependencies._
 
   private val dependentScope = "test->test;compile->compile"
-  private lazy val gpgPlugin = uri("git://github.com/sbt/xsbt-gpg-plugin.git")
+
+  lazy val root = Project(
+    id = "xerial",
+    base = file("."),
+    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
+    Seq(libraryDependencies ++= bootLib)
+  ) aggregate(core)
 
   lazy val core = Project(
     id = "xerial-core",
     base = file("xerial-core"),
-    settings = buildSettings ++ distSettings ++ Seq(packageDistTask)
-      ++ Seq(libraryDependencies ++= bootLib ++ testLib ++ reflectionLib)
+    settings = buildSettings ++ Seq(
+         description := "Xerial core utiltiles",
+	 libraryDependencies ++= testLib ++ reflectionLib
+	 )		     
   )
 
   lazy val copyDependencies = TaskKey[Unit]("copy-dependencies")
@@ -194,7 +201,7 @@ object XerialBuild extends Build {
       out.log.info("Create bin folder")
       val binDir = distDir / "bin"
       binDir.mkdirs()
-      IO.copyDirectory(base / "src/script", binDir)
+      IO.copyDirectory(base / "src/main/script", binDir)
        // chmod +x
       if(!System.getProperty("os.name", "").contains("Windows")) {
         scala.sys.process.Process("chmod -R +x %s".format(binDir)).run
