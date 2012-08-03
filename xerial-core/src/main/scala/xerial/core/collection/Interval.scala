@@ -7,8 +7,6 @@
 
 package xerial.core.collection
 
-import xerial.core.lens.Eq
-
 
 trait Point2D[A, @specialized(Int, Long) V] {
   def x(a:A):V
@@ -89,13 +87,13 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
  * Concrete Interval class
  */
 
-class Interval(val start:Int, val end:Int) extends Eq {
+class Interval(val start:Int, val end:Int) {
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 
   def r : Range = Range(start, end)
 }
-class LInterval(val start:Long, val end:Long) extends Eq {
+class LInterval(val start:Long, val end:Long) {
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 }

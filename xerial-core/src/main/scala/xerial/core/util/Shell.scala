@@ -20,7 +20,7 @@ import collection.mutable.WeakHashMap
 import java.io.File
 import sys.process.Process
 import xerial.core.log.Logging
-import xerial.core.cui.CommandLineTokenizer
+import xerial.core.util
 
 //--------------------------------------
 //

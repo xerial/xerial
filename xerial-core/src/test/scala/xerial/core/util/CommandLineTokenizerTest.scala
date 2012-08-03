@@ -1,4 +1,4 @@
-package xerial.core.cui
+package xerial.core.util
 
 import xerial.core.XerialSpec
 
@@ -16,7 +16,7 @@ class CommandLineTokenizerTest extends XerialSpec {
 
   "CommandLineTokenizer" should {
     "tokenize a single string into args" in {
-      val args = CommandLineTokenizer.tokenize("""-c "hello world!" -f 3.432""")
+      val args = CommandLineTokenizer.tokenize( """-c "hello world!" -f 3.432""")
 
       args.length must be(4)
       debug {

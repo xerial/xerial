@@ -11,7 +11,7 @@ import xerial.core.lens._
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
-import xerial.core.util.StringTemplate
+import xerial.core.util.{CommandLineTokenizer, StringTemplate}
 import xerial.core.log.Logging
 
 /**

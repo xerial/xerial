@@ -19,7 +19,7 @@ package xerial.core.cui
 import java.lang.reflect.InvocationTargetException
 import xerial.core.cui._
 import xerial.core.log.Logging
-import xerial.core.util.CName
+import xerial.core.util.{CommandLineTokenizer, CName}
 import xerial.core.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
 
 

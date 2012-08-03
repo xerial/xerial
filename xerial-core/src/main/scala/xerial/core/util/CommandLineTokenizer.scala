@@ -1,4 +1,4 @@
-package xerial.core.cui
+package xerial.core.util
 
 import util.parsing.combinator.RegexParsers
 import xerial.core.log.Logging

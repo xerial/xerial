@@ -160,16 +160,26 @@ object XerialBuild extends Build {
     base = file("."),
     settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
     Seq(libraryDependencies ++= bootLib)
-  ) aggregate(core)
+  ) aggregate(core, lens)
 
   lazy val core = Project(
     id = "xerial-core",
     base = file("xerial-core"),
     settings = buildSettings ++ Seq(
          description := "Xerial core utiltiles",
-	 libraryDependencies ++= testLib ++ reflectionLib
+	 libraryDependencies ++= testLib
 	 )		     
   )
+
+  lazy val lens = Project(
+    id = "xerial-lens",
+    base = file("xerial-lens"),
+    settings = buildSettings ++ Seq(
+      description := "Utilities for retrieving object type information",
+      libraryDependencies ++= testLib ++ reflectionLib
+    )
+  ) dependsOn (core % dependentScope)
+
 
   lazy val copyDependencies = TaskKey[Unit]("copy-dependencies")
 
