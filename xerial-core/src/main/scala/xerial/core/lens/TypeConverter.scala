@@ -22,19 +22,19 @@ object TypeConverter {
 
   def convert(value: Any, targetType: ObjectType): Any = {
     if (targetType.isOption) {
-      if (isOption(value.getClass))
+      if (isOption(cls(value)))
         value
       else {
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
         Some(convert(value, gt(0)))
       }
     }
-    else if (isArray(targetType.rawType) && isArray(value.getClass)) {
+    else if (isArray(targetType.rawType) && isArray(cls(value))) {
       value
     }
     else {
       val t: Class[_] = targetType.rawType
-      val s: Class[_] = value.getClass
+      val s: Class[_] = cls(value)
       if (t.isAssignableFrom(s))
         value
       else if (TypeUtil.isBuffer(s)) {
@@ -68,7 +68,7 @@ object TypeConverter {
    * Convert the input value into the target type
    */
   def convert[A](value: Any, targetType: Class[A]): A = {
-    val cl: Class[_] = value.getClass
+    val cl: Class[_] = cls(value)
     if (targetType.isAssignableFrom(cl))
       value.asInstanceOf[A]
     else {

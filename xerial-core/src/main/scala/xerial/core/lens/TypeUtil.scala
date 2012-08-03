@@ -21,6 +21,8 @@ object TypeUtil {
 
   implicit def toClassManifest[T](targetType: Class[T]): ClassManifest[T] = ClassManifest.fromClass(targetType)
 
+  @inline def cls[A](obj:A) : Class[_] = obj.asInstanceOf[AnyRef].getClass
+  
   def isPrimitive[T](cl: Class[T]) = Primitive.isPrimitive(cl)
 
   def isArray[T](cl: Class[T]) = {

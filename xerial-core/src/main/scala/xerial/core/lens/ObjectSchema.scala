@@ -28,113 +28,6 @@ import java.{lang => jl}
 //
 //--------------------------------------
 
-/**
- * A base class of field parameters and method parameters
- * @param name
- * @param valueType
- */
-sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
-  val rawType = valueType.rawType
-
-  override def toString = "%s:%s".format(name, valueType)
-
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T]
-
-  protected def findAnnotationOf[T <: jl.annotation.Annotation](annot: Array[jl.annotation.Annotation])(implicit c: ClassManifest[T]): Option[T] = {
-    annot.collectFirst {
-      case x if (c.erasure isAssignableFrom x.annotationType) => x
-    }.asInstanceOf[Option[T]]
-  }
-
-  def get(obj: Any): Any
-}
-
-case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
-  lazy val field = fieldOwner.getDeclaredField(name)
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
-    val cc = owner.getConstructors()(0)
-    val annot: Array[jl.annotation.Annotation] = cc.getParameterAnnotations()(index)
-    findAnnotationOf[T](annot)
-  }
-
-  def get(obj: Any) = {
-    Reflect.readField(obj, field)
-  }
-
-}
-
-case class FieldParameter(owner: Class[_], ref: Class[_], override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) with Logging {
-  lazy val field = {
-    try
-      owner.getDeclaredField(name)
-    catch {
-      case _ =>
-        warn("no such field %s in %s (ref:%s)", name, owner.getSimpleName, ref.getSimpleName)
-        null
-    }
-  }
-
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
-    field match {
-      case null => None
-      case field =>
-        field.getAnnotation[T](c.erasure.asInstanceOf[Class[T]]) match {
-          case null => None
-          case a => Some(a.asInstanceOf[T])
-        }
-    }
-  }
-
-  def get(obj: Any) = {
-    Reflect.readField(obj, field)
-  }
-}
-
-case class MethodParameter(owner: jl.reflect.Method, index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
-    val annot: Array[jl.annotation.Annotation] = owner.getParameterAnnotations()(index)
-    findAnnotationOf[T](annot)
-  }
-
-  def get(obj: Any) = {
-    sys.error("get for method parameter is not supported")
-  }
-}
-
-case class Method(owner: Class[_], jMethod: jl.reflect.Method, name: String, params: Array[MethodParameter], returnType: ObjectType) extends ObjectMethod {
-  override def toString = "Method(%s#%s, [%s], %s)".format(owner.getSimpleName, name, params.mkString(", "), returnType)
-
-  //lazy val jMethod = owner.getMethod(name, params.map(_.rawType): _*)
-
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
-    jMethod.getAnnotation(c.erasure.asInstanceOf[Class[T]]) match {
-      case null => None
-      case a => Some(a.asInstanceOf[T])
-    }
-  }
-  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T] = {
-    params(paramIndex).findAnnotationOf[T]
-  }
-
-  override def hashCode = {
-    owner.hashCode() + name.hashCode()
-  }
-}
-
-case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extends ObjectMethod {
-  val name = cl.getSimpleName
-  override def toString = "Constructor(%s, [%s])".format(cl.getSimpleName, params.mkString(", "))
-
-  def newInstance(args: Array[AnyRef]): Any = {
-    val cc = cl.getConstructors()(0)
-    if (args.isEmpty)
-      cc.newInstance()
-    else
-      cc.newInstance(args: _*)
-  }
-}
-
-
 
 
 /**
@@ -143,7 +36,7 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
 object ObjectSchema extends Logging {
 
   import java.{lang => jl}
-
+  import TypeUtil._
 
   implicit def toSchema(cl: Class[_]): ObjectSchema = ObjectSchema(cl)
 
@@ -157,7 +50,7 @@ object ObjectSchema extends Logging {
 
   def of[A](implicit m: ClassManifest[A]): ObjectSchema = apply(m.erasure)
 
-  def getSchemaOf(obj: Any): ObjectSchema = apply(obj.getClass)
+  def getSchemaOf(obj: Any): ObjectSchema = apply(cls(obj))
 
   private val sigCache = new WeakHashMap[Class[_], Option[ScalaSig]]
 
@@ -233,7 +126,7 @@ object ObjectSchema extends Logging {
         case _ => false
       }
     }
-    def findConstructorParameters(mt: MethodType, sig: ScalaSig): Array[ConstructorParameter] = {
+    def findConstructorParameters(mt: MethodType): Array[ConstructorParameter] = {
       val paramSymbols: Seq[MethodSymbol] = mt match {
         case MethodType(_, param: Seq[_]) => param.collect {
           case m: MethodSymbol => m
@@ -256,13 +149,13 @@ object ObjectSchema extends Logging {
     val entries = (0 until sig.table.length).map(sig.parseEntry(_))
     entries.collectFirst {
       case m: MethodType if isTargetClass(m.resultType) =>
-        Constructor(cl, findConstructorParameters(m, sig))
+        Constructor(cl, findConstructorParameters(m))
     }
   }
 
-  private def findConstructor(cl: Class[_]): Option[Constructor] = {
-    findSignature(cl).flatMap(sig => findConstructor(cl, sig))
-  }
+  private def findConstructor(cl: Class[_]): Option[Constructor] =
+    for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
+
 
   private def isSystemClass(cl: Class[_]) = {
     if (cl == null)
@@ -360,9 +253,9 @@ object ObjectSchema extends Logging {
     }
   }
 
-  def methodsOf(cl: Class[_]): Array[Method] = {
+  def methodsOf(cl: Class[_]): Array[ScMethod] = {
     val methods = findSignature(cl) match {
-      case None => Array.empty[Method]
+      case None => Array.empty[ScMethod]
       case Some(sig) => {
         val entries = (0 until sig.table.length).map(sig.parseEntry(_))
 
@@ -398,14 +291,14 @@ object ObjectSchema extends Logging {
               s match {
                 case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
                   val jMethod = cl.getMethod(m.name)
-                  Seq(Method(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
+                  Seq(ScMethod(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
                 }
                 case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_]))
                   if isAccessibleParams(paramSymbols.asInstanceOf[Seq[MethodSymbol]]) => {
                   val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
                   val jMethod = cl.getMethod(m.name, resolveMethodArgTypes(params): _*)
                   val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(jMethod, index, name, vt)
-                  Seq(Method(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
+                  Seq(ScMethod(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
                 }
                 case _ => Seq.empty
               }
@@ -428,7 +321,7 @@ object ObjectSchema extends Logging {
   }
 
   def parentMethodsOf(cl: Class[_]) = {
-    def resolveImplOwner(m: Method) {
+    def resolveImplOwner(m: ScMethod) {
       m.owner
     }
     findParentSchemas(cl).flatMap(_.methods).map {
@@ -438,6 +331,7 @@ object ObjectSchema extends Logging {
   }
 
   def resolveClass(typeSignature: TypeRefType): ObjectType = {
+
 
     val name = typeSignature.symbol.path
     val clazz: Class[_] = {
@@ -476,16 +370,20 @@ object ObjectSchema extends Logging {
       }
     }
 
-
-    if (typeSignature.typeArgs.isEmpty) {
-      ObjectType(clazz)
-    }
-    else {
-      val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
-        case x: TypeRefType => resolveClass(x)
+    def toObjectType(cl:Class[_]) : ObjectType = {
+      if (typeSignature.typeArgs.isEmpty) {
+        ObjectType(clazz)
       }
-      new GenericType(clazz, typeArgs)
+      else {
+        val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
+          case x: TypeRefType => resolveClass(x)
+        }
+        new GenericType(clazz, typeArgs)
+      }
     }
+
+    toObjectType(clazz)
+
   }
 
 }
@@ -507,7 +405,7 @@ class ObjectSchema(val cl: Class[_]) extends Logging {
   def findSignature: Option[ScalaSig] = ObjectSchema.findSignature(cl)
 
   lazy val parameters: Array[Parameter] = parametersOf(cl)
-  lazy val methods: Array[Method] = methodsOf(cl)
+  lazy val methods: Array[ScMethod] = methodsOf(cl)
 
   lazy private val parameterIndex: Map[String, Parameter] = {
     val pair = for (a <- parameters) yield a.name -> a

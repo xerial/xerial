@@ -33,7 +33,7 @@ import xerial.core.util.CName
  * Builds method call arguments
  * @author leo
  */
-class MethodCallBuilder(m:Method, owner:AnyRef) extends GenericBuilder with Logging {
+class MethodCallBuilder(m:ScMethod, owner:AnyRef) extends GenericBuilder with Logging {
 
   private val valueHolder = mutable.Map[String, Any]()
 

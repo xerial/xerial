@@ -19,8 +19,8 @@ package xerial.silk.util
 import java.lang.reflect.InvocationTargetException
 import xerial.core.cui._
 import xerial.core.log.Logging
-import xerial.core.lens.{MethodCallBuilder, Method, ObjectSchema}
 import xerial.core.util.CName
+import xerial.core.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
 
 
 //--------------------------------------
@@ -145,7 +145,7 @@ trait CommandModule extends Logging {
 
 }
 
-class CommandDef(val method: Method, val command: command) {
+class CommandDef(val method: ScMethod, val command: command) {
   val name = method.name
   val description = command.description
 }

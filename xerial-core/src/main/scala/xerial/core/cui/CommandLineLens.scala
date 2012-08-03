@@ -11,7 +11,6 @@ import xerial.core.lens._
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
-import xerial.core.lens.Method
 import xerial.core.util.StringTemplate
 import xerial.core.log.Logging
 
@@ -182,7 +181,7 @@ class ClassOptionSchema(val cl: Class[_]) extends OptionSchema {
  * OptionSchema created from a method definition
  * @param method
  */
-class MethodOptionSchema(method: Method) extends OptionSchema {
+class MethodOptionSchema(method: ScMethod) extends OptionSchema {
 
   val options =
     for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(opt, p)
@@ -234,7 +233,7 @@ class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Ar
  */
 class OptionParser(val schema: OptionSchema) extends Logging {
 
-  def this(m: Method) = this(new MethodOptionSchema(m))
+  def this(m: ScMethod) = this(new MethodOptionSchema(m))
 
   import OptionParser._
 
