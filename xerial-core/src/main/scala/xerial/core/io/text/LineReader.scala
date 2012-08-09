@@ -3,6 +3,7 @@ package xerial.core.io.text
 import java.io.{Reader, InputStream, ByteArrayOutputStream}
 import java.util.ArrayDeque
 import annotation.tailrec
+import xerial.core.log.Logging
 
 
 //--------------------------------------
@@ -139,7 +140,7 @@ private[text] class ReaderState(var cursor: Int) {
  */
 class LineReader(buffer: TextBuffer,
                  private var bufferLimit: Int = 0,
-                 private var foundEOF: Boolean = false) extends Iterable[CharSequence] {
+                 private var foundEOF: Boolean = false) extends Iterable[CharSequence] with Logging {
 
   private val markQueue = new ArrayDeque[ReaderState]
   private var current = new ReaderState(0)
@@ -291,13 +292,16 @@ class LineReader(buffer: TextBuffer,
     markQueue.getLast.cursor until current.cursor
   }
 
+  def markStart : Int = markQueue.getLast.cursor
+
   def selected = {
     val r = getSelectedRange
     buffer.toRawString(r.start, r.length)
   }
 
   def trimSelected = {
-    val r = trim(getSelectedRange)
+    val sr = getSelectedRange
+    val r = trim(sr)
     buffer.toRawString(r.start, r.length)
   }
 
@@ -305,16 +309,12 @@ class LineReader(buffer: TextBuffer,
     var start = input.start
     var end = input.end
 
-    def isWhiteSpace(c: Int): Boolean = (c == ' ' || c == '\t' || c == '\r' || c != '\n')
+    def isWhiteSpace(c: Int): Boolean = (c == ' ' || c == '\t' || c == '\r' || c == '\n')
 
     @tailrec
     def trimHead(i: Int): Int = {
-      if (i < end) {
-        if (isWhiteSpace(buffer(i)))
-          trimHead(i + 1)
-        else
-          i
-      }
+      if (i < end && isWhiteSpace(buffer(i)))
+        trimHead(i + 1)
       else
         i
     }
@@ -323,12 +323,8 @@ class LineReader(buffer: TextBuffer,
 
     @tailrec
     def trimTail(i: Int): Int = {
-      if (start < i) {
-        if (isWhiteSpace(buffer(i)))
-          trimTail(i - 1)
-        else
-          i
-      }
+      if (start < i && isWhiteSpace(buffer(i-1)))
+        trimTail(i - 1)
       else
         i
     }
