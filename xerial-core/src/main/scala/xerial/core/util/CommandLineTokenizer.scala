@@ -16,23 +16,17 @@ import xerial.core.log.Logging
  */
 object CommandLineTokenizer extends RegexParsers with Logging {
 
-  protected def unquote(s: String): String = s.substring(1, s.length() - 1)
+  private def unquote(s: String): String = s.substring(1, s.length() - 1)
 
-  protected def stringLiteral: Parser[String] =
-    ("\"" + """([^"\p{Cntrl}\\]|\\[\\/bfnrt]|\\u[a-fA-F0-9]{4})*""" + "\"").r ^^ {
-      unquote(_)
-    }
-
-  protected def quotation: Parser[String] =
-    ("'" + """([^'\p{Cntrl}\\]|\\[\\/bfnrt]|\\u[a-fA-F0-9]{4})*""" + "'").r ^^ {
-      unquote(_)
-    }
-
-  protected def other: Parser[String] = """([^\"'\s]+)""".r
-
-  protected def token: Parser[String] = stringLiteral | quotation | other
-
-  protected def tokens: Parser[List[String]] = rep(token)
+  def stringLiteral: Parser[String] =
+    ("\"" + """([^"\p{Cntrl}\\]|\\[\\/bfnrt]|\\u[a-fA-F0-9]{4})*""" + "\"").r ^^
+      { unquote(_) }
+  def quotation: Parser[String] =
+    ("'" + """([^'\p{Cntrl}\\]|\\[\\/bfnrt]|\\u[a-fA-F0-9]{4})*""" + "'").r ^^
+      { unquote(_) }
+  def other: Parser[String] = """([^\"'\s]+)""".r
+  def token: Parser[String] = stringLiteral | quotation | other
+  def tokens: Parser[List[String]] = rep(token)
 
   def tokenize(line: String): Array[String] = {
     val p = parseAll(tokens, line)

@@ -224,7 +224,7 @@ class LineReader(buffer: TextBuffer,
   }
 
   /**
-   * Peek the character at current position + lookahead.
+   * Peek the character at current position + lookahead -1.
    *
    * @param lookahead
    * @return
