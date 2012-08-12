@@ -35,7 +35,10 @@ import xerial.core.log.{Logging, Logger, LogLevel}
  * <pre>
  *   import StopWatch._
  *
- *   val t = time("performance test") {
+ *   val t : TimeReport = time("performance test") {
+ *
+ *     // write any code here
+ *
  *     block("A") {
  *        // code A
  *     }
