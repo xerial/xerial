@@ -10,28 +10,22 @@ package xerial.core.io.text.parser
 import xerial.core.log.Logging
 import annotation.tailrec
 
-/**
- * Toke type
- */
-trait TokenType {
-  val name : String = this.getClass.getSimpleName.replaceAll("""\$""", "")
-  override def toString = name
-}
-
-/**
- * Symbolic token
- */
-class SymbolToken(override val name:String, val symbol:String) extends TokenType with Token {
-  def tokenType = this
-}
-
 
 /**
  * Token definition
  */
 trait Token {
-  def tokenType : TokenType
+
 }
+
+/**
+ * Symbolic token
+ */
+class SymbolToken(val name:String, val symbol:String) extends Token {
+
+}
+
+
 
 
 sealed abstract class ParseError extends Exception
@@ -41,9 +35,21 @@ case class SyntaxError(message: String) extends ParseError
 trait Grammar extends Logging {
   import Grammar._
 
-  implicit def toExpr(t:TokenType) : Expr = new Leaf(t)
+  implicit def toToken(t:String) : Expr = new Leaf("'%s'".format(t), t.charAt(0))
+  implicit def toParserExpr(a:String) = new {
+    // convert to range
+    def -(b:String) : Expr = CharRange(a, b)
+    // Syntactic predicate without consumption of stream
+    def !=>(expr: => Expr) : Expr = {
+      val pred = toToken(a)
+      SyntacticPredicateFail(pred, rule("!>%s".format(pred.hashCode), expr))
+    }
+  }
 
+  def untilEOF : Expr = CharPred("untilEOF", { ch:Int => ch != -1 })
+  def not(ch:String) : Expr = Not(toToken(ch))
   def repeat(expr: Expr, separator: Expr): Expr = Repeat(expr, separator)
+  def repeat(expr: Expr): Expr = ZeroOrMore(expr)
   def oneOrMore(expr: Expr, separator: Expr) : Expr = (expr ~ ZeroOrMore(separator ~ expr))
   def option(expr: Expr): Expr = OptionNode(expr)
 
@@ -53,8 +59,9 @@ trait Grammar extends Logging {
     ruleCache.get(tokenName) match {
       case Some(t) => t
       case None => {
-        val l = Leaf(new SymbolToken(tokenName, str))
+        val l = Leaf(tokenName, str.charAt(0))
         ruleCache += tokenName -> l
+        debug("Define token %14s := '%s'", tokenName, str)
         l
       }
     }
@@ -90,7 +97,7 @@ trait Grammar extends Logging {
         val newExpr : Expr = expr
         // Update the reference
         ref.set(newExpr)
-        debug("Define rule %s := %s", ruleName, newExpr)
+        debug("Define rule %15s := %s", ruleName, newExpr)
         ref
       }
     }
@@ -111,13 +118,25 @@ trait Grammar extends Logging {
  */
 object Grammar extends Logging {
 
+  type TokenType = Int
+
   type ParseResult = Either[ParseError, Parser]
 
   trait Parser {
-    def LA1: Token
+    def LA1: Int
     def consume: Parser
     def getRule(name:String) : Expr
     def firstTokenTypeOf(tree:Expr) : Seq[TokenType]
+  }
+
+
+  def toVisibleString(s: CharSequence): String = {
+    if (s == null) return ""
+    var text: String = s.toString
+    text = text.replaceAll("\n", "\\\\n")
+    text = text.replaceAll("\r", "\\\\r")
+    text = text.replaceAll("\t", "\\\\t")
+    text
   }
 
   /**
@@ -127,8 +146,11 @@ object Grammar extends Logging {
   sealed abstract class Expr(val name:String) { a : Expr =>
     def ~(b: Expr) : Expr = SeqNode(Array(a, b))
     def |(b: Expr) : Expr = OrNode(Array(a, b))
+    def or(b: Expr) : Expr = OrNode(Array(a, b))
+    def + : Expr = OneOrMore(a)
+    def * : Expr = ZeroOrMore(a)
     def eval(in:Parser) : ParseResult
-    override def toString = name
+    override def toString = toVisibleString(name)
   }
 
   case class ExprRef(override val name:String, private var expr:Expr)  extends Expr(name) {
@@ -136,13 +158,42 @@ object Grammar extends Logging {
     private[Grammar] def set(newExpr:Expr) { expr = newExpr }
   }
 
+  case class SyntacticPredicateFail(predToFail:Expr, e:Expr) extends Expr("(%s) !=> %s".format(predToFail, e)) {
+    def eval(in: Parser) = null // TODO
+  }
 
-  case class Leaf(tt: TokenType) extends Expr(tt.name) {
+  case class Not(e:Expr) extends Expr("!(%s)".format(e)) {
+    def eval(in: Parser) = null // TODO
+  }
+
+  case class CharRange(a:String, b:String) extends Expr("[%s-%s]".format(a, b)) {
+    require(a.length == 1)
+    require(b.length == 1)
+    def eval(in: Parser) = null // TODO
+  }
+
+  case class CharPred(override val name:String, pred: Int => Boolean) extends Expr(name) {
+    def eval(in: Parser) = {
+      @tailrec
+      def loop {
+        val c = in.LA1
+        if(c != -1 && pred(c)) {
+          in.consume
+          loop
+        }
+      }
+      loop
+      Right(in)
+    }
+  }
+
+
+  case class Leaf(override val name:String, tt: TokenType) extends Expr(name) {
     def eval(in: Parser) = {
       val t = in.LA1
       trace("eval %s, LA1:%s", tt, t)
-      if (t.tokenType == tt) {
-        debug("match %s, LA1:%s", t.tokenType, t)
+      if (t == tt) {
+        debug("match %s", t)
         Right(in.consume)
       }
       else
@@ -150,8 +201,7 @@ object Grammar extends Logging {
     }
   }
 
-
-  case class OrNode(seq:Array[Expr]) extends Expr(seq.map(_.name).mkString(" | ")) {
+  case class OrNode(seq:Array[Expr]) extends Expr("(%s)".format(seq.map(_.name).mkString(" | "))) {
     override def |(b: Expr) : Expr = OrNode(seq :+ b)
 
     var table : Map[TokenType, Array[Expr]] = null
@@ -182,12 +232,12 @@ object Grammar extends Logging {
 
       trace("eval %s", name)
       val t = in.LA1
-      loop(0, lookupTable(in).getOrElse(t.tokenType, seq), in)
+      loop(0, lookupTable(in).getOrElse(t, seq), in)
     }
 
   }
 
-  case class SeqNode(seq:Array[Expr]) extends Expr(seq.map(_.name).mkString(" ")) {
+  case class SeqNode(seq:Array[Expr]) extends Expr("(%s)".format(seq.map(_.name).mkString(" "))) {
     override def ~(b: Expr) : Expr = SeqNode(seq :+ b)
     def eval(in:Parser) = {
       @tailrec def loop(i:Int, p:Parser) : ParseResult = {
@@ -204,7 +254,7 @@ object Grammar extends Logging {
     }
   }
 
-  case class ZeroOrMore(a: Expr) extends Expr("(%s)*".format(a.name)) {
+  case class ZeroOrMore(a: Expr) extends Expr("%s*".format(a.name)) {
     def eval(in:Parser) = {
       @tailrec def loop(p: Parser): ParseResult = {
         a.eval(p) match {
@@ -216,7 +266,21 @@ object Grammar extends Logging {
       loop(in)
     }
   }
-  case class OptionNode(a: Expr) extends Expr("(%s)?".format(a.name)) {
+
+  case class OneOrMore(a: Expr) extends Expr("%s+".format(a.name)) {
+    def eval(in:Parser) = {
+      @tailrec def loop(p: Parser, count:Int): ParseResult = {
+        a.eval(p) match {
+          case Left(NoMatch) if count > 0 => Right(p)
+          case l@Left(_) => l
+          case Right(next) => loop(next, count+1)
+        }
+      }
+      loop(in, 0)
+    }
+  }
+
+  case class OptionNode(a: Expr) extends Expr("%s?".format(a.name)) {
     def eval(in: Parser) = {
       a.eval(in) match {
         case l@Left(NoMatch) => Right(in)
