@@ -40,8 +40,12 @@ class CyclicArrayTest extends XerialSpec {
       c should have size (4)
       c should be (Seq(20, 10, 1, 3))
 
-      c.removeFirst should be (Seq(10, 1, 3))
-      c.removeLast should be (Seq(10, 1))
+      val h = c.removeFirst
+      h should be (20)
+      c should be (Seq(10, 1, 3))
+      val t = c.removeLast
+      t should be (3)
+      c should be (Seq(10, 1))
       c.size should be (2)
     }
 

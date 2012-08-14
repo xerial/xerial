@@ -75,13 +75,15 @@ class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A])
     this
   }
 
-  def removeFirst : self = {
+  def removeFirst : A = {
+    val e = peekFirst
     h = index(h + 1)
-    this
+    e
   }
-  def removeLast : self = {
+  def removeLast : A = {
+    val e = peekLast
     t = index(t-1)
-    this
+    e
   }
 
   override def size = index(t - h)
