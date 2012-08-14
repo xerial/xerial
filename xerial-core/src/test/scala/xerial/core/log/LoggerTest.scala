@@ -35,9 +35,10 @@ class LoggerTest extends XerialSpec {
       debug("sub log test")
       def loop(i: Int): Unit = {
         if (i >= 0) {
-          val l = getLogger('sub)
-          l.debug("recursion: %d", i)
-          loop(i - 1)
+          withLogger("sub") {
+            debug("recursion: %d", i)
+            loop(i - 1)
+          }
         }
       }
       loop(3)
