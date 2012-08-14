@@ -13,13 +13,14 @@ import xerial.core.io.text.parser.Grammar.Expr
 
 object SimpleGrammar extends Grammar {
 
-  object Preamble extends SymbolToken("%")
-  object LParen extends SymbolToken("(")
-  object RParen extends SymbolToken(")")
   object QName extends TokenType
-  object Colon extends SymbolToken(":")
   object Str extends TokenType
 
+
+  def Preamble = token("%")
+  def LParen = token("(")
+  def RParen = token(")")
+  def Colon = token(":")
 
   def silk     = rule { preamble }
   def preamble = rule { Preamble ~ QName ~ option(LParen ~ repeat(param, Colon) ~ RParen) }
@@ -38,6 +39,10 @@ class GrammarTest extends XerialSpec {
     "be used for defining parsing rules" in {
       val s = SimpleGrammar.silk
       debug(s)
+    }
+
+    "be used for defining lexical patterns" in {
+
     }
   }
 
