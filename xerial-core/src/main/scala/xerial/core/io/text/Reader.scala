@@ -26,14 +26,14 @@ import java.util.ArrayDeque
 //--------------------------------------
 
 /**
- * An interface for reading text streams
+ * An interface for reading tokens
  * 
  * @author Taro L. Saito
  */
 trait Scanner[@specialized(Char, Int) +T] {
 
   /**
-   * Look-ahead the first character
+   * Look-ahead the first token
    * @return
    */
   def first : T = lookAhead(1)
@@ -57,6 +57,14 @@ trait Scanner[@specialized(Char, Int) +T] {
    */
   def atEnd : Boolean
 
+
+  /**
+   * Close the stream
+   */
+  def close : Unit
+}
+
+trait TextScanner[@specialized(Char, Int) +T] extends Scanner[T] {
   /**
    * Returns the column position in the current line
    */
@@ -67,10 +75,6 @@ trait Scanner[@specialized(Char, Int) +T] {
    */
   def line : Int
 
-  /**
-   * Close the stream
-   */
-  def close : Unit
 }
 
 
