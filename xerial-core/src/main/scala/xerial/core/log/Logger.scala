@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012 Taro L. Saito
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 //--------------------------------------
 //
 // Logger.scala
@@ -11,6 +27,7 @@ import collection.mutable
 import javax.management.{MBeanServerConnection, JMX, ObjectName}
 import management.ManagementFactory
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
+import util.DynamicVariable
 
 /**
  * log level definitions
@@ -52,11 +69,20 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
  */
 trait Logging {
 
-  private[this] val logger = Logger(this.getClass)
+  private[this] val logger = new DynamicVariable[Logger](Logger(this.getClass))
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
-    if (logger.isEnabled(logLevel))
-      logger.log(logLevel, message)
+    if (logger.value.isEnabled(logLevel))
+      logger.value.log(logLevel, message)
+  }
+
+  protected def withLogger[U](tag:String)(body: => U) : U = {
+    if(logger.value.tag == tag)
+      body
+    else
+      logger.withValue(Logger(logger.value.prefix + ":" + tag)) {
+        body
+      }
   }
 
   /**
@@ -64,7 +90,7 @@ trait Logging {
    * @param tag
    * @return
    */
-  protected def getLogger(tag: Symbol): Logger = Logger(logger, tag)
+  protected def getLogger(tag: Symbol): Logger = Logger(logger.value, tag)
 
   /**
    * Create a sub logger with a given tag name
@@ -166,12 +192,16 @@ trait Logger extends LogHelper {
 
   val name: String
   val shortName = Logger.leafName(name)
-  val tag = {
+  def tag = {
     val pos = shortName.lastIndexOf(":")
     if (pos == -1)
-      Symbol("")
+      ""
     else
-      Symbol(shortName.substring(pos + 1))
+      shortName.substring(pos + 1)
+  }
+  def prefix : String = {
+    val pos = name.lastIndexOf(":")
+    if(pos == -1) name else name.substring(0, pos)
   }
 
   var logLevel: LogLevel
