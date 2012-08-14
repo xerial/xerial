@@ -17,6 +17,7 @@
 package xerial.core.collection
 
 import collection.mutable.{IndexedSeqOptimized, ArrayOps, ArrayLike}
+import xerial.core.log.Logging
 
 
 //--------------------------------------
@@ -26,9 +27,14 @@ import collection.mutable.{IndexedSeqOptimized, ArrayOps, ArrayLike}
 //
 //--------------------------------------
 
+
 object CyclicArray {
 
-
+  def apply[A : ClassManifest](elem:A *) : CyclicArray[A] = {
+    val c = new CyclicArray[A](elem.length)
+    elem foreach { c append _ }
+    c
+  }
 }
 
 /**
@@ -36,21 +42,24 @@ object CyclicArray {
  * 
  * @author Taro L. Saito
  */
-class CyclicArray[@specialized A](implicit m:ClassManifest[A]) extends IndexedSeqOptimized[A, CyclicArray[A]] {
-  type self = this.type 
+class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A]) extends IndexedSeq[A] with Logging {
+  require((capacity & (capacity - 1)) == 0) // queue size must be 2^i
+  type self = this.type
+  private var queue:Array[A] = m.newArray(capacity)
+  private var h:Int = 0
+  private var t:Int = 0
 
-  private var queue = m.newArray(8) // queue size must be 2^i
-  private var h = 0
-  private var t = 0
+  def apply(i:Int) : A = queue(index(h + i))
 
-  def apply(i:Int) = queue(index(i))
+  @inline private def index(i:Int) = i & (queue.length - 1) // equivalent to mod queue.length
 
-  @inline private def index(i:Int) = i & (queue.length - 1) // mode (QUEUE_SIZE - 1)
-
-  def peekFirst : A = queue(h)
+  def peekFirst : A = queue(index(h))
   def peekLast : A = queue(index(t-1))
 
-  def addFirst(e:A) : self = {
+  def addFirst(e:A) = prepend(e)
+  def addLast(e:A) = append(e)
+
+  def prepend(e:A) : self = {
     h = index(h - 1)
     queue(h) = e
     if(h == t)
@@ -58,17 +67,25 @@ class CyclicArray[@specialized A](implicit m:ClassManifest[A]) extends IndexedSe
     this
   }
 
-  def addLast(e:A) : self = {
+  def append(e:A) : self = {
     queue(t) = e
-    t = index(t + 1) // mod (QUEUE_SIZE)
+    t = index(t + 1)
     if(h == t)
       doubleCapacity
     this
   }
 
+  def removeFirst : self = {
+    h = index(h + 1)
+    this
+  }
+  def removeLast : self = {
+    t = index(t-1)
+    this
+  }
+
   override def size = index(t - h)
   override def isEmpty = h == t
-
 
   private def doubleCapacity {
     assert(h == t)
@@ -86,17 +103,10 @@ class CyclicArray[@specialized A](implicit m:ClassManifest[A]) extends IndexedSe
     t = n
   }
 
-  protected[this] def newBuilder = null
 
   def length = size
 
-  def update(idx: Int, elem: A) { queue(idx) = elem}
+  def update(idx: Int, elem: A) { queue(index(h + idx)) = elem }
 
-  def seq = {
-    val b = Seq.newBuilder[A]
-    for(i <- 0 until length)
-      b += apply(i)
-    b.result
-  }
 
 }
