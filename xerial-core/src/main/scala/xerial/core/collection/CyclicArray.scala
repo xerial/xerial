@@ -43,7 +43,7 @@ object CyclicArray {
  * @author Taro L. Saito
  */
 class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A]) extends IndexedSeq[A] with Logging {
-  require((capacity & (capacity - 1)) == 0) // queue size must be 2^i
+  require((capacity & (capacity - 1)) == 0, "queue size must be 2^i but %s".format(capacity))
   type self = this.type
   private var queue:Array[A] = m.newArray(capacity)
   private var h:Int = 0
