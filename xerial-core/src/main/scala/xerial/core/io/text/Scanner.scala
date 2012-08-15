@@ -16,7 +16,6 @@
 
 package xerial.core.io.text
 
-import java.util.ArrayDeque
 import xerial.core.collection.CyclicArray
 
 //--------------------------------------
@@ -80,13 +79,19 @@ trait PositionMark[T] { this: Scanner[T] =>
   def mark : Unit = {
     markQueue.append(cursor)
   }
+
+  private def ensureNotEmpty = require(!markQueue.isEmpty, "no mark is set")
+
+  def lastMark : Int = {
+    ensureNotEmpty
+    markQueue.peekLast
+  }
+
   /**
    * Rewind the scanner cursor to the last marked position
    */
   def rewind : Unit = {
-    if(markQueue.isEmpty)
-      sys.error("no mark to rewind")
-
+    ensureNotEmpty
     setCursor(markQueue.removeLast)
   }
   def clearMarks : Unit = markQueue.clear
