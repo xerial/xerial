@@ -43,6 +43,11 @@ object SimpleGrammar extends Grammar {
   def node = rule { option(indent) ~ Hyphen ~ option(paramName) ~ option(params) ~ option(Colon ~ nodeValue) }
   def nodeValue = rule { untilEOF }
   def dataLine = rule { untilEOF }
+
+  def whiteSpace = rule { " " | "\t" | "\n" | "\r"  }
+
+  ignore(whiteSpace)
+
 }
 
 /**
