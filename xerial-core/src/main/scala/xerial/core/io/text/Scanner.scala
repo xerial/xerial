@@ -30,7 +30,7 @@ import xerial.core.collection.CyclicArray
  * 
  * @author Taro L. Saito
  */
-trait Scanner[@specialized(Char, Int) +T] {
+trait Scanner[@specialized(Char, Int) +T] extends PositionMark[T] {
 
   /**
    * Look-ahead the first token
@@ -54,6 +54,9 @@ trait Scanner[@specialized(Char, Int) +T] {
    */
   def close : Unit
 
+
+
+
   protected def cursor : Int
   protected def setCursor(c:Int) : Unit
 }
@@ -73,6 +76,17 @@ trait TextScanner[@specialized(Char, Int) +T] extends Scanner[T] {
 
 
 trait PositionMark[T] { this: Scanner[T] =>
+
+  def mark : Unit
+  def lastMark : Int
+  /**
+   * Rewind the scanner cursor to the last marked position
+   */
+  def rewind : Unit
+  def clearMarks : Unit
+}
+
+trait PositionMarkImpl[T] extends PositionMark[T] { this: Scanner[T] =>
 
   private val markQueue = new CyclicArray[Int]
 
