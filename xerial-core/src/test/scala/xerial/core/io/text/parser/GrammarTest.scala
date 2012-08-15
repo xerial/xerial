@@ -43,6 +43,9 @@ object SimpleGrammar extends Grammar {
   def nodeValue = rule { untilEOF }
   def dataLine  = rule { untilEOF }
   def context   = rule { "=" ~ nodeBody }
+  def whiteSpace = rule { " " | "\t" | "\n" | "\r"  }
+
+  ignore(whiteSpace)
 }
 
 /**
