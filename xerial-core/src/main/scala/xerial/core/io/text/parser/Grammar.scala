@@ -42,7 +42,7 @@ trait Grammar extends Logging {
     // Syntactic predicate without consumption of stream
     def !=>(expr: => Expr) : Expr = {
       val pred = toToken(a)
-      SyntacticPredicateFail(pred, rule("!>%s".format(pred.hashCode), expr))
+      SyntacticPredicateFail(pred, rule(newNonDuplicateRuleID("Then"), expr))
     }
   }
 
@@ -104,6 +104,13 @@ trait Grammar extends Logging {
   }
 
   private var ruleCache : Map[String, Expr] = Map[String, Expr]()
+  private val prefixCount = collection.mutable.Map[String, Int]()
+
+  private def newNonDuplicateRuleID(prefix:String) : String = {
+    val count = prefixCount.getOrElseUpdate(prefix, 0)
+    prefixCount += prefix -> (count + 1)
+    "%s%d".format(prefix, count+1)
+  }
 
   private def getEnclosingMethodName(stackLevel:Int) : String = {
     new Throwable().getStackTrace()(stackLevel).getMethodName
@@ -158,7 +165,7 @@ object Grammar extends Logging {
     private[Grammar] def set(newExpr:Expr) { expr = newExpr }
   }
 
-  case class SyntacticPredicateFail(predToFail:Expr, e:Expr) extends Expr("(%s) !=> %s".format(predToFail, e)) {
+  case class SyntacticPredicateFail(predToFail:Expr, e:Expr) extends Expr("!(%s) => %s".format(predToFail, e)) {
     def eval(in: Parser) = null // TODO
   }
 
@@ -169,21 +176,36 @@ object Grammar extends Logging {
   case class CharRange(a:String, b:String) extends Expr("[%s-%s]".format(a, b)) {
     require(a.length == 1)
     require(b.length == 1)
-    def eval(in: Parser) = null // TODO
+    private val begin = a.charAt(0).toInt
+    private val end  = b charAt(0).toInt
+    require(begin <= end)
+
+    def eval(in: Parser) = {
+      val c = in.LA1
+      if(begin <= c && c <= end)
+        Right(in.consume)
+      else
+        Left(NoMatch)
+    }
   }
 
   case class CharPred(override val name:String, pred: Int => Boolean) extends Expr(name) {
     def eval(in: Parser) = {
       @tailrec
-      def loop {
+      def loop(i:Int) : Int = {
         val c = in.LA1
         if(c != -1 && pred(c)) {
           in.consume
-          loop
+          loop(i+1)
         }
+        else
+          i
       }
-      loop
-      Right(in)
+      val charCount = loop(0)
+      if(charCount == 0)
+        Left(NoMatch)
+      else
+        Right(in)
     }
   }
 
@@ -290,7 +312,7 @@ object Grammar extends Logging {
   }
 
 
-  case class Repeat(a:Expr, separator:Expr) extends Expr("rep(%s,%s)".format(a.name, separator.name)) {
+  case class Repeat(a:Expr, separator:Expr) extends Expr("rep(%s, %s)".format(a.name, separator.name)) {
     private val p = OptionNode(a ~ ZeroOrMore(separator ~ a))
     def eval(in: Parser) = p.eval(in)
   }
