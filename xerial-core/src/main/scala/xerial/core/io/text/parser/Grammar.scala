@@ -173,6 +173,11 @@ trait Grammar extends Logging {
   private def getEnclosingMethodName(stackLevel: Int): String = {
     new Throwable().getStackTrace()(stackLevel).getMethodName
   }
+
+
+  def parse(e:Expr, s:String) {
+
+  }
 }
 
 
@@ -190,7 +195,9 @@ object Grammar extends Logging {
   trait Parser {
     def LA1: Int
     def consume: Parser
-    def getRule(name: String): Expr
+    def mark : Unit
+    def rewind : Unit
+    def resetMarks : Unit
     def firstTokenTypeOf(tree: Expr): Seq[TokenType]
   }
 

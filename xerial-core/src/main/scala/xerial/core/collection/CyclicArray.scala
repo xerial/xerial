@@ -49,6 +49,8 @@ class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A])
   private var h:Int = 0
   private var t:Int = 0
 
+  def clear { h = 0; t = 0 }
+
   def apply(i:Int) : A = queue(index(h + i))
 
   @inline private def index(i:Int) = i & (queue.length - 1) // equivalent to mod queue.length

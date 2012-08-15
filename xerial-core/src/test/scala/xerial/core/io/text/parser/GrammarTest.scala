@@ -59,15 +59,23 @@ object SimpleGrammar extends Grammar {
  */
 class GrammarTest extends XerialSpec {
 
+  import SimpleGrammar._
+
   "Grammar" should {
     "be used for defining parsing rules" in {
-      val s = SimpleGrammar.silkLine
+      val s = silkLine
       debug(s)
     }
 
     "be used for defining lexical patterns" in {
-      val strRule = SimpleGrammar.string
+      val strRule = string
       debug(strRule)
+    }
+
+    "parse tuple" in {
+
+      parse(tuple, "(A, 10)")
+
     }
   }
 

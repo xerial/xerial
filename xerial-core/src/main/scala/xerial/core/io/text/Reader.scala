@@ -17,6 +17,7 @@
 package xerial.core.io.text
 
 import java.util.ArrayDeque
+import xerial.core.collection.CyclicArray
 
 //--------------------------------------
 //
@@ -36,20 +37,12 @@ trait Scanner[@specialized(Char, Int) +T] {
    * Look-ahead the first token
    * @return
    */
-  def first : T = lookAhead(1)
+  def first : T
 
   /**
-   * Look-ahead the k-th character from the current position
-   * @param k
-   * @return
+   * Proceeds a cursor by one
    */
-  def lookAhead(k:Int) : T
-
-  /**
-   * Returns a reader containing the remaining input except the fist
-   * @return
-   */
-  def rest : Scanner[T]
+  def consume : this.type
 
   /**
    * Returns true iff the reader reached the end of the stream
@@ -57,11 +50,13 @@ trait Scanner[@specialized(Char, Int) +T] {
    */
   def atEnd : Boolean
 
-
   /**
    * Close the stream
    */
   def close : Unit
+
+  protected def cursor : Int
+  protected def setCursor(c:Int) : Unit
 }
 
 trait TextScanner[@specialized(Char, Int) +T] extends Scanner[T] {
@@ -78,15 +73,28 @@ trait TextScanner[@specialized(Char, Int) +T] extends Scanner[T] {
 }
 
 
-trait PositionMark {
+trait PositionMark[T] { this: Scanner[T] =>
 
-  //private val markQueue : Array[Int] = Array.ofDim(2)
+  private val markQueue = new CyclicArray[Int]
 
-  def mark : Unit
-  def clearMarks : Unit
+  def mark : Unit = {
+    markQueue.append(cursor)
+  }
+  /**
+   * Rewind the scanner cursor to the last marked position
+   */
+  def rewind : Unit = {
+    if(markQueue.isEmpty)
+      sys.error("no mark to rewind")
+
+    setCursor(markQueue.removeLast)
+  }
+  def clearMarks : Unit = markQueue.clear
+
 
   protected def shiftMarks(offset:Int) : Unit = {
-    //markQueue
+    for(i <- 0 until markQueue.length)
+      markQueue.update(i, markQueue(i) + offset)
   }
 
 }
