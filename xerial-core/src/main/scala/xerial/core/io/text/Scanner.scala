@@ -17,6 +17,7 @@
 package xerial.core.io.text
 
 import xerial.core.collection.CyclicArray
+import xerial.core.log.Logging
 
 //--------------------------------------
 //
@@ -99,7 +100,7 @@ trait PositionMark { this: Scanner =>
   def clearMarks : Unit
 }
 
-trait PositionMarkImpl extends PositionMark { this: Scanner =>
+trait PositionMarkImpl extends PositionMark with Logging { this: Scanner =>
 
   private val markQueue = new CyclicArray[Int]
 
@@ -124,6 +125,7 @@ trait PositionMarkImpl extends PositionMark { this: Scanner =>
    */
   def rewind : Unit = {
     ensureNotEmpty
+    trace("rewind to %d", lastMark)
     setCursor(markQueue.peekLast)
   }
   def clearMarks : Unit = markQueue.clear

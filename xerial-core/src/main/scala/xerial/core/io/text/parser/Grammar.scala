@@ -25,7 +25,7 @@ package xerial.core.io.text.parser
 
 import xerial.core.log.Logging
 import annotation.tailrec
-
+import xerial.core.io.text.StringScanner
 
 
 /**
@@ -61,7 +61,7 @@ trait Grammar extends Logging {
 
   import Grammar._
 
-  implicit def toToken(t: String): Expr = new Leaf("'%s'".format(t), t.charAt(0))
+  implicit def toToken(t: String): Expr = new Leaf("'%s'".format(t), t.charAt(0).toInt)
 
   implicit def toParserExpr(a: String) = new {
     // convert to range
@@ -170,8 +170,11 @@ trait Grammar extends Logging {
   }
 
 
-  def parse(e:Expr, s:String) {
-
+  def parse(e:Expr, s:String) = {
+    trace("preparing parser")
+    val p = new Parser(new StringScanner(s), e, ignoredExprs)
+    trace("parse start")
+    p.parse
   }
 }
 

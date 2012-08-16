@@ -9,6 +9,7 @@ package xerial.core.io.text.parser
 
 import xerial.core.XerialSpec
 import xerial.core.io.text.parser.Grammar.Expr
+import org.scalatest.Tag
 
 
 object SimpleGrammar extends Grammar {
@@ -71,15 +72,9 @@ class GrammarTest extends XerialSpec {
       debug(strRule)
     }
 
-    "parse tuple" in {
+    "parse tuple" taggedAs(Tag("parse")) in {
 
       parse(tuple, "(A, 10)")
-
-      Predef println "new"
-      Console println  "new"
-      def l(f: => Unit) {}
-
-      l { "hello world" }
     }
 
   }

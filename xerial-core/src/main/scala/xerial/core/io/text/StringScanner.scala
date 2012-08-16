@@ -20,11 +20,14 @@ class StringScanner(s:String) extends Scanner with PositionMarkImpl {
    * Look-ahead the first character
    * @return
    */
-  def first = if(atEnd) EOF else s.charAt(_cursor)
+  def first = if(atEnd) EOF else s.charAt(_cursor).toInt
   /**
    * Proceeds a cursor by one
    */
   def consume = {
+    if(atEnd)
+      sys.error("No more tokens to consume")
+
     _cursor += 1
     this
   }
