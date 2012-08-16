@@ -41,20 +41,20 @@ case class SyntaxError(message: String) extends ParseError
  * <pre>
  * trait MyGrammar extends Grammar {
  *
- * // Define expression patterns using rule blocks
+ * // Define expression patterns using expr blocks
  * // '~' denotes a sequence of matches
- * def comment = rule { "#" ~ untilEOF }
- * def expr  = rule { value | string | "(" ~ expr ~ ")" }
- * def value = rule { "0" - "9" | "A" - "Z" | "a" - "z" } // Range of characters
+ * def comment = expr { "#" ~ untilEOF }
+ * def expr  = expr { value | string | "(" ~ expr ~ ")" }
+ * def value = expr { "0" - "9" | "A" - "Z" | "a" - "z" } // Range of characters
  *
  * // repetition of patterns and syntactic predicate (!->).
- * def string     = rule { "\"" ~ repeat("\\" !->  not("\"") | escapeSequence) ~ "\"" }
- * def escapeSequence = rule { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit) }
- * def digit      = rule { "0" - "9" }
- * def hexDigit   = rule { digit | "A" - "F" | "a" - "f" }
+ * def string     = expr { "\"" ~ repeat("\\" !->  not("\"") | escapeSequence) ~ "\"" }
+ * def escapeSequence = expr { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit) }
+ * def digit      = expr { "0" - "9" }
+ * def hexDigit   = expr { digit | "A" - "F" | "a" - "f" }
  *
  * // Define tokens to ignore
- * def whiteSpace = rule { " " | "\t" | "\n" | "\r" }
+ * def whiteSpace = expr { " " | "\t" | "\n" | "\r" }
  * ignore(whiteSpace)
  * }
  * </pre>
@@ -112,32 +112,32 @@ trait Grammar extends Logging {
 
 
   /**
-   * Rule construction method. The body expression is called-by-name to enable recursive rule definitions, e.g.,
+   * Construct an expression. The expression is called-by-name to enable recursive definitions, e.g.,
    *
    * <code>
-   * def expr = rule { ("(" ~ expr ~ ")") | Int }
+   * def expr = expr { ("(" ~ expr ~ ")") | Int }
    * </code>
    *
    * @param expr
    * @return
    */
-  def rule(expr: => Expr): Expr = rule(getEnclosingMethodName(3), expr)
+  def expr(expr: => Expr): Expr = rule(getEnclosingMethodName(3), expr)
 
   /**
-   * Add an ignored rule
+   * Add an ignored expr
    * @param rules
    */
   def ignore(rules: Expr*): Unit = {
     rules foreach {
       r =>
-        debug("Tokens that match the rule %s will be ignored", r.name)
-        ignoredRules += r
+        debug("Tokens that match the expr %s will be ignored", r.name)
+        ignoredExprs += r
     }
   }
 
 
   /**
-   * Construct a new rule with a given name
+   * Construct a new expr with a given name
    * @param ruleName
    * @param expr
    * @return
@@ -146,14 +146,14 @@ trait Grammar extends Logging {
     ruleCache.get(ruleName) match {
       case Some(r) => r
       case None => {
-        // Insert a reference to this rule first to avoid recursively calling this method
+        // Insert a reference to this expr first to avoid recursively calling this method
         val ref = ExprRef(ruleName, null)
         ruleCache += ruleName -> ref
-        // Prepare the rule
+        // Prepare the expr
         val newExpr: Expr = expr
         // Update the reference
         ref.set(newExpr)
-        debug("Define rule %15s := %s", ruleName, newExpr)
+        debug("Define expr %15s := %s", ruleName, newExpr)
         ref
       }
     }
@@ -168,7 +168,7 @@ trait Grammar extends Logging {
     "%s%d".format(prefix, count + 1)
   }
 
-  private var ignoredRules: Set[Expr] = Set()
+  private var ignoredExprs: Set[Expr] = Set()
 
   private def getEnclosingMethodName(stackLevel: Int): String = {
     new Throwable().getStackTrace()(stackLevel).getMethodName
@@ -214,6 +214,8 @@ object Grammar extends Logging {
   case class ~[A, B](a:A, b:B)
 
 
+
+
   /**
    * Parsing expression
    * @param name
@@ -223,8 +225,6 @@ object Grammar extends Logging {
     def ~(b: Expr): Expr = SeqNode(Array(a, b))
     def |(b: Expr): Expr = OrNode(Array(a, b))
     def or(b: Expr): Expr = OrNode(Array(a, b))
-    def + : Expr = OneOrMore(a)
-    def * : Expr = ZeroOrMore(a)
     def eval(in: Parser): ParseResult
 
     override def toString = toVisibleString(name)

@@ -13,43 +13,42 @@ import xerial.core.io.text.parser.Grammar.Expr
 
 object SimpleGrammar extends Grammar {
 
-
-
-  def comment    = rule { "#" ~ untilEOF }
-  def qname      = rule { qnameFirst ~ qnameChar* }
-  def qnameFirst = rule { alphabet | "." | "_" }
-  def qnameChar  = rule { qnameFirst | digit }
+  def comment    = expr { "#" ~ untilEOF }
+  def qname      = expr { qnameFirst ~ repeat(qnameChar) }
+  def qnameFirst = expr { alphabet | "." | "_" }
+  def qnameChar  = expr { qnameFirst | digit }
   // nameChar allows spaces
-  def nameChar   = rule { qnameChar | " " | "!" | "#" | "$" | "%" | "&" | "'" | "*" | "+" | "/" | "-" | ";" | "<" | "=" | ">" | "@"  }
-  def alphabet   = rule { "A" - "Z" | "a" - "z" }
-  def indent     = rule { (" " | "\t")+ }
-  def string     = rule { "\"" ~ repeat( "\\" !->  not("\"") | escapeSequence  ) ~ "\"" }
+  def nameChar   = expr { qnameChar | " " | "!" | "#" | "$" | "%" | "&" | "'" | "*" | "+" | "/" | "-" | ";" | "<" | "=" | ">" | "@"  }
+  def alphabet   = expr { "A" ~ "Z" | "a" ~ "z" }
+  def indent     = expr { oneOrMore(" " | "\t") }
+  def string     = expr { "\"" ~ repeat("\\" !->  not("\"") | escapeSequence ) ~ "\"" }
   def escapeSequence =
-                   rule { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit) }
-  def digit      = rule { "0" - "9" }
-  def hexDigit   = rule { digit | "A" - "F" | "a" - "f" }
+                   expr { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | "u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit) }
+  def digit      = expr { "0" - "9" }
+  def hexDigit   = expr { digit | "A" - "F" | "a" - "f" }
 
-  def silkLine   = rule { option(indent) ~ (node | context | preamble | function | comment | dataLine ) }
-  def preamble   = rule { "%" ~ qname ~ option(nodeBody) }
-  def nodeBody   = rule { option(name) ~ option(enclosedParams ~ option(value) | openParams | value) }
+  def silkLine   = expr { option(indent) ~ (node | context | preamble | function | comment | dataLine ) }
+  def preamble   = expr { "%" ~ qname ~ option(nodeBody) }
+  def namedBody  = expr { name ~ nodeTail}
+  def nodeBody   = expr { namedBody | nodeTail }
+  def nodeTail   = expr { enclosedParams ~ option(value) | openParams | value }
   def enclosedParams =
-                  rule { "(" ~ repeat(param, ",") ~ ")" }
-  def openParams =
-                  rule { "-" ~ repeat(param, ",") }
-  def value      = rule { ":" ~ untilEOF }
-  def param      = rule { name ~ option(":" ~ paramValue) }
-  def name       = rule { qnameFirst ~ repeat(nameChar) | string }
-  def tuple      = rule { "(" ~ paramValue ~ ")" }
+                   expr { "(" ~ repeat(param, ",") ~ ")" }
+  def openParams = expr { "-" ~ repeat(param, ",") }
+  def value      = expr { ":" ~ untilEOF }
+  def param      = expr { name ~ option(":" ~ paramValue) }
+  def name       = expr { qnameFirst ~ repeat(nameChar) | string }
+  def tuple      = expr { "(" ~ paramValue ~ ")" }
   def paramValue : Expr
-                 = rule { (string | name | tuple) ~ option(paramOpt) }
-  def paramOpt   = rule { "[" ~ repeat(paramValue, ",") ~ "]" }
+                 = expr { (string | name | tuple) ~ option(paramOpt) }
+  def paramOpt   = expr { "[" ~ repeat(paramValue, ",") ~ "]" }
 
-  def node       = rule { "-" ~ nodeBody }
-  def context    = rule { "=" ~ nodeBody }
-  def function   = rule { "@" ~ qname ~ option(nodeBody) }
-  def dataLine   = rule { untilEOF }
+  def node       = expr { "-" ~ nodeBody }
+  def context    = expr { "=" ~ nodeBody }
+  def function   = expr { "@" ~ qname ~ option(nodeBody) }
+  def dataLine   = expr { untilEOF }
 
-  def whiteSpace = rule { " " | "\t" | "\n" | "\r"  }
+  def whiteSpace = expr { " " | "\t" | "\n" | "\r"  }
 
   ignore(whiteSpace)
 }
@@ -76,7 +75,13 @@ class GrammarTest extends XerialSpec {
 
       parse(tuple, "(A, 10)")
 
+      Predef println "new"
+      Console println  "new"
+      def l(f: => Unit) {}
+
+      l { "hello world" }
     }
+
   }
 
 }

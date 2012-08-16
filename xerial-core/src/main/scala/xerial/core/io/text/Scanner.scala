@@ -30,7 +30,7 @@ import xerial.core.collection.CyclicArray
  * 
  * @author Taro L. Saito
  */
-trait Scanner[@specialized(Char, Int) +T] extends PositionMark[T] {
+trait Scanner[@specialized(Char, Int) T] extends PositionMark[T] {
 
   /**
    * Look-ahead the first token
@@ -61,7 +61,7 @@ trait Scanner[@specialized(Char, Int) +T] extends PositionMark[T] {
   protected def setCursor(c:Int) : Unit
 }
 
-trait TextScanner[@specialized(Char, Int) +T] extends Scanner[T] {
+trait TextScanner[@specialized(Char, Int) T] extends Scanner[T] {
   /**
    * Returns the column position in the current line
    */
