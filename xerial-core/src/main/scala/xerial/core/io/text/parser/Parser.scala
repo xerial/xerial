@@ -25,15 +25,15 @@ object Parser {
   }
 
   case object Empty extends ParseTree {
-    def ~(t: ParseTree) = null
+    def ~(t: ParseTree) = Empty // TODO
   }
 
   case class Token(t: Int) extends ParseTree {
-    def ~(t: ParseTree) = null
+    def ~(t: ParseTree) = Empty // TODO
   }
 
   case object OK extends ParseTree {
-    def ~(t: ParseTree) = null
+    def ~(t: ParseTree) = Empty // TODO
   }
 
 
@@ -66,7 +66,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
       if(cache.contains(e.name))
         cache(e.name)
       else {
-        debug("bulid %s", e)
+        //debug("bulid %s", e)
         val ref = EvalRef(null)
         // Register a proxy entry to avoid recursive call of toEval
         cache += e.name -> ref
@@ -84,13 +84,12 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
             t == tt
           })
           case CharPred(_, pred) => EvalCharPred(e.name, pred)
-          case r@CharRange(_, _) => EvalCharPred(e.name, r.pred)
+          case r@CharRange(_, _) => EvalCharPred(r.name, r.pred)
           case ZeroOrMore(a) => EvalZeroOrMore(toEval(a))
           case OneOrMore(a) => EvalOneOrMore(toEval(a))
           case OptionNode(a) => EvalOption(toEval(a))
           case r@Repeat(a, sep) => toEval(r.expr)
         }
-        //debug("build eval for %s: %s", e, newEV)
         ref.e = newEV
         newEV
       }
@@ -124,12 +123,11 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
         }
       }
     }
-    eval
   }
 
   case class EvalSeq(name:String, seq: Array[Eval]) extends Eval {
     def eval: ParseResult = {
-      trace("eval seq %s", name)
+      debug("eval seq %s", name)
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length)
@@ -147,12 +145,14 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
   case class EvalOr(name:String, seq: Array[Eval]) extends Eval {
     def eval: ParseResult = {
 
-      trace("eval %s", name)
+      debug("eval or %s", name)
 
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
-        if(i >= seq.length)
+        if(i >= seq.length) {
+          debug("no match for %s", name)
           Left(NoMatch)
+        }
         else
           seq(i).eval match {
             case Left(NoMatch) => loop(i + 1, t)
@@ -181,9 +181,9 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
     def eval: ParseResult = {
       input.withMark {
         val t = input.first
-        debug("eval %s: %s", name, t.toChar)
+        debug("eval char pred %s: %s", name, t.toChar)
         if (t != input.EOF && pred(t)) {
-          debug("match %s", t.toChar)
+          trace("match %s", t.toChar)
           input.consume
           Right(OK)
         }

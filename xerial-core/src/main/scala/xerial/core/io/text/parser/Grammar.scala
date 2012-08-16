@@ -169,7 +169,6 @@ trait Grammar extends Logging {
     new Throwable().getStackTrace()(stackLevel).getMethodName
   }
 
-
   def parse(e:Expr, s:String) = {
     trace("preparing parser")
     val p = new Parser(new StringScanner(s), e, ignoredExprs)

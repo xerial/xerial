@@ -18,9 +18,11 @@ object SimpleGrammar extends Grammar {
   def qname      = expr { qnameFirst ~ repeat(qnameChar) }
   def qnameFirst = expr { alphabet | "." | "_" }
   def qnameChar  = expr { qnameFirst | digit }
+  def number     = expr { option("-") ~ option("0" | ("1" - "9") ~ repeat(digit)) ~ option("." ~ oneOrMore(digit)) ~ option(exp) }
+  def exp        = expr { ("e" | "E") ~ option("+" | "-") ~ oneOrMore(digit) }
   // nameChar allows spaces
   def nameChar   = expr { qnameChar | " " | "!" | "#" | "$" | "%" | "&" | "'" | "*" | "+" | "/" | "-" | ";" | "<" | "=" | ">" | "@"  }
-  def alphabet   = expr { "A" ~ "Z" | "a" ~ "z" }
+  def alphabet   = expr { "A" - "Z" | "a" - "z" }
   def indent     = expr { oneOrMore(" " | "\t") }
   def string     = expr { "\"" ~ repeat("\\" !->  not("\"") | escapeSequence ) ~ "\"" }
   def escapeSequence =
@@ -39,9 +41,9 @@ object SimpleGrammar extends Grammar {
   def value      = expr { ":" ~ untilEOF }
   def param      = expr { name ~ option(":" ~ paramValue) }
   def name       = expr { qnameFirst ~ repeat(nameChar) | string }
-  def tuple      = expr { "(" ~ paramValue ~ ")" }
+  def tuple      = expr { "(" ~ repeat(paramValue, ",") ~ ")" }
   def paramValue : Expr
-                 = expr { (string | name | tuple) ~ option(paramOpt) }
+                 = expr { (string | name | number | tuple) ~ option(paramOpt) }
   def paramOpt   = expr { "[" ~ repeat(paramValue, ",") ~ "]" }
 
   def node       = expr { "-" ~ nodeBody }
