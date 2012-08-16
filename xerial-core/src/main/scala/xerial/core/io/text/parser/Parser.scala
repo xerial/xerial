@@ -11,6 +11,7 @@ import xerial.core.io.text.parser.Grammar.{SeqNode, Expr}
 import xerial.core.io.text.Scanner
 import annotation.tailrec
 import xerial.core.log.Logging
+import util.DynamicVariable
 
 
 sealed abstract class ParseError extends Exception
@@ -117,7 +118,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
   case class EvalSyntacticPredicateFail(predToFail: Eval, e: Eval) extends Eval {
     def eval: ParseResult = {
       input.withMark {
-        predToFail.eval match {
+        noIgnore(predToFail.eval) match {
           case Left(NoMatch) => input.rewind; e.eval
           case other => input.rewind; Left(NoMatch)
         }
@@ -127,7 +128,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
 
   case class EvalSeq(name:String, seq: Array[Eval]) extends Eval {
     def eval: ParseResult = {
-      debug("eval seq %s", name)
+      debug("EvalSeq %s", toVisibleString(name))
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length)
@@ -145,13 +146,15 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
   case class EvalOr(name:String, seq: Array[Eval]) extends Eval {
     def eval: ParseResult = {
 
-      debug("eval or %s", name)
+      debug("EvalOr %s", toVisibleString(name))
 
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length) {
-          debug("no match for %s", name)
-          Left(NoMatch)
+          evalIgnored match {
+            case l@ Left(_) => l
+            case r@ Right(_) => loop(0, Empty)
+          }
         }
         else
           seq(i).eval match {
@@ -163,25 +166,41 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
     }
   }
 
+  private val fallbackToIgnoredToken = new DynamicVariable[Boolean](true)
+
+  private def noIgnore(f: => ParseResult) : ParseResult = {
+    val prev = fallbackToIgnoredToken.value
+    fallbackToIgnoredToken.value = false
+    try
+      f
+    finally
+      fallbackToIgnoredToken.value = prev
+  }
+
   /*
    * lookup ignored tokens
    */
   private def evalIgnored: ParseResult = {
-    debug("eval ignored: %s", input.first.toChar)
-    input.withMark {
-      ignored.eval match {
-        case nm@Left(NoMatch) => input.rewind; nm
-        case Right(_) => input.consume; Right(OK)
-        case other => other
+    if(fallbackToIgnoredToken.value) {
+      trace("Eval ignored token: %s", input.first.toChar)
+      input.withMark {
+        noIgnore(ignored.eval) match {
+          case nm@Left(NoMatch) => nm
+          case Right(_) => Right(OK)
+          case other => other
+        }
       }
     }
+    else
+      Left(NoMatch)
   }
 
   case class EvalCharPred(name:String, pred: Int => Boolean) extends Eval {
     def eval: ParseResult = {
-      input.withMark {
+
+      def loop : ParseResult = {
         val t = input.first
-        debug("eval char pred %s: %s", name, t.toChar)
+        //debug("eval char pred %s: %s", Grammar.toVisibleString(name), Grammar.toVisibleString(t.toChar.toString))
         if (t != input.EOF && pred(t)) {
           trace("match %s", t.toChar)
           input.consume
@@ -189,6 +208,10 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
         }
         else
           Left(NoMatch)
+      }
+
+      input.withMark {
+        loop
       }
     }
   }
@@ -229,18 +252,8 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
 
 
   def parse = {
-    @tailrec def loop : ParseResult = {
-      debug("parse %s", body)
-      body.eval match {
-        case Left(NoMatch) => evalIgnored match {
-          case l @ Left(_) => l
-          case r @ Right(_) => loop
-        }
-        case other => other
-      }
-    }
-
-    loop
+    debug("parse %s", body)
+    body.eval
   }
 
 }
