@@ -30,13 +30,18 @@ import xerial.core.collection.CyclicArray
  * 
  * @author Taro L. Saito
  */
-trait Scanner[@specialized(Char, Int) T] extends PositionMark[T] {
+trait Scanner extends PositionMark {
 
   /**
-   * Look-ahead the first token
+   * End of the character. Usually -1
+   */
+  val EOF : Int = -1
+
+  /**
+   * Look-ahead the first character
    * @return
    */
-  def first : T
+  def first : Int
 
   /**
    * Proceeds a cursor by one
@@ -55,13 +60,11 @@ trait Scanner[@specialized(Char, Int) T] extends PositionMark[T] {
   def close : Unit
 
 
-
-
   protected def cursor : Int
   protected def setCursor(c:Int) : Unit
 }
 
-trait TextScanner[@specialized(Char, Int) T] extends Scanner[T] {
+trait TextScanner extends Scanner {
   /**
    * Returns the column position in the current line
    */
@@ -75,10 +78,20 @@ trait TextScanner[@specialized(Char, Int) T] extends Scanner[T] {
 }
 
 
-trait PositionMark[T] { this: Scanner[T] =>
+trait PositionMark { this: Scanner =>
+
+  def withMark[U](f: => U) : U = {
+    mark
+    try
+      f
+    finally
+       removeLast
+  }
 
   def mark : Unit
   def lastMark : Int
+  def removeLast : Int
+
   /**
    * Rewind the scanner cursor to the last marked position
    */
@@ -86,7 +99,7 @@ trait PositionMark[T] { this: Scanner[T] =>
   def clearMarks : Unit
 }
 
-trait PositionMarkImpl[T] extends PositionMark[T] { this: Scanner[T] =>
+trait PositionMarkImpl extends PositionMark { this: Scanner =>
 
   private val markQueue = new CyclicArray[Int]
 
@@ -101,12 +114,17 @@ trait PositionMarkImpl[T] extends PositionMark[T] { this: Scanner[T] =>
     markQueue.peekLast
   }
 
+  def removeLast : Int = {
+    ensureNotEmpty
+    markQueue.removeLast
+  }
+
   /**
-   * Rewind the scanner cursor to the last marked position
+   * Rewind the scanner cursor to the last marked position. The last mark is preserved.
    */
   def rewind : Unit = {
     ensureNotEmpty
-    setCursor(markQueue.removeLast)
+    setCursor(markQueue.peekLast)
   }
   def clearMarks : Unit = markQueue.clear
 

@@ -12,15 +12,15 @@ package xerial.core.io.text
  *
  * @author leo
  */
-class StringScanner(s:String) extends Scanner[Int] with PositionMarkImpl[Int] {
+class StringScanner(s:String) extends Scanner with PositionMarkImpl {
 
   private var _cursor = 0
 
   /**
-   * Look-ahead the first token
+   * Look-ahead the first character
    * @return
    */
-  def first = s.charAt(_cursor)
+  def first = if(atEnd) EOF else s.charAt(_cursor)
   /**
    * Proceeds a cursor by one
    */
