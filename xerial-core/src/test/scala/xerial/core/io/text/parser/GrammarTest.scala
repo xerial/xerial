@@ -32,8 +32,8 @@ object SimpleGrammar extends Grammar {
 
   def silkLine   = expr { option(indent) ~ (node | context | preamble | function | comment | dataLine ) }
   def preamble   = expr { "%" ~ qname ~ option(nodeBody) }
-  def namedBody  = expr { name ~ nodeTail}
   def nodeBody   = expr { namedBody | nodeTail }
+  def namedBody  = expr { name ~ nodeTail}
   def nodeTail   = expr { enclosedParams ~ option(value) | openParams | value }
   def enclosedParams =
                    expr { "(" ~ repeat(param, ",") ~ ")" }
