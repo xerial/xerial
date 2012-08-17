@@ -9,13 +9,15 @@ The ulitimate goal of Xerial project is to manage everything as database.
 Core utilities of xerial projects.
  
  * Useful collection classes
-     * CyclicArray, RedBlackTree, balanced PrioritySearchTree, UnionFindSet etc.
+     * CyclicArray (double-ended queue), RedBlackTree, balanced PrioritySearchTree (O(log N+k) for interval-intersection queries), UnionFindSet etc.
  * Loggger whose log levels and output targets can be configured through a JMX interface at runtime
-     * For use, simply extends Logging trait
- * StopWatch for taking benchmarks of codes
+     * Simply extend Logging trait, then use trace, debug, info, warn, error, fatal methods to output logs.
+ * StopWatch for taking benchmarks of code blocks
+     * Repetitive execution of codes is supported.
  * Resource trait for reading files in classpaths and jar files. 
-    * Quite useful for writing codes that need to use resource files. (e.g., test codes, graphic data, font files, etc.)
- * Fast PEG parser generator 
+    * Quite useful for writing codes that need to use resource files. (e.g., test data, graphic data, font files, etc.)
+ * Fast PEG parser generator
+    * (on-going) Producing [Silk format](http://xerial.org/silk-weaver) parser codes for serval programming language including Scala(Java), C, etc.
   
 
 ## xerial-lens
