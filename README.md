@@ -30,7 +30,7 @@ Retrives object type information embeded in Scala-generated class files.
     * SigParser of the scalap is used for reading ScalaSignatures.
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
- * Command-line paraser 
+ * Command-line parser 
    * You can call methods in a class by mapping command line arguments to the method arguments
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
