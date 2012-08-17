@@ -18,7 +18,7 @@ Core utilities of xerial projects.
  * Resource trait for reading files in classpaths and jar files. 
     * Quite useful for writing codes that need to use resource files. (e.g., test data, graphic data, font files, etc.)
  * Fast PEG parser generator
-    * (on-going) Producing [Silk format](http://xerial.org/silk-weaver) parser codes for serval programming language including Scala(Java), C, etc.
+    * (on-going) Producing [Silk format](http://xerial.org/silk) parser codes for serval programming language including Scala(Java), C, etc.
   
 
 ## xerial-lens
