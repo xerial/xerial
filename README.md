@@ -49,3 +49,7 @@ Add the following settings to your sbt build file (e.g., `project/build.sbt`)
     # When you want to use ObjectSchema
     libraryDependencies += "org.xerial" % "xerial-lens" % "3.0-SNAPSHOT"
 
+## Scala API
+
+[xerial-core 3.0-SNAPSHOT API](https://oss.sonatype.org/service/local/repositories/snapshots/archive/org/xerial/xerial-core/3.0-SNAPSHOT/xerial-core-3.0-SNAPSHOT-javadoc.jar/!/index.html)
+[xerial-lens 3.0-SNAPSHOT API](https://oss.sonatype.org/service/local/repositories/snapshots/archive/org/xerial/xerial-core/3.0-SNAPSHOT/xerial-lens-3.0-SNAPSHOT-javadoc.jar/!/index.html)
