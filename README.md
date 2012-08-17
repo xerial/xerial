@@ -9,9 +9,10 @@ The ulitimate goal of Xerial project is to manage everything as database.
 Core utilities of xerial projects.
  
  * Useful collection classes
-     * CyclicArray (double-ended queue), RedBlackTree, balanced PrioritySearchTree (O(log N+k) for interval-intersection queries), UnionFindSet etc.
+     * CyclicArray (double-ended queue), RedBlackTree, balanced PrioritySearchTree (*O(log N+k)* for interval-intersection queries), UnionFindSet etc.
  * Loggger whose log levels and output targets can be configured through a JMX interface at runtime
-     * Simply extend Logging trait, then use trace, debug, info, warn, error, fatal methods to output logs.
+     * For use, simply extend Logging trait, then call trace, debug, info, warn, error, fatal methods to output logs.
+     * Global log levels can be configured through JVM argument (e.g, -Dloglevel=debug) 
  * StopWatch for taking benchmarks of code blocks
      * Repetitive execution of codes is supported.
  * Resource trait for reading files in classpaths and jar files. 
@@ -24,8 +25,10 @@ Core utilities of xerial projects.
 Retrives object type information using Scala's type signature, which is embeded in class files at the compile time by Scala Compiler.
 
  * ObjectSchema for getting full-fledged type information including generic types. 
-    * Now you are free-from type erasure problem!
+    * Now you are free-from the type erasure problem!
+    * Use `ObjectSchema(cl:Class[_])` to obtain consturctors, methods and the other parameters defined in a class.  
  * Eq trait for injecting field-value based hashCode and equals method to any objects
+    * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
  * Command-line paraser 
    * You can call methods in a class by mapping command line arguments to the method arguments
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
