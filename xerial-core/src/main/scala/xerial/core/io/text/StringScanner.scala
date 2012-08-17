@@ -44,5 +44,13 @@ class StringScanner(s:String) extends Scanner with PositionMarkImpl {
   protected def setCursor(c: Int) {
     _cursor = c
   }
-
+  /**
+   * Return the character sequence between the last mark and the current cursor position
+   */
+  def selected = s.substring(lastMark, _cursor)
+  /**
+   * Return the character sequence from the first mark to the current cursor position
+   * @return
+   */
+  def selectedFromFirstMark = s.substring(firstMark, _cursor)
 }

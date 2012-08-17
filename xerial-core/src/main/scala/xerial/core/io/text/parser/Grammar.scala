@@ -230,7 +230,9 @@ object Grammar extends Logging {
   case class CharPred(override val name: String, pred: Int => Boolean) extends Expr(name)
   case class Leaf(override val name: String, tt: Int) extends Expr(name)
   case class ZeroOrMore(a: Expr) extends Expr("%s*".format(a.name))
-  case class OneOrMore(a: Expr) extends Expr("%s+".format(a.name))
+  case class OneOrMore(a: Expr) extends Expr("%s+".format(a.name)) {
+    def expr = a ~ ZeroOrMore(a)
+  }
   case class OptionNode(a: Expr) extends Expr("%s?".format(a.name))
   case class Repeat(a: Expr, separator: Expr) extends Expr("rep(%s, %s)".format(a.name, separator.name)) {
     def expr = OptionNode(a ~ ZeroOrMore(separator ~ a))

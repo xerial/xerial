@@ -94,6 +94,17 @@ trait PositionMark { this: Scanner =>
   def removeLast : Int
 
   /**
+   * Return the character sequence from the last mark to the current cursor position
+   */
+  def selected : CharSequence
+
+  /**
+   * Return the character sequence from the first mark to the current cursor position
+   * @return
+   */
+  def selectedFromFirstMark : CharSequence
+
+  /**
    * Rewind the scanner cursor to the last marked position
    */
   def rewind : Unit
@@ -109,6 +120,12 @@ trait PositionMarkImpl extends PositionMark with Logging { this: Scanner =>
   }
 
   private def ensureNotEmpty = require(!markQueue.isEmpty, "no mark is set")
+
+
+  def firstMark : Int = {
+    ensureNotEmpty
+    markQueue.peekFirst
+  }
 
   def lastMark : Int = {
     ensureNotEmpty

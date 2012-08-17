@@ -87,7 +87,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
           case CharPred(_, pred) => EvalCharPred(e.name, pred)
           case r@CharRange(_, _) => EvalCharPred(r.name, r.pred)
           case ZeroOrMore(a) => EvalZeroOrMore(toEval(a))
-          case OneOrMore(a) => EvalOneOrMore(toEval(a))
+          case r@OneOrMore(a) => toEval(r.expr)
           case OptionNode(a) => EvalOption(toEval(a))
           case r@Repeat(a, sep) => toEval(r.expr)
         }
@@ -98,6 +98,8 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
 
     toEval(expr)
   }
+
+  //case class Context(Map[
 
 
   case class EvalRef(var e:Eval) extends Eval {
@@ -197,7 +199,6 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
 
   case class EvalCharPred(name:String, pred: Int => Boolean) extends Eval {
     def eval: ParseResult = {
-
       def loop : ParseResult = {
         val t = input.first
         //debug("eval char pred %s: %s", Grammar.toVisibleString(name), Grammar.toVisibleString(t.toChar.toString))
@@ -228,18 +229,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
       loop(Empty)
     }
   }
-  case class EvalOneOrMore(a: Eval) extends Eval {
-    def eval: ParseResult = {
-      @tailrec def loop(i: Int, t: ParseTree): ParseResult = {
-        a.eval match {
-          case Left(NoMatch) if i > 0 => Right(t)
-          case l@Left(_) => l
-          case Right(next) => loop(i + 1, t ~ next)
-        }
-      }
-      loop(0, Empty)
-    }
-  }
+
 
   case class EvalOption(a: Eval) extends Eval {
     def eval: ParseResult = {
