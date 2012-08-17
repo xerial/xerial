@@ -22,11 +22,12 @@ Core utilities of xerial projects.
   
 
 ## xerial-lens
-Retrives object type information using Scala's type signature, which is embeded in class files at the compile time by Scala Compiler.
+Retrives object type information embeded in Scala-generated class files. 
 
  * ObjectSchema for getting full-fledged type information including generic types. 
     * Now you are free-from the type erasure problem!
     * Use `ObjectSchema(cl:Class[_])` to obtain consturctors, methods and the other parameters defined in a class.  
+    * SigParser of the scalap is used for reading ScalaSignatures.
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
  * Command-line paraser 
