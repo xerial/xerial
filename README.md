@@ -40,7 +40,7 @@ Retrives object type information embeded in Scala-generated class files.
   * Migrating common utilities from Java to Scala
 
 ## Usage
-Add the following settings to your sbt build file (e.g., `project/build.sbt`)
+Add the following settings to your sbt build file (e.g., `build.sbt`)
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
