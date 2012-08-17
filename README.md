@@ -9,7 +9,7 @@ The ulitimate goal of Xerial project is to manage everything as database.
 Core utilities of xerial projects.
  
  * Useful collection classes: CyclicArray, RedBlackTree, balanced PrioritySearchTree, UnionFindSet etc.
- * Logger whose log levels can be configured through a JMX interface at runtime
+ * Logger whose log levels and output targets can be configured through a JMX interface at runtime
  * StopWatch for taking benchmarks of codes
  * Resource trait for reading files in classpaths and jar files. Quite useful for debugging codes that need to use files.
  * Fast PEG parser generator 
