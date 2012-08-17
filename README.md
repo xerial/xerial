@@ -28,6 +28,7 @@ Retrives object type information embeded in Scala-generated class files.
     * Now you are free-from the type erasure problem!
     * Use `ObjectSchema(cl:Class[_])` to obtain consturctors, methods and the other parameters defined in a class.  
     * SigParser of the scalap is used for reading ScalaSignatures.
+
 ### Applications of ObjectSchema
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
