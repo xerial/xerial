@@ -41,7 +41,7 @@ Retrives object type information using Scala's type signature, which is embeded 
 ## Usage
 Add the following settings to your sbt build file (e.g., `project/build.sbt`)
 
-    resolvers += "xerial snapshot"  at "http://maven.xerial.org/repository/snapshot/"
+    resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
     libraryDependencies += "org.xerial" % "xerial-core" % "3.0-SNAPSHOT"
     
