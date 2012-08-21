@@ -50,7 +50,8 @@ object UString {
 
 
 /**
- * Raw byte array representation of a string before translating into java string (UCF)
+ * Raw byte array representation of a string. Java String translates UTF-8 strings into internal code of strings (UCF), in which 2-bytes are used for each characters.
+ * This translation slows down the text processing speed.
  * @author leo
  */
 class UString(private[text] val byte: Array[Byte]) extends CharSequence with IndexedSeqOptimized[Byte, UString] with Ordered[UString] {
