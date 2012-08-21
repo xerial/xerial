@@ -20,11 +20,25 @@ class PrioritySearchTreeTest extends XerialSpec {
   }
 
   def overlapQuery(p:PrioritySearchTree[Interval], q:Interval) {
+    import xerial.core.util.StopWatch._
+
+    var overlapped: Array[Interval] = null
+    var overlapped_ans: Array[Interval] = null
+
     debug("overlap query: %s", q)
-    val overlapped = p.queryIntersectingWith(q).toArray
-    debug("overlapped = %s", overlapped.mkString(", "))
-    val overlapped_ans = p.filter(_.intersectWith(q)).toArray
-    debug("answer     = %s", overlapped_ans.mkString(", "))
+    time("overlap query", repeat=3) {
+      block("pst query") {
+        overlapped = p.queryIntersectingWith(q).toArray
+      }
+       block("O(n) search") {
+        overlapped_ans = p.filter(_.intersectWith(q)).toArray
+      }
+    }
+
+    trace("overlapped = %s", overlapped.mkString(", "))
+    trace("answer     = %s", overlapped_ans.mkString(", "))
+
+
     overlapped should be (overlapped_ans)
   }
 
@@ -40,6 +54,7 @@ class PrioritySearchTreeTest extends XerialSpec {
       p += Interval(4, 12)
       p += Interval(4, 9)
       p += Interval(10, 15)
+      val p1 = p
       p += Interval(6, 11)
       p += Interval(4, 20)
       p += Interval(20, 25)
@@ -48,6 +63,7 @@ class PrioritySearchTreeTest extends XerialSpec {
       debug(p)
       treeStat(p)
       debug(p.mkString(", "))
+      debug("p1:%s", p1)
 
       p.get(Interval(4, 20)) should be ('defined)
       p.get(Interval(4, 8)) should be ('empty)

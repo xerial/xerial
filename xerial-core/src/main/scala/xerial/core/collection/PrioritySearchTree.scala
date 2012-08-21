@@ -24,9 +24,7 @@
 package xerial.core.collection
 
 
-
 import RedBlackTree._
-import xerial.core.log.Logging
 
 
 object PrioritySearchTree {
@@ -78,7 +76,7 @@ import PrioritySearchTree._
  * @tparam A
  */
 class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(implicit iv: IntervalOps[A, Int])
-  extends RedBlackTree[A, Holder[A]] with Iterable[A] with Logging {
+  extends RedBlackTree[A, Holder[A]] with Iterable[A] {
   type self = PrioritySearchTree[A]
 
   protected def root : Tree[A, Holder[A]] = if(tree == null) Empty else tree
@@ -101,10 +99,16 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
   }
   override protected def newValue(key:A, value:Holder[A]) : Holder[A] = Single(key)
 
-  def +(k: A): self = insert(k)
-  def insert(k:A) : self = new PrioritySearchTree(root.update(k, null), size+1)
+  /**
+   * Return a new tree appending a new element k to the tree.
+   * @param k
+   * @return
+   */
+  def +(k: A): self = new PrioritySearchTree(root.update(k, null), size+1)
 
-
+  /**
+   * @return maximum height of the tree
+   */
   def height = {
     def height(t:Tree[A, Holder[A]], h:Int) : Int = {
       if(t.isEmpty)
@@ -127,7 +131,8 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
   }
 
   /**
-   * Report the intervals in the tree intersecting with the given range
+   * Report the intervals in the tree intersecting with the given range.
+   * The result intervals are sorted by their start values in ascending order
    * @param range
    * @return
    */
