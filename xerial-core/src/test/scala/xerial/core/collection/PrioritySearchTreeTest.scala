@@ -28,6 +28,10 @@ class PrioritySearchTreeTest extends XerialSpec {
     overlapped should be (overlapped_ans)
   }
 
+  def treeStat(p:PrioritySearchTree[_]) {
+    debug("height:%d n:%d, log2(n):%.2f", p.height, p.size, math.log10(p.size) / math.log10(2))
+  }
+
   "PrioritySearchTree" should {
     "insert new nodes" in {
       var p = PrioritySearchTree.empty[Interval]
@@ -42,7 +46,7 @@ class PrioritySearchTreeTest extends XerialSpec {
       p += Interval(28, 32)
       p += Interval(1, 20)
       debug(p)
-
+      treeStat(p)
       debug(p.mkString(", "))
 
       p.get(Interval(4, 20)) should be ('defined)
@@ -65,14 +69,14 @@ class PrioritySearchTreeTest extends XerialSpec {
     "insert many nodes" in {
       val r = new Random(0)
       var p = PrioritySearchTree.empty[Interval]
-      val n = 50
+      val n = 100000
       for(i <- 0 until n) {
-        val s = r.nextInt(10000)
-        p += Interval(s, s+100)
+        val s = r.nextInt(1000000)
+        p += Interval(s, s+(100+r.nextInt(1000)))
       }
       p.size should be (n)
-
-      overlapQuery(p, Interval(1000, 1500))
+      treeStat(p)
+      overlapQuery(p, Interval(1000, 1100))
 
     }
 

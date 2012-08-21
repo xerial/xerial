@@ -26,7 +26,7 @@ package xerial.core.collection
 
 
 import RedBlackTree._
-
+import xerial.core.log.Logging
 
 
 object PrioritySearchTree {
@@ -70,13 +70,15 @@ import PrioritySearchTree._
  * are sorted in descending order. This property is good for answering 3-sided queries [x1, x2] x [y1, infinity).
  *
  * This priority search tree allows insertion of the same intervals.
+ *
+ *
  * @param tree
  * @param size
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A](tree: Tree[A, Holder[A]], size: Int)(implicit iv: IntervalOps[A, Int])
-  extends RedBlackTree[A, Holder[A]] with Iterable[A] {
+class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(implicit iv: IntervalOps[A, Int])
+  extends RedBlackTree[A, Holder[A]] with Iterable[A] with Logging {
   type self = PrioritySearchTree[A]
 
   protected def root : Tree[A, Holder[A]] = if(tree == null) Empty else tree
@@ -103,6 +105,16 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], size: Int)(implicit iv: In
   def insert(k:A) : self = new PrioritySearchTree(root.update(k, null), size+1)
 
 
+  def height = {
+    def height(t:Tree[A, Holder[A]], h:Int) : Int = {
+      if(t.isEmpty)
+        h
+      else
+        math.max(height(t.left, h+1), height(t.right, h+1))
+    }
+
+    height(root, 0)
+  }
 
 
   def iterator = root.iterator.flatMap(_._2)
