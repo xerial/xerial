@@ -25,6 +25,8 @@ object RedBlackTree {
     def lookup(e:A) : Tree[A, B]
 
     def map[C](f:Tree[A,B] => C) : C = f(this)
+    def foreach[C](f:Tree[A,B] => C) : Unit
+    def range(begin:Option[A], end:Option[A]) : Tree[A, B]
   }
 
 }
@@ -79,6 +81,8 @@ abstract class RedBlackTree[A, B] extends Logging {
     def insert(k: A, v: B) = RedTree(k, newValue(k, v), Empty, Empty)
 
     def lookup(e: A): Tree[A, B] = this
+    def foreach[C](f:Tree[A, B] => C) : Unit = {}
+    def range(begin:Option[A], end:Option[A]) : Tree[A, B] = this
   }
 
   abstract class NonEmpty extends Tree[A, B] {
@@ -124,6 +128,39 @@ abstract class RedBlackTree[A, B] extends Logging {
         this
     }
 
+    def foreach[C](f:Tree[A, B] => C) : Unit = {
+      left.foreach(f)
+      f(this)
+      right.foreach(f)
+    }
+
+    def range(from:Option[A], until:Option[A]) : Tree[A, B] = {
+      (from, until) match {
+        case (None, None) => this
+        case (Some(s), _) if isSmaller(key, s) => right.range(from, until)
+        case (_, Some(e)) if isSmaller(e, key) || !isSmaller(key,e) => left.range(from, until)
+        case _ =>
+          val newLeft = left.range(from, until)
+          val newRight = right.range(from, until)
+          if((newLeft eq left) && (newRight eq right))
+            this // no change
+          else if(newLeft eq Empty) newRight.insert(key, value) // create a new tree consisting of this node and the right tree
+          else if(newRight eq Empty) newLeft.insert(key, value) // create a new tree consisting of this node and the left tree
+          else
+            rebalance(newLeft, newRight)
+      }
+    }
+
+    /**
+     * union left, current and right trees
+     */
+    private[this] def rebalance(newLeft:Tree[A, B], newRight:Tree[A, B]) : Tree[A, B] = {
+      val bLeft = blacken(newLeft)
+      val bRight = blacken(newRight)
+
+
+
+    }
   }
 
   case class RedTree(override val key: A, value: B, left: Tree[A, B], right: Tree[A, B]) extends NonEmpty {

@@ -25,6 +25,9 @@ package xerial.core.collection
 
 
 import RedBlackTree._
+import collection.generic.Sorted
+import annotation.tailrec
+import collection.immutable.SortedSet
 
 
 object PrioritySearchTree {
@@ -76,7 +79,7 @@ import PrioritySearchTree._
  * @tparam A
  */
 class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(implicit iv: IntervalOps[A, Int])
-  extends RedBlackTree[A, Holder[A]] with Iterable[A] {
+  extends RedBlackTree[A, Holder[A]] with Iterable[A] with Sorted[A, PrioritySearchTree[A]] {
   type self = PrioritySearchTree[A]
 
   protected def root : Tree[A, Holder[A]] = if(tree == null) Empty else tree
@@ -153,7 +156,47 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
   }
 
 
+  def ordering = iv
+  def keySet = {
+    val b = SortedSet.newBuilder[A]
+    root.foreach { b += _.key }
+    b.result
+  }
 
+
+  def firstKey = {
+    def findFirst(t:Tree[A, Holder[A]]) : A = {
+      if(t.isEmpty)
+        null.asInstanceOf[A]
+      else {
+        val l = findFirst(t.left)
+        if(l != null)
+          l
+        else
+          t.key
+      }
+    }
+
+    findFirst(root)
+  }
+
+  def lastKey = {
+    def findLast(t:Tree[A, Holder[A]]) : A = {
+      if(t.isEmpty)
+        null.asInstanceOf[A]
+      else {
+        val r = findLast(t.right)
+        if(r != null)
+          r
+        else
+          t.key
+      }
+    }
+
+    findLast(root)
+
+  }
+  def rangeImpl(from: Option[A], until: Option[A]) = null
 }
 
 

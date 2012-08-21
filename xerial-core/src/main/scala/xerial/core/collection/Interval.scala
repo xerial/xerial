@@ -24,9 +24,11 @@
 package xerial.core.collection
 
 
-trait Point2D[A, @specialized(Int, Long) V] {
+trait Point2D[A, @specialized(Int, Long) V] extends Ordering[A] {
   def x(a:A):V
   def y(a:A):V
+
+  def compare(a:A, b:A) : Int = compareX(a, b)
 
   def ==(a:A, b:A) : Boolean = xEquals(a, b) && yEquals(a, b)
 
@@ -57,6 +59,7 @@ trait Point2D[A, @specialized(Int, Long) V] {
  * @author leo
  */
 trait IntervalOps[A, @specialized(Int, Long) V] extends Point2D[A, V] {
+
   def x(a:A) = start(a)
   def y(a:A) = end(a)
 
