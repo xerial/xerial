@@ -79,7 +79,7 @@ import PrioritySearchTree._
  * @tparam A
  */
 class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(implicit iv: IntervalOps[A, Int])
-  extends RedBlackTree[A, Holder[A]] with Iterable[A] with Sorted[A, PrioritySearchTree[A]] {
+  extends RedBlackTree[A, Holder[A]] with Iterable[A] {
   type self = PrioritySearchTree[A]
 
   protected def root : Tree[A, Holder[A]] = if(tree == null) Empty else tree
@@ -155,16 +155,7 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
     find(root)
   }
 
-
-  def ordering = iv
-  def keySet = {
-    val b = SortedSet.newBuilder[A]
-    root.foreach { b += _.key }
-    b.result
-  }
-
-
-  def firstKey = {
+  override def first = {
     def findFirst(t:Tree[A, Holder[A]]) : A = {
       if(t.isEmpty)
         null.asInstanceOf[A]
@@ -180,7 +171,7 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
     findFirst(root)
   }
 
-  def lastKey = {
+  override def last = {
     def findLast(t:Tree[A, Holder[A]]) : A = {
       if(t.isEmpty)
         null.asInstanceOf[A]
@@ -196,7 +187,42 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
     findLast(root)
 
   }
-  def rangeImpl(from: Option[A], until: Option[A]) = null
+
+  def range(from: Option[Int], until: Option[Int]) : Iterator[A] = {
+
+    val f = from map iv.point
+    val u = until map iv.point
+
+    def takeValue(t:Tree[A, Holder[A]]) : Iterator[A] = {
+      if(t.isEmpty)
+        Iterator.empty
+      else
+        t.left.map(takeValue) ++ t.value.iterator ++ t.right.map(takeValue)
+    }
+
+//    def contained(v:A) : Boolean = {
+//      val condF = from.map(iv.compareX(_, v) <= 0) getOrElse true
+//      val condU = until.map(iv.compareX(v, _) < 0) getOrElse true
+//      condF && condU
+//    }
+
+    def find(t:Tree[A, Holder[A]]) : Iterator[A] = {
+      if(t.isEmpty)
+        Iterator.empty
+      else {
+        (f, u) match {
+          case (None, None) => t.map(takeValue)
+          case (Some(s), _) if iv.compareX(t.key, s) < 0 => find(t.right)
+          case (_, Some(e)) if iv.compareX(e, t.key) < 0  => find(t.left)
+          case _ => {
+            find(t.left) ++ t.value.iterator ++ find(t.right)
+          }
+        }
+      }
+    }
+
+    find(root)
+  }
 }
 
 

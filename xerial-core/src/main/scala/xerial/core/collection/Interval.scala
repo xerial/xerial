@@ -60,6 +60,8 @@ trait Point2D[A, @specialized(Int, Long) V] extends Ordering[A] {
  */
 trait IntervalOps[A, @specialized(Int, Long) V] extends Point2D[A, V] {
 
+  def point(v:Int) : A
+
   def x(a:A) = start(a)
   def y(a:A) = end(a)
 
@@ -133,6 +135,7 @@ object Interval {
     def start(a:Interval) = a.start
     def end(a:Interval) = a.end
      def yUpperBound(a:Interval, b:Interval) : Interval = new Interval(x(a), math.max(y(a), y(b)))
+    def point(v: Int) = new Interval(v, v)
   }
 
   def apply(s:Int, e:Int) = new Interval(s, e)
@@ -146,7 +149,9 @@ object LInterval {
   implicit object LongIntervalOps extends LongInterval[LInterval] {
     def start(a:LInterval) = a.start
     def end(a:LInterval) = a.end
-     def yUpperBound(a:LInterval, b:LInterval) : LInterval = new LInterval(x(a), math.max(y(a), y(b)))
+    def yUpperBound(a:LInterval, b:LInterval) : LInterval = new LInterval(x(a), math.max(y(a), y(b)))
+    def point(s:Int) = new LInterval(s, s)
+
   }
 
   def apply(s:Long, e:Long) = new LInterval(s, e)
