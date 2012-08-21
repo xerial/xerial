@@ -19,6 +19,15 @@ class PrioritySearchTreeTest extends XerialSpec {
     override def toString = "%s-%d:%d".format(chr, start, end)
   }
 
+  def overlapQuery(p:PrioritySearchTree[Interval], q:Interval) {
+    debug("overlap query: %s", q)
+    val overlapped = p.queryIntersectingWith(q).toArray
+    debug("overlapped = %s", overlapped.mkString(", "))
+    val overlapped_ans = p.filter(_.intersectWith(q)).toArray
+    debug("answer     = %s", overlapped_ans.mkString(", "))
+    overlapped should be (overlapped_ans)
+  }
+
   "PrioritySearchTree" should {
     "insert new nodes" in {
       var p = PrioritySearchTree.empty[Interval]
@@ -39,11 +48,16 @@ class PrioritySearchTreeTest extends XerialSpec {
       p.get(Interval(4, 20)) should be ('defined)
       p.get(Interval(4, 8)) should be ('empty)
 
+
+      overlapQuery(p, Interval(6, 10))
+      overlapQuery(p, Interval(13, 18))
+
       p.get(GInterval("chr1", 3, 5)) should be ('defined)
 
       p += GInterval("chr1", 8, 19)
       debug(p)
       debug(p.mkString(", "))
+
     }
 
 
@@ -57,6 +71,9 @@ class PrioritySearchTreeTest extends XerialSpec {
         p += Interval(s, s+100)
       }
       p.size should be (n)
+
+      overlapQuery(p, Interval(1000, 1500))
+
     }
 
   }

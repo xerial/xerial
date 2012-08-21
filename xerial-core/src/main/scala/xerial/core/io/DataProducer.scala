@@ -164,16 +164,6 @@ trait TextDataProducer extends Reader with DataProducerBase[Reader, Writer] {
    */
   def lines: Iterator[String] = wrap(new LineIterator)
 
-
-  def read[A](f: Reader => A): A = {
-    val s = wrap(new ReaderInputStream(this))
-    try
-      f(s)
-    finally
-      close
-  }
-
-
   def lineIterator[A](f: Iterator[String] => A): A = {
     val lineIt = wrap(new LineIterator)
     try

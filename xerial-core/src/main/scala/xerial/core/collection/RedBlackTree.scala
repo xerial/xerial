@@ -22,8 +22,9 @@ object RedBlackTree {
     def getKey : Option[A] = None
     def update(k:A, v:B) : Tree[A, B]
     def insert(k:A, v:B) : Tree[A, B]
-
     def lookup(e:A) : Tree[A, B]
+
+    def map[C](f:Tree[A,B] => C) : C = f(this)
   }
 
 }
@@ -71,8 +72,8 @@ abstract class RedBlackTree[A, B] extends Logging {
     def value = throw new NoSuchElementException("Empty node has no value")
     def isEmpty = true
     def isBlack = true
-    def left = null
-    def right = null
+    def left = Empty
+    def right = Empty
     def key = throw new NoSuchElementException("No key for Empty node")
     def update(k: A, v: B) = blacken(insert(k, v))
     def insert(k: A, v: B) = RedTree(k, newValue(k, v), Empty, Empty)

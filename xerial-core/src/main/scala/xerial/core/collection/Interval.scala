@@ -34,6 +34,7 @@ trait Point2D[A, @specialized(Int, Long) V] {
 
   def compareX(a:A, b:A) : Int
   def compareY(a:A, b:A) : Int
+  def compareXY(a:A, b:A) : Int
 
   def xIsSmaller(a:A, b:A) : Boolean = compareX(a, b) < 0
   def xEquals(a:A, b:A) : Boolean = compareX(a, b) == 0
@@ -75,10 +76,11 @@ trait IntInterval[A] extends IntervalOps[A, Int]{
 
   def compareX(a:A, b:A) = x(a) - x(b)
   def compareY(a:A, b:A) = y(a) - y(b)
+  def compareXY(a:A, b:A) = (x(a) - y(b))
 
   def precede(a:A, b:A) : Boolean = end(a) < start(b)
   def follow(a:A, b:A) : Boolean = end(b) < start(a)
-  def intersect(a:A, b:A) : Boolean =  start(a) <= end(b) && start(b) <  end(a)
+  def intersect(a:A, b:A) : Boolean =  start(a) <= end(b) && start(b) <=  end(a)
   def contain(a:A, b:A) : Boolean = start(a) <= start(b) && end(b) <= end(a)
   def startIsSmaller(a:A, b:A) : Boolean = start(a) < start(b)
   def endIsSmaller(a:A, b:A) :Boolean = end(a) < end(b)
@@ -89,10 +91,11 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
 
   def compareX(a:A, b:A) = (x(a) - x(b)).toInt
   def compareY(a:A, b:A) = (y(a) - y(b)).toInt
+  def compareXY(a:A, b:A) = (x(a) - y(b)).toInt
 
   def precede(a:A, b:A) : Boolean = end(a) < start(b)
   def follow(a:A, b:A) : Boolean = end(b) < start(a)
-  def intersect(a:A, b:A) : Boolean =  start(a) <= end(b) && start(b) <  end(a)
+  def intersect(a:A, b:A) : Boolean =  start(a) <= end(b) && start(b) <=  end(a)
   def contain(a:A, b:A) : Boolean = start(a) <= start(b) && end(b) <= end(a)
   def startIsSmaller(a:A, b:A) : Boolean = start(a) < start(b)
   def endIsSmaller(a:A, b:A) : Boolean = end(a) < end(b)
@@ -100,15 +103,22 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
 
 
 /**
- * Concrete Interval class
+ * Closed interval [start, end], where start and end are Int values
  */
-
 class Interval(val start:Int, val end:Int) {
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 
   def r : Range = Range(start, end)
+
+  def intersectWith(other:Interval) = start <= other.end && other.start <= end
 }
+
+/**
+ * Closed interval [start, end] where start and end are Long values
+ * @param start
+ * @param end
+ */
 class LInterval(val start:Long, val end:Long) {
   def size = end - start
   override def toString = "%d:%d".format(start, end)

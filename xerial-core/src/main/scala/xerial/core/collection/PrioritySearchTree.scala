@@ -40,8 +40,8 @@ object PrioritySearchTree {
     def iterator: Iterator[A]
   }
 
-  case class Single[A](elem: A) extends Holder[A] {
-    def +(e: A) = Multiple(List(elem, e))
+  private[PrioritySearchTree] case class Single[A](elem: A) extends Holder[A] {
+    def +(e: A) = Multiple(Vector(elem, e))
     override def toString = "[%s]".format(elem)
     def iterator = Iterator.single(elem)
   }
@@ -51,10 +51,10 @@ object PrioritySearchTree {
    * @param elems
    * @tparam A
    */
-  case class Multiple[A](elems: List[A]) extends Holder[A] {
+  private[PrioritySearchTree] case class Multiple[A](elems: Vector[A]) extends Holder[A] {
     require(elems.length > 1, "elems must have more than one element")
     def elem: A = elems(0)
-    def +(e: A) = Multiple(e :: elems)
+    def +(e: A) = Multiple(elems :+ e)
     override def toString = "[%s]".format(elems.mkString(", "))
     def iterator = elems.iterator
   }
@@ -66,20 +66,22 @@ object PrioritySearchTree {
 import PrioritySearchTree._
 
 /**
- * Persistent balanced priority search tree implementation. x-values are maintained in binary search tree, and the y-values of the node in the path from the root to leaves
+ * Persistent balanced priority search tree implementation. x-values (interval's start points) are maintained in binary search tree, and the y-values (interval's end points) of the node in the path from the root to leaves
  * are sorted in descending order. This property is good for answering 3-sided queries [x1, x2] x [y1, infinity).
- * @param t
+ *
+ * This priority search tree allows insertion of the same intervals.
+ * @param tree
  * @param size
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A](t: Tree[A, Holder[A]], size: Int)(implicit iv: Point2D[A, Int])
+class PrioritySearchTree[A](tree: Tree[A, Holder[A]], size: Int)(implicit iv: IntervalOps[A, Int])
   extends RedBlackTree[A, Holder[A]] with Iterable[A] {
   type self = PrioritySearchTree[A]
 
-  protected def root : Tree[A, Holder[A]] = if(t == null) Empty else t
+  protected def root : Tree[A, Holder[A]] = if(tree == null) Empty else tree
 
-  override def toString = t.toString
+  override def toString = tree.toString
 
   protected def isSmaller(a:A, b:A) : Boolean = iv.xIsSmaller(a, b)
   protected def updateTree(t:Tree[A, Holder[A]], key:A, value:Holder[A]) : Tree[A, Holder[A]] = mkTree(t.isBlack, iv.yUpperBound(t.key, key), t.value + key, t.left, t.right)
@@ -100,6 +102,9 @@ class PrioritySearchTree[A](t: Tree[A, Holder[A]], size: Int)(implicit iv: Point
   def +(k: A): self = insert(k)
   def insert(k:A) : self = new PrioritySearchTree(root.update(k, null), size+1)
 
+
+
+
   def iterator = root.iterator.flatMap(_._2)
 
   def get[A1 <: A](k:A1) : Option[A] = {
@@ -109,10 +114,27 @@ class PrioritySearchTree[A](t: Tree[A, Holder[A]], size: Int)(implicit iv: Point
     }
   }
 
-//  def overlapping(start:Int, end:Int) : Iterator[A] = {
-//
-//  }
-//
+  /**
+   * Report the intervals in the tree intersecting with the given range
+   * @param range
+   * @return
+   */
+  def queryIntersectingWith(range:A) : Iterator[A] = {
+    def find(t:Tree[A, Holder[A]]) : Iterator[A] = {
+      if(t.isEmpty || iv.compareXY(range, t.key) > 0) {
+        // This tree contains no answer since yUpperBound (t.key.x) < range.x
+        Iterator.empty
+      }
+      else {
+        def elementInThisNode = t.value.filter(iv.intersect(_, range))
+        def right = if(iv.compareXY(t.key, range) <= 0) t.right.map(find) else Iterator.empty
+        t.left.map(find) ++ elementInThisNode ++ right
+      }
+    }
+
+    find(root)
+  }
+
 
 
 }
