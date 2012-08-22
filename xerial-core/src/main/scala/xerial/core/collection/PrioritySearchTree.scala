@@ -25,9 +25,6 @@ package xerial.core.collection
 
 
 import RedBlackTree._
-import collection.generic.Sorted
-import annotation.tailrec
-import collection.immutable.SortedSet
 
 
 object PrioritySearchTree {
@@ -199,12 +196,6 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
       else
         t.left.map(takeValue) ++ t.value.iterator ++ t.right.map(takeValue)
     }
-
-//    def contained(v:A) : Boolean = {
-//      val condF = from.map(iv.compareX(_, v) <= 0) getOrElse true
-//      val condU = until.map(iv.compareX(v, _) < 0) getOrElse true
-//      condF && condU
-//    }
 
     def find(t:Tree[A, Holder[A]]) : Iterator[A] = {
       if(t.isEmpty)

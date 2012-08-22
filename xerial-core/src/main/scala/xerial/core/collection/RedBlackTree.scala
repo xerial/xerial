@@ -11,6 +11,11 @@ import xerial.core.log.Logging
 
 object RedBlackTree {
 
+  /**
+   * Represents nodes in RedBlackTrees
+   * @tparam A
+   * @tparam B
+   */
   abstract class Tree[A, B] {
     def isEmpty : Boolean
     def isBlack: Boolean
@@ -33,17 +38,35 @@ object RedBlackTree {
 import RedBlackTree._
 
 /**
- * Base class for implementing red-black tree backed data structures.
+ * Base class for implementing data structures based on Red-Black trees.
  *
  * Balancing operations (balanceLeft, balanceRight) are based on Okasaki's idea (See also Purely functional data structures by C. Okasaki)
+ *
+ * TODO:
+ * deletion (Kahrs 2001)
+ * union (for range operation) (building RedBlackTrees from sorted list in linear time. Appel 2011)
  *
  * @tparam A key type
  * @tparam B value type associated to the key
  */
 abstract class RedBlackTree[A, B] extends Logging {
 
+  /**
+   * Compare keys
+   * @param a
+   * @param b
+   * @return
+   */
   protected def isSmaller(a: A, b: A): Boolean
 
+  /**
+   * Update a tree with a given key and value. This method is used for
+   * adding a new value to node t without changing the tree structure.
+   * @param t
+   * @param key
+   * @param value
+   * @return
+   */
   protected def updateTree(t: Tree[A, B], key: A, value: B): Tree[A, B]
   /**
    * Create a new key from the current key and its left/right children. This method returns the curent key in default
