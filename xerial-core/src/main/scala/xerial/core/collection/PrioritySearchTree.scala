@@ -25,9 +25,11 @@ package xerial.core.collection
 
 
 import RedBlackTree._
+import collection.mutable
 
 
 object PrioritySearchTree {
+
   /**
    * element holder
    * @tparam A
@@ -58,6 +60,25 @@ object PrioritySearchTree {
   }
 
   def empty[A](implicit iv: IntervalOps[A, Int]) = new PrioritySearchTree[A](null, 0)
+
+  def newBuilder[A](implicit iv:IntervalOps[A, Int]) : mutable.Builder[A, PrioritySearchTree[A]] = {
+    new mutable.Builder[A, PrioritySearchTree[A]] {
+      private var tree = PrioritySearchTree.empty[A]
+      def +=(elem: A) = {
+        tree += elem
+        this
+      }
+      def clear() { tree = PrioritySearchTree.empty[A] }
+      def result() = tree
+    }
+  }
+
+  def apply[A](elems:A*)(implicit iv: IntervalOps[A, Int]) : PrioritySearchTree[A] = {
+    val b = newBuilder[A]
+    elems foreach { b += _ }
+    b.result
+  }
+
 }
 
 

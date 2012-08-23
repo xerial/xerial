@@ -87,12 +87,13 @@ class PrioritySearchTreeTest extends XerialSpec {
 
     "insert many nodes" in {
       val r = new Random(0)
-      var p = PrioritySearchTree.empty[Interval]
+      val b = PrioritySearchTree.newBuilder[Interval]
       val n = 100000
       for(i <- 0 until n) {
         val s = r.nextInt(1000000)
-        p += Interval(s, s+(100+r.nextInt(1000)))
+        b += Interval(s, s+(100+r.nextInt(1000)))
       }
+      val p = b.result
       p.size should be (n)
       treeStat(p)
       overlapQuery(p, Interval(1000, 1100))

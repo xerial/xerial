@@ -60,6 +60,9 @@ trait Point2D[A, @specialized(Int, Long) V] extends Ordering[A] {
  */
 trait IntervalOps[A, @specialized(Int, Long) V] extends Point2D[A, V] {
 
+  /**
+   * Create a instance of the point where the start and end values of the interval are same
+   */
   def point(v:Int) : A
 
   def x(a:A) = start(a)
@@ -83,8 +86,8 @@ trait IntInterval[A] extends IntervalOps[A, Int]{
   def compareY(a:A, b:A) = y(a) - y(b)
   def compareXY(a:A, b:A) = (x(a) - y(b))
 
-  def precede(a:A, b:A) : Boolean = end(a) < start(b)
-  def follow(a:A, b:A) : Boolean = end(b) < start(a)
+  def precede(a:A, b:A) : Boolean = end(a) <= start(b)
+  def follow(a:A, b:A) : Boolean = end(b) <= start(a)
   def intersect(a:A, b:A) : Boolean =  start(a) <= end(b) && start(b) <=  end(a)
   def contain(a:A, b:A) : Boolean = start(a) <= start(b) && end(b) <= end(a)
   def startIsSmaller(a:A, b:A) : Boolean = start(a) < start(b)
@@ -98,8 +101,8 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
   def compareY(a:A, b:A) = (y(a) - y(b)).toInt
   def compareXY(a:A, b:A) = (x(a) - y(b)).toInt
 
-  def precede(a:A, b:A) : Boolean = end(a) < start(b)
-  def follow(a:A, b:A) : Boolean = end(b) < start(a)
+  def precede(a:A, b:A) : Boolean = end(a) <= start(b)
+  def follow(a:A, b:A) : Boolean = end(b) <= start(a)
   def intersect(a:A, b:A) : Boolean =  start(a) <= end(b) && start(b) <=  end(a)
   def contain(a:A, b:A) : Boolean = start(a) <= start(b) && end(b) <= end(a)
   def startIsSmaller(a:A, b:A) : Boolean = start(a) < start(b)
@@ -111,6 +114,8 @@ trait LongInterval[A] extends IntervalOps[A, Long] {
  * Closed interval [start, end], where start and end are Int values
  */
 class Interval(val start:Int, val end:Int) {
+  require(start <= end, "start must be smaller than end: [%d, %d]".format(start, end))
+
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 
@@ -125,6 +130,7 @@ class Interval(val start:Int, val end:Int) {
  * @param end
  */
 class LInterval(val start:Long, val end:Long) {
+  require(start <= end, "start must be smaller than end: [%d, %d]".format(start, end))
   def size = end - start
   override def toString = "%d:%d".format(start, end)
 }
@@ -134,7 +140,7 @@ object Interval {
   implicit object IntIntervalOps extends IntInterval[Interval] {
     def start(a:Interval) = a.start
     def end(a:Interval) = a.end
-     def yUpperBound(a:Interval, b:Interval) : Interval = new Interval(x(a), math.max(y(a), y(b)))
+    def yUpperBound(a:Interval, b:Interval) : Interval = new Interval(x(a), math.max(y(a), y(b)))
     def point(v: Int) = new Interval(v, v)
   }
 
