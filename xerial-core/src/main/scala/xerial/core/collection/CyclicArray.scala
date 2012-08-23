@@ -57,6 +57,7 @@ class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A])
 
   def peekFirst : A = queue(index(h))
   def peekLast : A = queue(index(t-1))
+  def peekFirst(k:Int) : A = queue(index(h+k))
 
   def addFirst(e:A) = prepend(e)
   def addLast(e:A) = append(e)
@@ -77,6 +78,8 @@ class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A])
     this
   }
 
+  def pollFirst = removeFirst
+  def pollLast = removeLast
   def removeFirst : A = {
     val e = peekFirst
     h = index(h + 1)
