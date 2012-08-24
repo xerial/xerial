@@ -81,11 +81,8 @@ debug:
 trace:
 	$(SBT) -Dloglevel=trace $(TESTCASE)
 
-publish-xerial:
+publish:
 	$(SBT) publish
-
-publish-sonatype: 
-	$(SBT) -Dxerial.profile=sonatype publish 
 
 unidoc: 
 	$(SBT) unidoc

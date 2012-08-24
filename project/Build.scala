@@ -30,20 +30,12 @@ object XerialBuild extends Build {
   def releaseResolver(v:String) : Resolver = {
     val profile = System.getProperty("xerial.profile", "default")
     profile match {
-      case "default" =>  {
-        val repoPath = "/home/web/maven.xerial.org/repository/" + (if (v.trim.endsWith("SNAPSHOT")) "snapshot" else "artifact")
-        Resolver.ssh("Xerial Repo", "www.xerial.org", repoPath) as(System.getProperty("user.name"), new File(Path.userHome.absolutePath, ".ssh/id_rsa")) withPermissions("0664")
-      }
-      case "sonatype" => {
+      case "default" => {
         val nexus = "https://oss.sonatype.org/"
-	if(v.trim.endsWith("SNAPSHOT"))
-	  "snapshots" at nexus + "content/repositories/snapshots"
-	else
-	  "releases" at nexus + "service/local/staging/deploy/maven2"
-      }
-      case "sourceforge" => {
-        val repoPath = "/home/groups/x/xe/xerial/htdocs/maven/" + (if (v.trim.endsWith("SNAPSHOT")) "snapshot" else "release")
-        Resolver.ssh("Sourceforge Repo", "shell.sourceforge.jp", repoPath) as("xerial", new File(Path.userHome.absolutePath, ".ssh/id_dsa")) withPermissions("0664")
+        if(v.trim.endsWith("SNAPSHOT"))
+          "snapshots" at nexus + "content/repositories/snapshots"
+        else
+          "releases" at nexus + "service/local/staging/deploy/maven2"
       }
       case p => {
         error("unknown xerial.profile:%s".format(p))
