@@ -68,7 +68,7 @@ class PrioritySearchTreeTest extends XerialSpec {
       p.get(Interval(4, 20)) should be ('defined)
       p.get(Interval(4, 8)) should be ('empty)
 
-      val rng = p.range(Some(5), Some(23))
+      val rng = p.range(Some(Interval.point(5)), Some(Interval.point(23)))
       debug("range:%s", rng.mkString(", "))
 
       overlapQuery(p, Interval(6, 10))
@@ -99,6 +99,7 @@ class PrioritySearchTreeTest extends XerialSpec {
       overlapQuery(p, Interval(1000, 1100))
 
     }
+
 
   }
 

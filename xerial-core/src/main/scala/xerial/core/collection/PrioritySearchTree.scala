@@ -28,7 +28,7 @@ import RedBlackTree._
 import collection.mutable
 
 
-object PrioritySearchTree {
+object GenPrioritySearchTree {
 
   /**
    * element holder
@@ -40,7 +40,7 @@ object PrioritySearchTree {
     def iterator: Iterator[A]
   }
 
-  private[PrioritySearchTree] case class Single[A](elem: A) extends Holder[A] {
+  private[collection] case class Single[A](elem: A) extends Holder[A] {
     def +(e: A) = Multiple(Vector(elem, e))
     override def toString = "[%s]".format(elem)
     def iterator = Iterator.single(elem)
@@ -51,7 +51,7 @@ object PrioritySearchTree {
    * @param elems
    * @tparam A
    */
-  private[PrioritySearchTree] case class Multiple[A](elems: Vector[A]) extends Holder[A] {
+  private[collection] case class Multiple[A](elems: Vector[A]) extends Holder[A] {
     require(elems.length > 1, "elems must have more than one element")
     def elem: A = elems(0)
     def +(e: A) = Multiple(elems :+ e)
@@ -59,9 +59,15 @@ object PrioritySearchTree {
     def iterator = elems.iterator
   }
 
-  def empty[A](implicit iv: IntervalOps[A, Int]) = new PrioritySearchTree[A](null, 0)
 
-  def newBuilder[A](implicit iv:IntervalOps[A, Int]) : mutable.Builder[A, PrioritySearchTree[A]] = {
+}
+
+object PrioritySearchTree {
+
+
+  def empty[A](implicit iv: IntervalType[A, Int]) = new PrioritySearchTree[A](null, 0)
+
+  def newBuilder[A](implicit iv:IntervalType[A, Int]) : mutable.Builder[A, PrioritySearchTree[A]] = {
     new mutable.Builder[A, PrioritySearchTree[A]] {
       private var tree = PrioritySearchTree.empty[A]
       def +=(elem: A) = {
@@ -73,7 +79,7 @@ object PrioritySearchTree {
     }
   }
 
-  def apply[A](elems:A*)(implicit iv: IntervalOps[A, Int]) : PrioritySearchTree[A] = {
+  def apply[A](elems:A*)(implicit iv: IntervalType[A, Int]) : PrioritySearchTree[A] = {
     val b = newBuilder[A]
     elems foreach { b += _ }
     b.result
@@ -82,7 +88,16 @@ object PrioritySearchTree {
 }
 
 
-import PrioritySearchTree._
+import GenPrioritySearchTree._
+
+
+class PrioritySearchTree[A](tree:Tree[A, Holder[A]], override val size:Int)
+                           (implicit iv:IntervalType[A, Int])
+  extends GenPrioritySearchTree[A, Int](tree, size)(iv) {
+
+  override def +(k: A)  = new PrioritySearchTree(root.update(k, null), size+1)
+}
+
 
 /**
  * Persistent balanced priority search tree implementation. x-values (interval's start points) are maintained in binary search tree, and the y-values (interval's end points) of the node in the path from the root to leaves
@@ -96,9 +111,9 @@ import PrioritySearchTree._
  * @param iv
  * @tparam A
  */
-class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(implicit iv: IntervalOps[A, Int])
+class GenPrioritySearchTree[A, B](tree: Tree[A, Holder[A]], override val size: Int)(implicit iv: IntervalType[A, B])
   extends RedBlackTree[A, Holder[A]] with Iterable[A] {
-  type self = PrioritySearchTree[A]
+
 
   protected def root : Tree[A, Holder[A]] = if(tree == null) Empty else tree
 
@@ -125,7 +140,7 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
    * @param k
    * @return
    */
-  def +(k: A): self = new PrioritySearchTree(root.update(k, null), size+1)
+  def +(k: A)  = new GenPrioritySearchTree(root.update(k, null), size+1)
 
   /**
    * @return maximum height of the tree
@@ -206,10 +221,7 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
 
   }
 
-  def range(from: Option[Int], until: Option[Int]) : Iterator[A] = {
-
-    val f = from map iv.point
-    val u = until map iv.point
+  def range(from: Option[A], until: Option[A]) : Iterator[A] = {
 
     def takeValue(t:Tree[A, Holder[A]]) : Iterator[A] = {
       if(t.isEmpty)
@@ -222,7 +234,7 @@ class PrioritySearchTree[A](tree: Tree[A, Holder[A]], override val size: Int)(im
       if(t.isEmpty)
         Iterator.empty
       else {
-        (f, u) match {
+        (from, until) match {
           case (None, None) => t.map(takeValue)
           case (Some(s), _) if iv.compareX(t.key, s) < 0 => find(t.right)
           case (_, Some(e)) if iv.compareX(e, t.key) < 0  => find(t.left)
