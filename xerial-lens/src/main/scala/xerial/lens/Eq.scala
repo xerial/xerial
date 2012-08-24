@@ -19,6 +19,8 @@ package xerial.core.lens
 import xerial.core.log.Logging
 import javassist._
 import xerial.core.util.StringTemplate
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 
 //--------------------------------------
@@ -85,10 +87,11 @@ import java.lang.{reflect => jr}
 
 trait HasEq {
   def compare(a: AnyRef, b: AnyRef): Boolean
+
   def genHash(a: AnyRef): Int
 }
 
-object Eq  {
+object Eq {
   def cls[A](a: A): Class[_] = a.asInstanceOf[AnyRef].getClass
 }
 
@@ -99,26 +102,27 @@ object EqGen extends Logging {
   def buildEqCode(cl: Class[_]): String = {
     val schema = ObjectSchema(cl)
     val cmpCode = for (p <- schema.parameters) yield {
-      if(Primitive.isPrimitive(p.valueType.rawType))
+      if (Primitive.isPrimitive(p.valueType.rawType))
         "if(a.%s() != b.%s()) return false;".format(p.name, p.name)
       else
         "if(!a.%s().equals(b.%s())) return false;".format(p.name, p.name)
     }
     val t = """|public boolean compare(Object ao, Object bo) {
-    | if(bo == null || ao.getClass() != bo.getClass())
-    |   return false;
-    | $type$ a = ($type$) ao;
-    | $type$ b = ($type$) bo;
-    | $cond$
-    | return true; }""".stripMargin
-    val code =StringTemplate.eval(t)(Map("type"->cl.getName, "cond"-> cmpCode.mkString("\n else ")))
+              | if(bo == null || ao.getClass() != bo.getClass())
+              |   return false;
+              | if(ao == bo) return true;
+              | $type$ a = ($type$) ao;
+              | $type$ b = ($type$) bo;
+              | $cond$
+              | return true; }""".stripMargin
+    val code = StringTemplate.eval(t)(Map("type" -> cl.getName, "cond" -> cmpCode.mkString("\n else ")))
     trace("generated a equality check code:\n%s", code)
     code
   }
 
-  def buildHashCode(cl:Class[_]): String = {
+  def buildHashCode(cl: Class[_]): String = {
     val schema = ObjectSchema(cl)
-    val getter = for(p <- schema.parameters; val n = p.name) yield {
+    val getter = for (p <- schema.parameters; val n = p.name) yield {
       def default = Seq("(int) v.%s()".format(n))
       def splitDouble = Seq("(int) ((v.%s() >> 32) & 0xFFFFFFFFL)".format(n), "(int) (v.%s() & 0xFFFFFFFFL)".format(n))
       ObjectType(p.valueType.rawType) match {
@@ -142,27 +146,65 @@ object EqGen extends Logging {
         |  return h;
         |}
       """.stripMargin
-    val code = StringTemplate.eval(t)(Map("type"->cl.getName, "comp" -> comp))
+    val code = StringTemplate.eval(t)(Map("type" -> cl.getName, "comp" -> comp))
     trace("generated a hash code:\n%s", code)
     code
   }
-  
-  private val eqCodeCache = collection.mutable.HashMap[Class[_], HasEq]()
+
+
+  private val eqCodeCache = collection.mutable.Map[Class[_], HasEq]()
 
   def eqCodeOf(cl: Class[_]) = {
-    eqCodeCache.getOrElseUpdate(cl, {
-      val p = ClassPool.getDefault
-      p.appendClassPath(new LoaderClassPath(cl.getClassLoader))
-      val c = p.makeClass(cl.getName + "$Eq")
-      c.setInterfaces(Array(p.get(classOf[HasEq].getName)))
-      c.addMethod(CtNewMethod.make(buildEqCode(cl), c))
-      c.addMethod(CtNewMethod.make(buildHashCode(cl), c))
-      val cmpCls = c.toClass
-      cmpCls.newInstance.asInstanceOf[HasEq]
-    })
+
+    synchronized {
+      eqCodeCache.getOrElseUpdate(cl, {
+        val loader = Thread.currentThread.getContextClassLoader
+        val eqClassName = cl.getName + "$Eq"
+
+        trace("Class %s is not in the cache", eqClassName)
+
+        val p = ClassPool.getDefault
+        p.appendClassPath(new LoaderClassPath(loader))
+
+        def loadClass: Option[Class[_]] =
+          try
+            Some(loader.loadClass(eqClassName))
+          catch {
+            case e: ClassNotFoundException =>
+              trace("Class %s is not found", eqClassName)
+              None
+          }
+
+        def loadCtClass: Option[CtClass] =
+          try
+            Some(p.get(eqClassName))
+          catch {
+            case e: NotFoundException =>
+              trace("CtClass %s is not found", eqClassName)
+              None
+          }
+
+        def newCtClass = {
+          trace("new CtClass %s", eqClassName)
+
+          val c = p.makeClass(eqClassName)
+          c.setInterfaces(Array(p.get(classOf[HasEq].getName)))
+          c.addMethod(CtNewMethod.make(buildEqCode(cl), c))
+          c.addMethod(CtNewMethod.make(buildHashCode(cl), c))
+          c
+        }
+
+        val cls = loadClass getOrElse {
+          loadCtClass getOrElse newCtClass toClass
+        }
+        cls.newInstance.asInstanceOf[HasEq]
+      })
+    }
+
   }
 
   def compare(cl: Class[_], a: AnyRef, b: AnyRef): Boolean = eqCodeOf(cl).compare(a, b)
-  def hash(cl:Class[_], a:AnyRef) : Int = eqCodeOf(cl).genHash(a)
+
+  def hash(cl: Class[_], a: AnyRef): Int = eqCodeOf(cl).genHash(a)
 
 }

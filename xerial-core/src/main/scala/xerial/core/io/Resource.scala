@@ -23,7 +23,7 @@
 
 package xerial.core.io
 
-import java.io.{File, BufferedInputStream}
+import java.io.{InputStreamReader, BufferedReader, File, BufferedInputStream}
 import java.util.jar.JarFile
 import java.lang.reflect.Modifier
 import java.net.{URLClassLoader, URL}
@@ -37,6 +37,18 @@ trait Resource {
 
   def open[U](resourceFileName: String)(f: BufferedInputStream => U): U = {
     Resource.open(this.asInstanceOf[AnyRef].getClass, resourceFileName)(f)
+  }
+
+  def openText[U](resourceFileName:String)(f:BufferedReader => U) : U = {
+    Resource.open(this.asInstanceOf[AnyRef].getClass, resourceFileName) { in =>
+      val r = new BufferedReader(new InputStreamReader(in))
+      try {
+        f(r)
+      }
+      finally {
+        r.close
+      }
+    }
   }
 
 }
