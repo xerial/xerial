@@ -25,12 +25,7 @@ class WorkflowTest extends XerialSpec {
 
 
     //def r1 =
-//      rule := cat  | sort | uniq |
-
-
-
-
-
+//      rule := cat | grep | sort
 
 
     def lineCount(in:Seq[String]) = {

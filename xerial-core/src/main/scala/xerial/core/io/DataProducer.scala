@@ -193,6 +193,8 @@ trait TextDataProducer extends Reader with DataProducerBase[Reader, Writer] {
       close
   }
 
+  def toInputStream = new ReaderInputStream(this)
+
 
   override def read(target: CharBuffer) = wrap(pipeIn.read(target))
   override def read() = wrap(pipeIn.read())
