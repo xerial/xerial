@@ -92,7 +92,7 @@ class UnionFindSetTest extends XerialSpec {
       val w = 10
       val m = new Maze(w)
 
-      info("Randomly break walls")
+      debug("Randomly break walls")
       val r = new Random(14)
       val uf = new UnionFindSet[Int]
 
@@ -123,7 +123,7 @@ class UnionFindSetTest extends XerialSpec {
       while (!hasPass) {
         randomBreak
       }
-      info(m)
+      debug(m)
 
     }
 
