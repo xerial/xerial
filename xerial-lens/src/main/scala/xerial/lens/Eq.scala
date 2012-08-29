@@ -152,10 +152,9 @@ object EqGen extends Logging {
   }
 
 
-  private val eqCodeCache = collection.mutable.Map[Class[_], HasEq]()
+  protected[lens] val eqCodeCache = collection.mutable.Map[Class[_], HasEq]()
 
-  def eqCodeOf(cl: Class[_]) = {
-
+  def eqCodeOf(cl: Class[_]) : HasEq = {
     synchronized {
       eqCodeCache.getOrElseUpdate(cl, {
         val loader = Thread.currentThread.getContextClassLoader
