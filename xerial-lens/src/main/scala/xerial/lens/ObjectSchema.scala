@@ -306,7 +306,7 @@ object ObjectSchema extends Logging {
             catch {
               case e => {
                 warn("error occurred when accessing method %s : %s", s, e)
-                e.printStackTrace()
+                //e.printStackTrace()
                 Seq.empty
               }
             }

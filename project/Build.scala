@@ -59,10 +59,6 @@ object XerialBuild extends Build {
     publishMavenStyle := true,
     publishArtifact in Test := false,
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
-    otherResolvers := Seq(Resolver.file("localM2", file(Path.userHome.absolutePath + "/.m2/repository"))),
-    publishLocalConfiguration <<= (packagedArtifacts, deliverLocal, checksums, ivyLoggingLevel) map {
-      (arts, _, cs, level) => new PublishConfiguration(None, "localM2", arts, cs, level)
-    },
     pomIncludeRepository := {
       _ => false
     },
