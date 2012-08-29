@@ -86,9 +86,8 @@ class EqTest extends XerialSpec {
         i =>
           new MyClass3(r.nextInt(100), nameList(r.nextInt(nameList.length)))
       }
-
       val g = l.par.groupBy(m => m)
-
+ 
     }
 
   }

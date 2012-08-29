@@ -157,7 +157,7 @@ object EqGen extends Logging {
   def eqCodeOf(cl: Class[_]) : HasEq = {
     synchronized {
       eqCodeCache.getOrElseUpdate(cl, {
-        val loader = Thread.currentThread.getContextClassLoader
+        val loader = classOf[HasEq].getClassLoader
         val eqClassName = cl.getName + "$Eq"
 
         trace("Class %s is not in the cache", eqClassName)
@@ -194,7 +194,7 @@ object EqGen extends Logging {
         }
 
         val cls = loadClass getOrElse {
-          loadCtClass getOrElse newCtClass toClass
+          loadCtClass getOrElse newCtClass toClass(loader, null)
         }
         cls.newInstance.asInstanceOf[HasEq]
       })
