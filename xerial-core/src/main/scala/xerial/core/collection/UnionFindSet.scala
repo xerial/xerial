@@ -148,8 +148,13 @@ class UnionFindSet[E] extends collection.mutable.Set[E] {
    * Iterator of each group
    * @return
    */
-  def groups: Iterable[Iterable[E]] =
-    for (r <- representatives) yield elementsInTheSameClass(r)
+  def groups: Iterable[Iterable[E]] = {
+    // group by representative nodes
+    val g = containerList.groupBy(c => find(c.elem))
+    for((root, containers) <- g) yield {
+      containers.map(_.elem)
+    }
+  }
 
 
 }
