@@ -148,6 +148,37 @@ case class ScMethod(owner: Class[_], jMethod: jl.reflect.Method, name: String, p
   override def hashCode = {
     owner.hashCode() + name.hashCode()
   }
+
+  def invoke(obj:AnyRef, params:AnyRef*) : Any = {
+    jMethod.invoke(obj, params:_*)
+  }
+}
+
+case class CompanionMethod(owner:Class[_], jMethod:jl.reflect.Method, name:String, params: Array[MethodParameter], returnType: ObjectType)
+ extends ObjectMethod with Logger
+{
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
+    jMethod.getAnnotation(c.erasure.asInstanceOf[Class[T]]) match {
+      case null => None
+      case a => Some(a.asInstanceOf[T])
+    }
+  }
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T] = {
+    params(paramIndex).findAnnotationOf[T]
+  }
+
+  override def hashCode = {
+    owner.hashCode() + name.hashCode()
+  }
+
+  def invoke(obj:AnyRef, params:AnyRef*) : Any = {
+    debug("invoking jMethod:%s, owner:%s", jMethod, owner)
+    TypeUtil.companionObject(owner) map { co =>
+      debug("found a companion object of %s", owner)
+      jMethod.invoke(co, params:_*)
+    } orNull
+  }
+
 }
 
 /**
@@ -155,7 +186,7 @@ case class ScMethod(owner: Class[_], jMethod: jl.reflect.Method, name: String, p
  * @param cl
  * @param params
  */
-case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extends ObjectMethod {
+case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extends Type {
   val name = cl.getSimpleName
   override def toString = "Constructor(%s, [%s])".format(cl.getSimpleName, params.mkString(", "))
 

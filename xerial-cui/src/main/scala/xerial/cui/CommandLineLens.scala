@@ -181,7 +181,7 @@ class ClassOptionSchema(val cl: Class[_]) extends OptionSchema {
  * OptionSchema created from a method definition
  * @param method
  */
-class MethodOptionSchema(method: ScMethod) extends OptionSchema {
+class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 
   val options =
     for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(opt, p)
@@ -233,7 +233,7 @@ class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Ar
  */
 class OptionParser(val schema: OptionSchema) extends Logger {
 
-  def this(m: ScMethod) = this(new MethodOptionSchema(m))
+  def this(m: ObjectMethod) = this(new MethodOptionSchema(m))
 
   import OptionParser._
 

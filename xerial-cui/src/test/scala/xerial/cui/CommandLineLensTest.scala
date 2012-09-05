@@ -9,6 +9,9 @@ package xerial.cui
 
 import xerial.core.XerialSpec
 import xerial.lens.ObjectSchema
+import xerial.core.log.Logger
+import xerial.core.util.Timer
+import org.scalatest.Tag
 
 
 object CommandLineLensTest {
@@ -64,6 +67,26 @@ class CommandLineLensTest extends XerialSpec {
       a3.symbol must be("o")
     }
 
+    "create command module extending Timer" in {
+      val l = CommandLauncher.of[MyModule]
+      val r1 = l.execute("hello -s world")
+      val r2 = l.execute("world")
+
+
+      r1.get should be ("hello world!!!")
+      r2.get should be ("hello world")
+    }
+
+    "compose commands from traits" taggedAs(Tag("compose-cmd")) in {
+      val l = CommandLauncher.of[MyCmd]
+
+      val r1 = l.execute("hello")
+      val r2 = l.execute("helloWithArg world")
+
+      r1.get should be ("hello my module2")
+      r2.get should be ("hello world")
+    }
+
   }
 
 }
@@ -90,3 +113,32 @@ class CommandLineOption
   var outDir: String = "temp"
 }
 
+class MyModule extends CommandModule with Logger with Timer {
+
+  @command(description = "say hello")
+  def hello(@option(symbol="s") message:String) = {
+    debug("runnign hello command")
+    "hello %s!!!".format(message)
+  }
+
+  @command
+  def world = {
+    "hello world"
+  }
+
+  val moduleName = "mymodule"
+}
+
+
+
+trait MyModule2 {
+  @command
+  def hello = "hello my module2"
+
+  @command
+  def helloWithArg(@argument s:String) : String = "hello " + s
+}
+
+class MyCmd extends MyModule2 with CommandModule {
+  val moduleName = "main"
+}

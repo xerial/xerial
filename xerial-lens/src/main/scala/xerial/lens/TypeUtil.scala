@@ -5,6 +5,7 @@ import java.io.File
 import java.text.DateFormat
 import mutable.ArrayBuffer
 import java.lang.{reflect => jr}
+import xerial.core.log.Logger
 
 
 //--------------------------------------
@@ -17,7 +18,7 @@ import java.lang.{reflect => jr}
 /**
  * @author leo
  */
-object TypeUtil {
+object TypeUtil extends Logger {
 
   implicit def toClassManifest[T](targetType: Class[T]): ClassManifest[T] = ClassManifest.fromClass(targetType)
 
@@ -102,12 +103,17 @@ object TypeUtil {
 
   def companionObject[A](cl: Class[A]): Option[Any] = {
     try {
-      val companion = Class.forName(cl.getName + "$")
-      val companionObj = companion.newInstance()
+      val clName = cl.getName
+      val companionCls = if(clName.endsWith("$")) cl else Class.forName(clName + "$")
+      val module = companionCls.getField("MODULE$")
+      val companionObj = module.get(null)
       Some(companionObj)
     }
     catch {
-      case _ => None
+      case e => {
+        warn("no companion object is found for %s: %s", cl, e)
+        None
+      }
     }
   }
 
