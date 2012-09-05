@@ -68,8 +68,12 @@ class CommandLineLensTest extends XerialSpec {
 
     "create command module extending Timer" in {
       val l = CommandLauncher.of[MyModule]
-      l.execute("hello -s world")
-      l.execute("world")
+      val r1 = l.execute("hello -s world")
+      val r2 = l.execute("world")
+
+
+      r1.get should be ("hello world!!!")
+      r2.get should be ("hello world")
     }
 
   }
@@ -102,12 +106,13 @@ class MyModule extends CommandModule with Logger with Timer {
 
   @command(description = "say hello")
   def hello(@option(symbol="s") message:String) = {
-    debug("hello %s", message)
+    debug("runnign hello command")
+    "hello %s!!!".format(message)
   }
 
   @command
   def world = {
-    debug("world")
+    "hello world"
   }
 
   val moduleName = "mymodule"

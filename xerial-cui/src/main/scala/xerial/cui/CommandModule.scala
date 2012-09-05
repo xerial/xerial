@@ -160,17 +160,19 @@ class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[
 
   trace("launcher class: %s", cl.getName)
 
-  def execute(argLine: String): Any =
+  def execute(argLine: String): Option[_] =
     execute(CommandLineTokenizer.tokenize(argLine))
 
-  def execute(args: Array[String]): Any = {
+  def execute(args: Array[String]): Option[_] = {
 
     val parser = OptionParser.of[A]
     val (module, parseResult) = parser.build[A](args)
 
     if (module.beforeExecute(args)) {
-      module.execute(parseResult.unusedArgument)
+      Some(module.execute(parseResult.unusedArgument))
     }
+    else
+      None
   }
 
 }
