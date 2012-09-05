@@ -69,7 +69,7 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
  */
 trait Logger {
 
-  private[this] val logger = new DynamicVariable[LogWriter](Logger(this.getClass))
+  private[this] val logger = new DynamicVariable[LogWriter](LoggerFactory(this.getClass))
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.value.isEnabled(logLevel))
@@ -80,7 +80,7 @@ trait Logger {
     if(logger.value.tag == tag)
       body
     else
-      logger.withValue(Logger(logger.value.prefix + ":" + tag)) {
+      logger.withValue(LoggerFactory(logger.value.prefix + ":" + tag)) {
         body
       }
   }
@@ -90,7 +90,7 @@ trait Logger {
    * @param tag
    * @return
    */
-  protected def getLogger(tag: Symbol): LogWriter = Logger(logger.value, tag)
+  protected def getLogger(tag: Symbol): LogWriter = LoggerFactory(logger.value, tag)
 
   /**
    * Create a sub logger with a given tag name
@@ -191,7 +191,7 @@ trait LogHelper {
 trait LogWriter extends LogHelper {
 
   val name: String
-  val shortName = Logger.leafName(name)
+  val shortName = LoggerFactory.leafName(name)
   def tag = {
     val pos = shortName.lastIndexOf(":")
     if (pos == -1)
@@ -224,7 +224,7 @@ trait LogWriter extends LogHelper {
 }
 
 
-object Logger {
+object LoggerFactory {
 
   private[log] var defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
 
@@ -367,20 +367,20 @@ import javax.management.MXBean
 
 class LoggerConfigImpl extends LoggerConfig {
 
-  def getDefaultLogLevel = Logger.defaultLogLevel.toString
+  def getDefaultLogLevel = LoggerFactory.defaultLogLevel.toString
 
   def setLogLevel(loggerName: String, logLevel: String)  {
     System.setProperty("loglevel:%s".format(loggerName), logLevel)
-    val logger = Logger.apply(loggerName)
+    val logger = LoggerFactory.apply(loggerName)
     val level = LogLevel(logLevel)
     logger.logLevel = level
-    Logger.rootLogger.info("set the log level of %s to %s", loggerName, level)
+    LoggerFactory.rootLogger.info("set the log level of %s to %s", loggerName, level)
   }
 
   def setDefaultLogLevel(logLevel:String) {
     val level = LogLevel(logLevel)
     System.setProperty("loglevel", level.toString)
-    Logger.rootLogger.info("Set the default log level to %s", level)
+    LoggerFactory.rootLogger.info("Set the default log level to %s", level)
   }
 }
 

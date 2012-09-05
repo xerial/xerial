@@ -18,7 +18,7 @@ package xerial.core.util
 
 import java.lang.IllegalStateException
 import collection.mutable.{ListBuffer, Stack, LinkedHashMap}
-import xerial.core.log.{Logger, LogLevel}
+import xerial.core.log.{LoggerFactory, Logger, LogLevel}
 
 
 //--------------------------------------
@@ -107,7 +107,7 @@ trait Timer {
     val l = if (classOf[Logger].isAssignableFrom(this.getClass))
       this.asInstanceOf[Logger].log(logLevel, m.report)
     else
-      Logger(this.getClass).log(logLevel, m.report)
+      LoggerFactory(this.getClass).log(logLevel, m.report)
   }
 }
 
