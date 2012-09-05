@@ -13,12 +13,13 @@ Core utilities of xerial projects.
  * Logger whose log levels and output targets can be configured through a JMX interface at runtime
      * For use, simply extend `xerial.core.log.Logger` trait in your class, then call trace, debug, info, warn, error, fatal methods to output logs.
      * Global log levels can be configured through JVM argument (e.g, -Dloglevel=debug) 
- * Timer for taking benchmarks of code blocks
-     * Extend `xerial.core.util.Timer` trait, then wrap your code with  `time` method. 
-     * You can also divide codes to measure into sub blocks by using `block` method.
-     * Repetitive execution of codes is supported.
+ * Better benchmarking with Timer trait
+     * Extend `xerial.core.util.Timer` trait, then wrap your code with `time`
+ method. The execution time of the wrapped code will be reported (in debug log)
+     * You can also divide your code into sub blocks with `block` method.
+     * Repetitive execution is supported; Use `time(repeat=(Int))` or `block(repeat=(Int))`.
  * Resource trait for reading files in classpaths and jar files. 
-    * Quite useful for writing codes that need to use resource files. (e.g., test data, graphic data, font files, etc.)
+    * Quite useful for reading resource files. (e.g., test data, graphic data, font files, etc.)
  * Fast PEG parser generator
     * (on-going) Producing [Silk format](http://xerial.org/silk) parser codes for serval programming language including Scala(Java), C, etc.
   
@@ -34,7 +35,8 @@ Retrives object type information embeded in Scala-generated class files.
 ### Applications of ObjectSchema
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
- * Command-line parser 
+
+ * Command-line parser (xerial-cui)
    * You can call methods in a class by mapping command line arguments to the method arguments
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
@@ -52,6 +54,9 @@ Add the following settings to your sbt build file (e.g., `build.sbt`)
     
     # When you want to use ObjectSchema
     libraryDependencies += "org.xerial" % "xerial-lens" % "3.0-SNAPSHOT"
+
+    # command line parser
+    libraryDependencies += "org.xerial" % "xerial-cui" % "3.0-SNAPSHOT"
 
 ## Scala API
 
