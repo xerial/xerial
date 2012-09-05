@@ -1,4 +1,4 @@
-package xerial.core.lens
+package xerial.lens
 
 /*
  * Copyright 2012 Taro L. Saito

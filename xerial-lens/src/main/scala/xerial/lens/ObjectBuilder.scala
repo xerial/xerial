@@ -1,4 +1,4 @@
-package xerial.core.lens
+package xerial.lens
 
 /*
  * Copyright 2012 Taro L. Saito
@@ -17,7 +17,7 @@ package xerial.core.lens
  */
 
 import collection.mutable.{ArrayBuffer, Map}
-import xerial.core.lens
+import xerial.lens
 import xerial.core.log.Logging
 
 

@@ -7,7 +7,7 @@ package xerial.cui
 //
 //--------------------------------------
 
-import xerial.core.lens._
+import xerial.lens._
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer

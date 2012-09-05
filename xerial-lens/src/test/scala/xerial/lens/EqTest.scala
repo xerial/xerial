@@ -5,7 +5,7 @@
 //
 //--------------------------------------
 
-package xerial.core.lens
+package xerial.lens
 
 import xerial.core.XerialSpec
 import util.Random

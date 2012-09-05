@@ -1,4 +1,4 @@
-package xerial.core.lens
+package xerial.lens
 
 import collection.mutable
 import java.io.File

@@ -20,7 +20,7 @@ import java.lang.reflect.InvocationTargetException
 import xerial.cui._
 import xerial.core.log.Logging
 import xerial.core.util.{CommandLineTokenizer, CName}
-import xerial.core.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
+import xerial.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
 
 
 //--------------------------------------
