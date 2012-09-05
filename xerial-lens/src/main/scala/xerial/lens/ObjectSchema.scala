@@ -343,7 +343,7 @@ object ObjectSchema extends Logger {
 
     val p = parentMethodsOf(cl)
     trace("parent methods of %s: %s", cl.getSimpleName, p.mkString(", "))
-    (methods getOrElse (Seq.empty) ++ p).toArray
+    ((methods getOrElse (Seq.empty)) ++ p).toArray
   }
 
 

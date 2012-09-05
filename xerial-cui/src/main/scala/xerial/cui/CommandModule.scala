@@ -115,7 +115,7 @@ trait CommandModule extends Logger {
 
   private def findCommand(name: String): Option[CommandDef] = {
     val cname = CName(name)
-    trace("find command:%s", cname)
+    trace("trying to find command:%s", cname)
     commandList.find(e => CName(e.name) == cname)
   }
 
