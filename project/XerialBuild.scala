@@ -47,7 +47,7 @@ object XerialBuild extends Build {
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
-    description := "Xerial: A Datamanagement Utilities",
+    description := "Xerial: Data Management Utiilities",
     scalaVersion := SCALA_VERSION,
     resolvers <++= version { (v) =>
         Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases", releaseResolver(v))
@@ -60,7 +60,6 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
-    //crossScalaVersions := Seq("2.10.0-M1", "2.9.1-1", "2.9.1"),
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
     pomExtra := {
       <licenses>
