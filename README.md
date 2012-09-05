@@ -13,7 +13,9 @@ Core utilities of xerial projects.
  * Logger whose log levels and output targets can be configured through a JMX interface at runtime
      * For use, simply extend `xerial.core.log.Logger` trait in your class, then call trace, debug, info, warn, error, fatal methods to output logs.
      * Global log levels can be configured through JVM argument (e.g, -Dloglevel=debug) 
- * StopWatch for taking benchmarks of code blocks
+ * Timer for taking benchmarks of code blocks
+     * Extend `xerial.core.util.Timer` trait, then wrap your code with  `time` method. 
+     * You can also divide codes to measure into sub blocks by using `block` method.
      * Repetitive execution of codes is supported.
  * Resource trait for reading files in classpaths and jar files. 
     * Quite useful for writing codes that need to use resource files. (e.g., test data, graphic data, font files, etc.)
