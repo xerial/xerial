@@ -62,6 +62,7 @@ object XerialBuild extends Build {
     crossPaths := false,
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
     pomExtra := {
+      <url>http://xerial.org/</url>
       <licenses>
         <license>
           <name>Apache 2</name>
