@@ -102,12 +102,12 @@ class MyModule extends CommandModule with Logger with Timer {
 
   @command(description = "say hello")
   def hello(@option(symbol="s") message:String) = {
-    info("hello %s", message)
+    debug("hello %s", message)
   }
 
   @command
   def world = {
-    info("world")
+    debug("world")
   }
 
   val moduleName = "mymodule"

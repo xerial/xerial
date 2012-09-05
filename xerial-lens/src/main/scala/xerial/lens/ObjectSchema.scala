@@ -20,6 +20,7 @@ import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
 import xerial.core.log.Logger
 import java.{lang => jl}
+import java.lang.{reflect => jr}
 
 //--------------------------------------
 //
@@ -54,6 +55,15 @@ object ObjectSchema extends Logger {
 
   private val sigCache = new WeakHashMap[Class[_], Option[ScalaSig]]
 
+  private def findClass(name:String) : Option[Class[_]] = {
+    try {
+      Some(Class.forName(name))
+    }
+    catch {
+      case e => None
+    }
+  }
+
   /**
    * Find the Scala signature of the specified class
    * @param cl
@@ -64,12 +74,7 @@ object ObjectSchema extends Logger {
     def enclosingObject(cl: Class[_]): Option[Class[_]] = {
       val pos = cl.getName.lastIndexOf("$")
       val parentClassName = cl.getName.slice(0, pos)
-      try {
-        Some(Class.forName(parentClassName))
-      }
-      catch {
-        case e => None
-      }
+      findClass(parentClassName)
     }
 
     sigCache.getOrElseUpdate(cl, {
@@ -253,80 +258,101 @@ object ObjectSchema extends Logger {
     }
   }
 
-  def methodsOf(cl: Class[_]): Array[ScMethod] = {
-    val methods = findSignature(cl) match {
-      case None => Array.empty[ScMethod]
-      case Some(sig) => {
-        val entries = (0 until sig.table.length).map(sig.parseEntry(_))
+  def methodsOf(cl: Class[_]): Array[ObjectMethod] = {
+    val methods = findSignature(cl) map { sig =>
+      val entries = (0 until sig.table.length).map(sig.parseEntry(_))
 
-        def isTargetMethod(m: MethodSymbol): Boolean = {
-          // synthetic is used for functions returning default values of method arguments (e.g., ping$default$1)
-          m.isMethod && !m.isPrivate && !m.isProtected && !m.isImplicit && !m.isSynthetic && !m.isAccessor && m.name != "<init>" && m.name != "$init$" && isOwnedByTargetClass(m, cl)
+      def isTargetMethod(m: MethodSymbol): Boolean = {
+        // synthetic is used for functions returning default values of method arguments (e.g., ping$default$1)
+        m.isMethod && !m.isPrivate && !m.isProtected && !m.isImplicit && !m.isSynthetic && !m.isAccessor && m.name != "<init>" && m.name != "$init$" && isOwnedByTargetClass(m, cl)
+      }
+
+      def resolveMethodArgTypes(params: Seq[(String, ObjectType)]) = {
+        params.map {
+          case (name, vt) if TypeUtil.isArray(vt.rawType) => {
+            val gt = vt.asInstanceOf[GenericType]
+            val t = gt.genericTypes(0)
+            val loader = Thread.currentThread.getContextClassLoader
+            Class.forName("[L%s;".format(t.rawType.getName), false, loader)
+          }
+          case (name, vt) => vt.rawType
         }
+      }
 
-        def resolveMethodArgTypes(params: Seq[(String, ObjectType)]) = {
-          params.map {
-            case (name, vt) if TypeUtil.isArray(vt.rawType) => {
-              val gt = vt.asInstanceOf[GenericType]
-              val t = gt.genericTypes(0)
-              val loader = Thread.currentThread.getContextClassLoader
-              Class.forName("[L%s;".format(t.rawType.getName), false, loader)
+      val targetMethodSymbol: Seq[(MethodSymbol, Any)] = entries.collect {
+        case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
+      }
+
+      def isAccessibleParams(params:Seq[MethodSymbol]) : Boolean = {
+        params.forall(p => !p.isByNameParam)
+      }
+
+
+      def resolveMethod(cl:Class[_], name:String, resultType:TypeRefType, params:Seq[(String, ObjectType)], paramTypes:Class[_]*) : Option[ObjectMethod] = {
+        try {
+          val mt = cl.getMethod(name, paramTypes:_*)
+          val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(mt, index, name, vt)
+          Some(ScMethod(cl, mt, name, mp.toArray, resolveClass(resultType)))
+        }
+        catch {
+          case e:NoSuchMethodException => {
+            // try companion object
+            try {
+              findClass(cl.getName + "$") map { co =>
+                val mt = co.getMethod(name, paramTypes:_*)
+                val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(mt, index, name, vt)
+                CompanionMethod(co, mt, name, mp.toArray, resolveClass(resultType))
+              }
             }
-            case (name, vt) => vt.rawType
+            catch {
+              case e => None
+            }
           }
         }
+      }
 
-        val targetMethodSymbol: Seq[(MethodSymbol, Any)] = entries.collect {
-          case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
-        }
-
-        def isAccessibleParams(params:Seq[MethodSymbol]) : Boolean = {
-          params.forall(p => !p.isByNameParam)
-        }
-
-        val methods = targetMethodSymbol.flatMap {
+      val mSeq : Seq[ObjectMethod] = {
+        val mOpt = targetMethodSymbol.map {
           s =>
             try {
               trace("method: %s", s)
               s match {
                 case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
-                  val jMethod = cl.getMethod(m.name)
-                  Seq(ScMethod(cl, jMethod, m.name, Array.empty[MethodParameter], resolveClass(resultType)))
+                  resolveMethod(cl, m.name, resultType, Seq.empty)
                 }
                 case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_]))
                   if isAccessibleParams(paramSymbols.asInstanceOf[Seq[MethodSymbol]]) => {
                   val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
-                  val jMethod = cl.getMethod(m.name, resolveMethodArgTypes(params): _*)
-                  val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(jMethod, index, name, vt)
-                  Seq(ScMethod(cl, jMethod, m.name, mp.toArray, resolveClass(resultType)))
+                  resolveMethod(cl, m.name, resultType, params, resolveMethodArgTypes(params): _*)
                 }
-                case _ => Seq.empty
+                case _ => None
               }
             }
             catch {
               case e => {
                 warn("error occurred when accessing method %s : %s", s, e)
                 //e.printStackTrace()
-                Seq.empty
+                None
               }
             }
         }
-        methods.toArray
+        mOpt.filter(_.isDefined) map (_.get)
       }
+      mSeq
     }
 
     val p = parentMethodsOf(cl)
     trace("parent methods of %s: %s", cl.getSimpleName, p.mkString(", "))
-    (methods ++ p).toArray
+    (methods getOrElse (Seq.empty) ++ p).toArray
   }
+
 
   def parentMethodsOf(cl: Class[_]) = {
     def resolveImplOwner(m: ScMethod) {
       m.owner
     }
     findParentSchemas(cl).flatMap(_.methods).map {
-      m =>
-        m
+      m => m
     }
   }
 
@@ -405,7 +431,7 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
   def findSignature: Option[ScalaSig] = ObjectSchema.findSignature(cl)
 
   lazy val parameters: Array[Parameter] = parametersOf(cl)
-  lazy val methods: Array[ScMethod] = methodsOf(cl)
+  lazy val methods: Array[ObjectMethod] = methodsOf(cl)
 
   lazy private val parameterIndex: Map[String, Parameter] = {
     val pair = for (a <- parameters) yield a.name -> a

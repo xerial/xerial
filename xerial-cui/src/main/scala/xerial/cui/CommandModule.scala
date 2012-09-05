@@ -20,7 +20,7 @@ import java.lang.reflect.InvocationTargetException
 import xerial.cui._
 import xerial.core.log.Logger
 import xerial.core.util.{CommandLineTokenizer, CName}
-import xerial.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
+import xerial.lens.{ObjectMethod, MethodCallBuilder, ObjectSchema}
 
 
 //--------------------------------------
@@ -145,7 +145,7 @@ trait CommandModule extends Logger {
 
 }
 
-class CommandDef(val method: ScMethod, val command: command) {
+class CommandDef(val method: ObjectMethod, val command: command) {
   val name = method.name
   val description = command.description
 }

@@ -19,6 +19,7 @@ package xerial.lens
 
 import io.Source
 import xerial.core.XerialSpec
+import org.scalatest.Tag
 
 
 //--------------------------------------
@@ -201,6 +202,19 @@ class ObjectSchemaTest extends XerialSpec {
       }
     }
 
+    "resolve method defined in companion object referenced from trait" taggedAs(Tag("trait-ref")) in {
+      val m = ObjectSchema.of[SampleB].methods
+      m should have size (2)
+      m(0).name should be ("hello")
+      m(1).name should be ("helloWithArg")
+
+      val b = new SampleB {}
+      val r = m(0).invoke(b)
+
+      r should be ("hello")
+      m(1).invoke(b, "world") should be ("hello world")
+    }
+
   }
 
 }
@@ -261,3 +275,11 @@ trait TraitWithPrivateField {
 class SampleA extends TraitWithPrivateField {
 
 }
+
+
+trait SampleB
+object SampleB {
+  def hello = "hello"
+  def helloWithArg(m:String) : String = "hello " + m
+}
+
