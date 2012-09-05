@@ -5,7 +5,7 @@
 //
 //--------------------------------------
 
-package xerial.core.cui
+package xerial.cui
 
 import xerial.core.log.Logger
 

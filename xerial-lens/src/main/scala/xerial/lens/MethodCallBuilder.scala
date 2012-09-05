@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package xerial.core.lens
+package xerial.lens
 
 import collection.mutable
 import mutable.ArrayBuffer

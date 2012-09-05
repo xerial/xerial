@@ -21,7 +21,7 @@
 //
 //--------------------------------------
 
-package xerial.core.lens
+package xerial.lens
 import java.{lang => jl}
 
 object ObjectType {

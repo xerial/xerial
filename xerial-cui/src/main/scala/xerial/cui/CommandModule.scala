@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package xerial.core.cui
+package xerial.cui
 
 import java.lang.reflect.InvocationTargetException
-import xerial.core.cui._
+import xerial.cui._
 import xerial.core.log.Logging
 import xerial.core.util.{CommandLineTokenizer, CName}
-import xerial.core.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
+import xerial.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
 
 
 //--------------------------------------
