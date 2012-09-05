@@ -9,6 +9,8 @@ package xerial.cui
 
 import xerial.core.XerialSpec
 import xerial.lens.ObjectSchema
+import xerial.core.log.Logger
+import xerial.core.util.Timer
 
 
 object CommandLineLensTest {
@@ -64,6 +66,12 @@ class CommandLineLensTest extends XerialSpec {
       a3.symbol must be("o")
     }
 
+    "create command module extending Timer" in {
+      val l = CommandLauncher.of[MyModule]
+      l.execute("hello -s world")
+      l.execute("world")
+    }
+
   }
 
 }
@@ -90,3 +98,17 @@ class CommandLineOption
   var outDir: String = "temp"
 }
 
+class MyModule extends CommandModule with Logger with Timer {
+
+  @command(description = "say hello")
+  def hello(@option(symbol="s") message:String) = {
+    info("hello %s", message)
+  }
+
+  @command
+  def world = {
+    info("world")
+  }
+
+  val moduleName = "mymodule"
+}

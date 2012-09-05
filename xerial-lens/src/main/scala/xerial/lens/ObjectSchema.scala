@@ -219,8 +219,8 @@ object ObjectSchema extends Logger {
           //case c @ ConstructorParameter(owner, fieldOwner, index, name, valueType) => c
           //case m @ MethodParameter(owner, index, name, valueType) => m
           // Fix actual owner
-          case FieldParameter(owner, ref, name, valueType) => {
-            val fieldOwner = findFieldOwner(name, cl).getOrElse(cl)
+          case FieldParameter(owner, ref, name, valueType) if findFieldOwner(name, cl).isDefined => {
+            val fieldOwner = findFieldOwner(name, cl).get
             FieldParameter(fieldOwner, cl, name, valueType)
           }
         }

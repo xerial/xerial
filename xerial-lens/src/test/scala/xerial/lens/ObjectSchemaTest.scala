@@ -193,6 +193,14 @@ class ObjectSchemaTest extends XerialSpec {
       }
     }
 
+    "be safe when resolving the field owner of a private field defined in a Trait" in {
+      val p = ObjectSchema.of[SampleA].parameters
+      val obj = new SampleA
+      p.collect {
+        case f:FieldParameter => f.get(obj)
+      }
+    }
+
   }
 
 }
@@ -244,4 +252,12 @@ object ImportSample {
 
 class ImportSample {
   import ImportSample._
+}
+
+trait TraitWithPrivateField {
+  private val a : String = "hello"
+}
+
+class SampleA extends TraitWithPrivateField {
+
 }

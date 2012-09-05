@@ -56,7 +56,7 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
  * @author leo
  */
 trait Timer {
-  private val holder = new ThreadLocal[Stack[TimeReport]] {
+  private[this] val holder = new ThreadLocal[Stack[TimeReport]] {
     override def initialValue() = new Stack[TimeReport]
   }
 
