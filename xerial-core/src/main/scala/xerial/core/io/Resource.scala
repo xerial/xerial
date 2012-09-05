@@ -27,7 +27,7 @@ import java.io.{InputStreamReader, BufferedReader, File, BufferedInputStream}
 import java.util.jar.JarFile
 import java.lang.reflect.Modifier
 import java.net.{URLClassLoader, URL}
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 
 /**
@@ -59,7 +59,7 @@ trait Resource {
  *
  * @author leo
  */
-object Resource extends Logging {
+object Resource extends Logger {
 
   /**
    * Open a resource as a stream, then execute the code block using the stream

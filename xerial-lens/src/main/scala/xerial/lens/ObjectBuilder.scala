@@ -18,7 +18,7 @@ package xerial.lens
 
 import collection.mutable.{ArrayBuffer, Map}
 import xerial.lens
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 
 //--------------------------------------
@@ -32,7 +32,7 @@ import xerial.core.log.Logging
  *
  *
  */
-object ObjectBuilder extends Logging {
+object ObjectBuilder extends Logger {
 
   // class ValObj(val p1, val p2, ...)
   // class VarObj(var p1, var p2, ...)
@@ -73,7 +73,7 @@ trait ObjectBuilder[A] extends GenericBuilder {
   def build: A
 }
 
-class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) extends ObjectBuilder[A] with Logging {
+class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) extends ObjectBuilder[A] with Logger {
   private val schema = ObjectSchema(cl)
   private val valueHolder = collection.mutable.Map[String, Any]()
 

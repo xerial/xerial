@@ -18,7 +18,7 @@ package xerial.cui
 
 import java.lang.reflect.InvocationTargetException
 import xerial.cui._
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import xerial.core.util.{CommandLineTokenizer, CName}
 import xerial.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
 
@@ -41,7 +41,7 @@ object CommandLauncher {
 /**
  *
  */
-trait CommandModule extends Logging {
+trait CommandModule extends Logger {
   self =>
   type A = self.type
 
@@ -156,7 +156,7 @@ class CommandDef(val method: ScMethod, val command: command) {
  *
  * @author leo
  */
-class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[A]) extends Logging {
+class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[A]) extends Logger {
 
   trace("launcher class: %s", cl.getName)
 

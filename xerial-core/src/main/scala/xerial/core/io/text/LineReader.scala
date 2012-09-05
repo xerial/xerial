@@ -19,7 +19,7 @@ package xerial.core.io.text
 import java.io.{Reader, InputStream, ByteArrayOutputStream}
 import java.util.ArrayDeque
 import annotation.tailrec
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 
 //--------------------------------------
@@ -156,7 +156,7 @@ private[text] class ReaderState(var cursor: Int) {
  */
 class LineReader(buffer: TextBuffer,
                  private var bufferLimit: Int = 0,
-                 private var foundEOF: Boolean = false) extends Iterable[CharSequence] with Logging {
+                 private var foundEOF: Boolean = false) extends Iterable[CharSequence] with Logger {
 
   private val markQueue = new ArrayDeque[ReaderState]
   private var current = new ReaderState(0)

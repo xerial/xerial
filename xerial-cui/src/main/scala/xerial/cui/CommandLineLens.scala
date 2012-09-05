@@ -12,7 +12,7 @@ import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
 import xerial.core.util.{CommandLineTokenizer, StringTemplate}
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 /**
  *
@@ -31,7 +31,7 @@ class CommandLineLens(cl: Class[_]) {
 /**
  * Creates option parsers
  */
-object OptionParser extends Logging {
+object OptionParser extends Logger {
 
   def tokenize(line: String): Array[String] = CommandLineTokenizer.tokenize(line)
 
@@ -105,7 +105,7 @@ case class CLArgument(val arg: argument, override val param: Parameter) extends 
 /**
  * Schema of the command line options
  */
-trait OptionSchema extends Logging {
+trait OptionSchema extends Logger {
 
   val options: Array[CLOption]
   val args: Array[CLArgument] // must be sorted by arg.index in ascending order
@@ -231,7 +231,7 @@ class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Ar
  *
  * @author leo
  */
-class OptionParser(val schema: OptionSchema) extends Logging {
+class OptionParser(val schema: OptionSchema) extends Logger {
 
   def this(m: ScMethod) = this(new MethodOptionSchema(m))
 

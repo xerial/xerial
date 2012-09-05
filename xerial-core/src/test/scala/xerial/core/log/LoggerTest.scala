@@ -15,7 +15,7 @@ import xerial.core.XerialSpec
  */
 class LoggerTest extends XerialSpec {
 
-  "Logger" should {
+  "LogWriter" should {
     "be used as an trait" in {
       true
     }
