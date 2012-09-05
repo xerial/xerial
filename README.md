@@ -11,7 +11,7 @@ Core utilities of xerial projects.
  * Useful collection classes
      * CyclicArray (double-ended queue), RedBlackTree, balanced PrioritySearchTree (*O(log N+k)* for interval-intersection queries), UnionFindSet etc.
  * Logger whose log levels and output targets can be configured through a JMX interface at runtime
-     * For use, simply extend `Logging` trait, then call trace, debug, info, warn, error, fatal methods to output logs.
+     * For use, simply extend `xerial.core.log.Logger` trait in your class, then call trace, debug, info, warn, error, fatal methods to output logs.
      * Global log levels can be configured through JVM argument (e.g, -Dloglevel=debug) 
  * StopWatch for taking benchmarks of code blocks
      * Repetitive execution of codes is supported.
