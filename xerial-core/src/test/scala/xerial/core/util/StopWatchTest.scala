@@ -28,9 +28,8 @@ import xerial.core.XerialSpec
 /**
  * @author leo
  */
-class StopWatchTest extends XerialSpec {
+class StopWatchTest extends XerialSpec with Timer {
 
-  import StopWatch._
 
   "StopWatch" should {
     "be able to create time block" in {
