@@ -58,7 +58,6 @@ class EqTest extends XerialSpec {
     }
 
     "generate fast comparison code" in {
-      import xerial.core.util.StopWatch._
       val c1 = new A(1, "leo", 1L)
       val c2 = new A(1, "leo", 2L)
       val d1 = new B(1, "leo", 1L)

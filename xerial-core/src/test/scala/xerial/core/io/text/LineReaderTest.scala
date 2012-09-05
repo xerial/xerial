@@ -102,8 +102,7 @@ class LineReaderTest extends XerialSpec {
     }
     
     "read lines faster than BufferedReader" in {
-      import xerial.core.util.StopWatch._
-      
+
       val t = time("reader", repeat=10) {
         block("LineReader") {
           val l = LineReader(new ByteArrayInputStream(sampleData))
