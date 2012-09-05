@@ -23,7 +23,7 @@
 
 package xerial.core.io.text.parser
 
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import annotation.tailrec
 import xerial.core.io.text.StringScanner
 
@@ -57,7 +57,7 @@ import xerial.core.io.text.StringScanner
  *
  *
  */
-trait Grammar extends Logging {
+trait Grammar extends Logger {
 
   import Grammar._
 
@@ -183,7 +183,7 @@ trait Grammar extends Logging {
  *
  * @author leo
  */
-object Grammar extends Logging {
+object Grammar extends Logger {
 
   def toVisibleString(s: CharSequence): String = {
     if (s == null) return ""

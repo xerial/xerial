@@ -22,7 +22,7 @@ package xerial.core.collection
 //
 //--------------------------------------
 
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 object RedBlackTree {
 
@@ -63,7 +63,7 @@ import RedBlackTree._
  * @tparam A key type
  * @tparam B value type associated to the key
  */
-abstract class RedBlackTree[A, B] extends Logging {
+abstract class RedBlackTree[A, B] extends Logger {
 
   /**
    * Compare keys

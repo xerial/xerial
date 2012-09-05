@@ -17,7 +17,7 @@
 package xerial.core.util
 
 import util.parsing.combinator.RegexParsers
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 
 //--------------------------------------
@@ -32,7 +32,7 @@ import xerial.core.log.Logging
  *
  * @author Taro L. Saito
  */
-object CommandLineTokenizer extends RegexParsers with Logging {
+object CommandLineTokenizer extends RegexParsers with Logger {
 
   private def unquote(s: String): String = s.substring(1, s.length() - 1)
 

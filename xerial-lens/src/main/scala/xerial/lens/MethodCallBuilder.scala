@@ -18,7 +18,7 @@ package xerial.lens
 
 import collection.mutable
 import mutable.ArrayBuffer
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import xerial.core.util.CName
 
 
@@ -33,7 +33,7 @@ import xerial.core.util.CName
  * Builds method call arguments
  * @author leo
  */
-class MethodCallBuilder(m:ScMethod, owner:AnyRef) extends GenericBuilder with Logging {
+class MethodCallBuilder(m:ScMethod, owner:AnyRef) extends GenericBuilder with Logger {
 
   private val valueHolder = mutable.Map[String, Any]()
 

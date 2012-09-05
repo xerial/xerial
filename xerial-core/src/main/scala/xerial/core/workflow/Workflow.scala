@@ -7,7 +7,7 @@
 
 package xerial.core.workflow
 
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 /**
  * @author leo
@@ -49,7 +49,7 @@ object Workflow {
 }
 
 
-trait Workflow extends Logging {
+trait Workflow extends Logger {
 
   import Workflow._
 

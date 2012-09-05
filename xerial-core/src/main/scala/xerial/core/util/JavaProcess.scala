@@ -17,7 +17,7 @@
 package xerial.core.util
 
 import xerial.core.io.text.LineReader
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 //-------------------------------------
 //
@@ -32,7 +32,7 @@ case class JProcess(id:Int, name:String, cmd:String)
 /**
  * @author leo
  */
-object JavaProcess extends Logging {
+object JavaProcess extends Logger {
 
   private val jpsPattern = """([0-9]+)\s+(\S+)\s+(\S.*)""".r
 

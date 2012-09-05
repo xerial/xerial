@@ -17,7 +17,7 @@ package xerial.lens
 
 import java.{lang => jl}
 import java.lang.{reflect => jr}
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 //--------------------------------------
 //
@@ -77,7 +77,7 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: In
  * @param valueType
  */
 case class FieldParameter(owner: Class[_], ref: Class[_], override val name: String, override val valueType: ObjectType)
-  extends Parameter(name, valueType) with Logging {
+  extends Parameter(name, valueType) with Logger {
   lazy val field = {
     try
       owner.getDeclaredField(name)

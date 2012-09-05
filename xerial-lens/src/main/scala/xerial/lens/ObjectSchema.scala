@@ -18,7 +18,7 @@ package xerial.lens
 
 import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import java.{lang => jl}
 
 //--------------------------------------
@@ -33,7 +33,7 @@ import java.{lang => jl}
 /**
  * Object information extractor
  */
-object ObjectSchema extends Logging {
+object ObjectSchema extends Logger {
 
   import java.{lang => jl}
   import TypeUtil._
@@ -392,7 +392,7 @@ object ObjectSchema extends Logging {
  * Contains information of methods, constructor and parameters defined in a class
  * @author leo
  */
-class ObjectSchema(val cl: Class[_]) extends Logging {
+class ObjectSchema(val cl: Class[_]) extends Logger {
 
   if (cl == null)
     throw new NullPointerException("input class is null")

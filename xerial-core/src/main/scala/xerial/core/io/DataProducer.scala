@@ -10,7 +10,7 @@
 package xerial.core.io
 import java.io._
 import java.nio.CharBuffer
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 
 /**
@@ -54,7 +54,7 @@ trait DataProducer extends InputStream with DataProducerBase[InputStream, Output
  * @tparam PipeIn
  * @tparam PipeOut
  */
-trait DataProducerBase[PipeIn <: Closeable, PipeOut <: Closeable] extends Closeable with Logging {
+trait DataProducerBase[PipeIn <: Closeable, PipeOut <: Closeable] extends Closeable with Logger {
 
   protected val pipeIn: PipeIn
   protected val pipeOut: PipeOut
