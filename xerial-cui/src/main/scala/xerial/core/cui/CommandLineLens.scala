@@ -1,4 +1,4 @@
-package xerial.core.cui
+package xerial.cui
 
 //--------------------------------------
 //
