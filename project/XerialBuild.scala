@@ -60,7 +60,7 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5"),
     pomExtra := {
       <licenses>
         <license>
