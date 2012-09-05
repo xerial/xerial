@@ -1,12 +1,16 @@
 Xerial Project
 ===========
 
-The ulitimate goal of Xerial project is to manage everything as database. 
+Xerial is data manegment utilties for Scala. 
+The ulitimate goal of Xerial project is to manage everything as database,
+including class objects, text format data (json, XML, Silk, etc.), data
+streams, etc.
 
 # Modules
 
 ## xerial-core
-Core utilities of xerial projects.
+Core utilities of xerial projects. No dependencies other than the
+scala-library exists in xerial-core.
  
  * Useful collection classes
      * CyclicArray (double-ended queue), RedBlackTree, balanced PrioritySearchTree (*O(log N+k)* for interval-intersection queries), UnionFindSet etc.
@@ -23,7 +27,6 @@ Core utilities of xerial projects.
  * Fast PEG parser generator
     * (on-going) Producing [Silk format](http://xerial.org/silk) parser codes for serval programming language including Scala(Java), C, etc.
   
-
 ## xerial-lens
 Retrives object type information embeded in Scala-generated class files. 
 
