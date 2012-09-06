@@ -1,7 +1,7 @@
 Xerial Project
 ===========
 
-Xerial is data manegment utilties for Scala. 
+Xerial is data managment utilties for Scala. 
 The ulitimate goal of Xerial project is to manage everything as database,
 including class objects, text format data (json, XML, Silk, etc.), data
 streams, etc.
