@@ -51,8 +51,6 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    resolvers += "Sonatype release repo" at "https://oss.sonatype.org/content/groups/staging/"
-
     libraryDependencies += "org.xerial" % "xerial-core" % "3.0"
     
     # When you want to use ObjectSchema
