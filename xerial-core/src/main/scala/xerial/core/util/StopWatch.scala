@@ -18,7 +18,7 @@ package xerial.core.util
 
 import java.lang.IllegalStateException
 import collection.mutable.{ListBuffer, Stack, LinkedHashMap}
-import xerial.core.log.{Logging, Logger, LogLevel}
+import xerial.core.log.{LoggerFactory, Logger, LogLevel}
 
 
 //--------------------------------------
@@ -29,33 +29,34 @@ import xerial.core.log.{Logging, Logger, LogLevel}
 //--------------------------------------
 
 /**
- * Stop watch for measuring the performance of code blocks.
+ * Timer trait for measuring the performance of code blocks
  *
  * <code>
  * <pre>
- *   import StopWatch._
  *
- *   val t : TimeReport = time("performance test") {
+ *   class A extends Timer {
  *
- *     // write any code here
- *
- *     block("A") {
+ *     val t : TimeReport = time("performance test") {
+ *       // write any code here
+ *       block("A") {
  *        // code A
- *     }
- *
- *     block("B") {
+ *       }
+ *       block("B") {
  *        // code B
+ *       }
  *     }
- *   }
  *
- *   println(t)
+ *     // report elapsed time of A, B and the total time
+ *     println(t)
+ *
+ *   }
  *
  * </pre>
  * </code>
  * @author leo
  */
-object StopWatch {
-  private val holder = new ThreadLocal[Stack[TimeReport]] {
+trait Timer {
+  private[this] val holder = new ThreadLocal[Stack[TimeReport]] {
     override def initialValue() = new Stack[TimeReport]
   }
 
@@ -77,7 +78,7 @@ object StopWatch {
    * @tparam A
    * @return
    */
-  def time[A](blockName: String, logLevel: LogLevel = DEBUG, repeat: Int = 1)(f: => A): TimeReport = {
+  protected def time[A](blockName: String, logLevel: LogLevel = DEBUG, repeat: Int = 1)(f: => A): TimeReport = {
     def pushContext(t: TimeReport): Unit = contextStack.push(t)
     def popContext: Unit = contextStack.pop
 
@@ -92,7 +93,7 @@ object StopWatch {
     }
   }
 
-  def block[A](name: String, repeat: Int = 1)(f: => A): TimeReport = {
+  protected def block[A](name: String, repeat: Int = 1)(f: => A): TimeReport = {
     val m = contextStack.lastOption match {
       case None => throw new IllegalStateException("block {} should be enclosed inside time {}")
       case Some(context) => {
@@ -102,11 +103,11 @@ object StopWatch {
     m.measure(repeat)
   }
 
-  def reportLog(m: TimeReport, logLevel: LogLevel): Unit = {
-    val l = if (this.isInstanceOf[Logging])
-      this.asInstanceOf[Logging].log(logLevel, m.report)
+  protected def reportLog(m: TimeReport, logLevel: LogLevel): Unit = {
+    val l = if (classOf[Logger].isAssignableFrom(this.getClass))
+      this.asInstanceOf[Logger].log(logLevel, m.report)
     else
-      Logger(this.getClass).log(logLevel, m.report)
+      LoggerFactory(this.getClass).log(logLevel, m.report)
   }
 }
 
@@ -155,8 +156,6 @@ trait TimeReport extends Ordered[TimeReport] {
 
         maxInterval = math.max(maxInterval, intervalTime)
         minInterval = math.min(minInterval, intervalTime)
-
-
       }
     }
     this
@@ -176,7 +175,7 @@ trait TimeReport extends Ordered[TimeReport] {
   }
 
   def genReportLine: String = {
-    "[%s]\ttotal:%.3f sec., count:%,d, avg:%.3f sec., min:%.3f sec., max:%.3f sec.".format(
+    "-%-10s\ttotal:%.3f sec., count:%,5d, avg:%.3f sec., min:%.3f sec., max:%.3f sec.".format(
       name, s.getElapsedTime, executionCount, average, minInterval, maxInterval
     )
   }

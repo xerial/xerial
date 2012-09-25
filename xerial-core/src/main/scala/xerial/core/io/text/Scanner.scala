@@ -17,7 +17,7 @@
 package xerial.core.io.text
 
 import xerial.core.collection.CyclicArray
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 //--------------------------------------
 //
@@ -111,7 +111,7 @@ trait PositionMark { this: Scanner =>
   def clearMarks : Unit
 }
 
-trait PositionMarkImpl extends PositionMark with Logging { this: Scanner =>
+trait PositionMarkImpl extends PositionMark with Logger { this: Scanner =>
 
   private val markQueue = new CyclicArray[Int]
 

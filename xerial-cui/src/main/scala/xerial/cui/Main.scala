@@ -5,9 +5,9 @@
 //
 //--------------------------------------
 
-package xerial.core.cui
+package xerial.cui
 
-import xerial.core.log.Logger
+import xerial.core.log.{LoggerFactory}
 
 
 /**
@@ -32,8 +32,8 @@ class Main extends CommandModule {
                logLevel:String) = {
 
     loggerName match {
-      case Some(n) => Logger.setLogLevel(pid, n, logLevel)
-      case None => Logger.setDefaultLogLevel(pid, logLevel)
+      case Some(n) => LoggerFactory.setLogLevel(pid, n, logLevel)
+      case None => LoggerFactory.setDefaultLogLevel(pid, logLevel)
     }
   }
 

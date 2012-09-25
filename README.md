@@ -1,26 +1,32 @@
 Xerial Project
 ===========
 
-The ulitimate goal of Xerial project is to manage everything as database. 
+Xerial is data managment utilties for Scala. 
+The ulitimate goal of Xerial project is to manage everything as database,
+including class objects, text format data (json, XML, Silk, etc.), data
+streams, etc.
 
 # Modules
 
 ## xerial-core
-Core utilities of xerial projects.
+Core utilities of xerial projects. No dependencies other than the
+scala-library exists in xerial-core.
  
  * Useful collection classes
      * CyclicArray (double-ended queue), RedBlackTree, balanced PrioritySearchTree (*O(log N+k)* for interval-intersection queries), UnionFindSet etc.
  * Logger whose log levels and output targets can be configured through a JMX interface at runtime
-     * For use, simply extend `Logging` trait, then call trace, debug, info, warn, error, fatal methods to output logs.
+     * For use, simply extend `xerial.core.log.Logger` trait in your class, then call trace, debug, info, warn, error, fatal methods to output logs.
      * Global log levels can be configured through JVM argument (e.g, -Dloglevel=debug) 
- * StopWatch for taking benchmarks of code blocks
-     * Repetitive execution of codes is supported.
+ * Better benchmarking with Timer trait
+     * Extend `xerial.core.util.Timer` trait, then wrap your code with `time`
+ method. The execution time of the wrapped code will be reported (in debug log)
+     * You can also divide your code into sub blocks with `block` method.
+     * Repetitive execution is supported; Use `time(repeat=(Int))` or `block(repeat=(Int))`.
  * Resource trait for reading files in classpaths and jar files. 
-    * Quite useful for writing codes that need to use resource files. (e.g., test data, graphic data, font files, etc.)
+    * Quite useful for reading resource files. (e.g., test data, graphic data, font files, etc.)
  * Fast PEG parser generator
     * (on-going) Producing [Silk format](http://xerial.org/silk) parser codes for serval programming language including Scala(Java), C, etc.
   
-
 ## xerial-lens
 Retrives object type information embeded in Scala-generated class files. 
 
@@ -32,7 +38,8 @@ Retrives object type information embeded in Scala-generated class files.
 ### Applications of ObjectSchema
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
- * Command-line parser 
+
+ * Command-line parser (xerial-cui)
    * You can call methods in a class by mapping command line arguments to the method arguments
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
@@ -44,14 +51,26 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
-    
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.0-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.0"
     
     # When you want to use ObjectSchema
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.0-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.0"
+
+    # command line parser
+    libraryDependencies += "org.xerial" % "xerial-cui" % "3.0"
+
+#### Using Snapshot version
+
+    resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
+    
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.0.1-SNAPSHOT"
+
 
 ## Scala API
 
-* [xerial-core 3.0-SNAPSHOT API](https://oss.sonatype.org/service/local/repositories/snapshots/archive/org/xerial/xerial-core/3.0-SNAPSHOT/xerial-core-3.0-SNAPSHOT-javadoc.jar/!/index.html)
-* [xerial-lens 3.0-SNAPSHOT API](https://oss.sonatype.org/service/local/repositories/snapshots/archive/org/xerial/xerial-lens/3.0-SNAPSHOT/xerial-lens-3.0-SNAPSHOT-javadoc.jar/!/index.html)
+(Unidoc of API will be prepared)
+
+* [xerial-core 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.0/xerial-core-3.0-javadoc.jar/!/index.html)
+* [xerial-lens 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.0/xerial-lens-3.0-javadoc.jar/!/index.html)
+* [xerial-cui 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-cui/3.0/xerial-cui-3.0-javadoc.jar/!/index.html)
+

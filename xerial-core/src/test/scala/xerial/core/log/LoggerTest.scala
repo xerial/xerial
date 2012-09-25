@@ -15,13 +15,13 @@ import xerial.core.XerialSpec
  */
 class LoggerTest extends XerialSpec {
 
-  "Logger" should {
+  "LogWriter" should {
     "be used as an trait" in {
       true
     }
 
     "have root logger" in {
-      val l = Logger.rootLogger
+      val l = LoggerFactory.rootLogger
       l.log(LogLevel.INFO, "root logger")
     }
 
@@ -58,8 +58,8 @@ class LoggerTest extends XerialSpec {
     }
 
     "Set log level via JMX" in {
-      Logger.setLogLevelJMX("LoggerTest:jmx", "error")
-      val l = Logger(classOf[LoggerTest], 'jmx)
+      LoggerFactory.setLogLevelJMX("LoggerTest:jmx", "error")
+      val l = LoggerFactory(classOf[LoggerTest], 'jmx)
       l.logLevel should be(LogLevel.ERROR)
     }
 

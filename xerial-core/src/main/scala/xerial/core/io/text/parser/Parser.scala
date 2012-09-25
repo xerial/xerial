@@ -10,7 +10,7 @@ package xerial.core.io.text.parser
 import xerial.core.io.text.parser.Grammar.{SeqNode, Expr}
 import xerial.core.io.text.Scanner
 import annotation.tailrec
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import util.DynamicVariable
 
 
@@ -52,7 +52,7 @@ import Parser._
 /**
  * @author leo
  */
-class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logging {
+class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
 
   import Grammar._
 

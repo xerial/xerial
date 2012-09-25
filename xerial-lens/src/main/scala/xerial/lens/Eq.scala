@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package xerial.core.lens
+package xerial.lens
 
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import javassist._
 import xerial.core.util.StringTemplate
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
@@ -102,7 +102,7 @@ object Eq {
 /**
  * This class generates a code of the equality check and hash code from a given class definition
  */
-object EqGen extends Logging {
+object EqGen extends Logger {
   def buildEqCode(cl: Class[_]): String = {
     val schema = ObjectSchema(cl)
     val cmpCode = for (p <- schema.parameters) yield {

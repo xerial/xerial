@@ -21,7 +21,7 @@
 //
 //--------------------------------------
 
-package xerial.core.lens
+package xerial.lens
 import java.{lang => jl}
 
 object ObjectType {
@@ -43,7 +43,14 @@ trait Type {
 
 trait ObjectMethod extends Type {
 
+  val params : Array[MethodParameter]
+  val jMethod : jl.reflect.Method
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T]
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T]
+
+  def invoke(obj:AnyRef, params:AnyRef*) : Any
 }
+
 
 /**
  *

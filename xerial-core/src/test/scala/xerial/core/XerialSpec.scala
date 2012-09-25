@@ -2,8 +2,8 @@ package xerial.core
 
 import io.Resource
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
-import util.StopWatch
-import xerial.core.log.Logging
+import xerial.core.util.Timer
+import xerial.core.log.Logger
 import org.scalatest.{Tag, OptionValues, GivenWhenThen, WordSpec}
 
 
@@ -17,7 +17,7 @@ import org.scalatest.{Tag, OptionValues, GivenWhenThen, WordSpec}
 /**
  * @author leo
  */
-trait XerialSpec extends WordSpec with ShouldMatchers with MustMatchers with GivenWhenThen with OptionValues with Resource with Logging {
+trait XerialSpec extends WordSpec with ShouldMatchers with MustMatchers with GivenWhenThen with OptionValues with Resource with Timer with Logger {
 
   implicit def toTag(t:String) = Tag(t)
 }

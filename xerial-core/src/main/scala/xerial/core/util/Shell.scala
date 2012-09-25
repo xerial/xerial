@@ -19,7 +19,7 @@ package xerial.core.util
 import collection.mutable.WeakHashMap
 import java.io.File
 import sys.process.Process
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import xerial.core.util
 
 //--------------------------------------
@@ -33,7 +33,7 @@ import xerial.core.util
  * Launch UNIX (or cygwin) commands from Scala
  * @author leo
  */
-object Shell extends Logging {
+object Shell extends Logger {
 
   def launchJava(args: String) = {
     val javaCmd = Shell.findJavaCommand()

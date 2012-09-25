@@ -5,7 +5,7 @@
 //
 //--------------------------------------
 
-package xerial.core.lens
+package xerial.lens
 
 import xerial.core.XerialSpec
 import util.Random
@@ -19,6 +19,8 @@ object EqTest {
   case class MyClass2(id: Int, name: String) extends Eq
 
   case class MyClass3(id:Int, name:String) extends Eq
+
+  case class Nested(a:A) extends Eq
 }
 
 
@@ -56,7 +58,6 @@ class EqTest extends XerialSpec {
     }
 
     "generate fast comparison code" in {
-      import xerial.core.util.StopWatch._
       val c1 = new A(1, "leo", 1L)
       val c2 = new A(1, "leo", 2L)
       val d1 = new B(1, "leo", 1L)
@@ -88,6 +89,13 @@ class EqTest extends XerialSpec {
       }
       val g = l.par.groupBy(m => m)
 
+    }
+
+    "allow nesting" in {
+      val n = Nested(A(1, "leo", 10L))
+      val n2 = Nested(A(1, "leo", 10L))
+      n.hashCode should be(n2.hashCode)
+      n should be (n2)
     }
 
   }

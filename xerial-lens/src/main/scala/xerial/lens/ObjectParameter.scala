@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package xerial.core.lens
+package xerial.lens
 
 import java.{lang => jl}
 import java.lang.{reflect => jr}
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 //--------------------------------------
 //
@@ -77,7 +77,7 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: In
  * @param valueType
  */
 case class FieldParameter(owner: Class[_], ref: Class[_], override val name: String, override val valueType: ObjectType)
-  extends Parameter(name, valueType) with Logging {
+  extends Parameter(name, valueType) with Logger {
   lazy val field = {
     try
       owner.getDeclaredField(name)
@@ -148,6 +148,37 @@ case class ScMethod(owner: Class[_], jMethod: jl.reflect.Method, name: String, p
   override def hashCode = {
     owner.hashCode() + name.hashCode()
   }
+
+  def invoke(obj:AnyRef, params:AnyRef*) : Any = {
+    jMethod.invoke(obj, params:_*)
+  }
+}
+
+case class CompanionMethod(owner:Class[_], jMethod:jl.reflect.Method, name:String, params: Array[MethodParameter], returnType: ObjectType)
+ extends ObjectMethod with Logger
+{
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
+    jMethod.getAnnotation(c.erasure.asInstanceOf[Class[T]]) match {
+      case null => None
+      case a => Some(a.asInstanceOf[T])
+    }
+  }
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T] = {
+    params(paramIndex).findAnnotationOf[T]
+  }
+
+  override def hashCode = {
+    owner.hashCode() + name.hashCode()
+  }
+
+  def invoke(obj:AnyRef, params:AnyRef*) : Any = {
+    debug("invoking jMethod:%s, owner:%s", jMethod, owner)
+    TypeUtil.companionObject(owner) map { co =>
+      debug("found a companion object of %s", owner)
+      jMethod.invoke(co, params:_*)
+    } orNull
+  }
+
 }
 
 /**
@@ -155,7 +186,7 @@ case class ScMethod(owner: Class[_], jMethod: jl.reflect.Method, name: String, p
  * @param cl
  * @param params
  */
-case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extends ObjectMethod {
+case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extends Type {
   val name = cl.getSimpleName
   override def toString = "Constructor(%s, [%s])".format(cl.getSimpleName, params.mkString(", "))
 

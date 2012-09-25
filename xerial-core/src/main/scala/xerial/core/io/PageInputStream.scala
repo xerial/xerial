@@ -8,7 +8,7 @@
 package xerial.core.io
 
 import java.io._
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 import annotation.tailrec
 
 
@@ -17,7 +17,7 @@ object PageInputStream {
 }
 
 
-trait PagedInput[T] extends RichInput[T] with Iterable[Array[T]] with Logging {
+trait PagedInput[T] extends RichInput[T] with Iterable[Array[T]] with Logger {
 
   def pageSize: Int
 

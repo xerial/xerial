@@ -16,7 +16,7 @@
 
 //--------------------------------------
 //
-// Logger.scala
+// LogWriter.scalaala
 // Since: 2012/07/19 4:23 PM
 //
 //--------------------------------------
@@ -65,11 +65,11 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
 }
 
 /**
- * Adding log functions to your class.
+ * Trait for adding logging functions (trace, debug, info, warn, error and fatal) to your class.
  */
-trait Logging {
+trait Logger {
 
-  private[this] val logger = new DynamicVariable[Logger](Logger(this.getClass))
+  private[this] val logger = new DynamicVariable[LogWriter](LoggerFactory(this.getClass))
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.value.isEnabled(logLevel))
@@ -80,7 +80,7 @@ trait Logging {
     if(logger.value.tag == tag)
       body
     else
-      logger.withValue(Logger(logger.value.prefix + ":" + tag)) {
+      logger.withValue(LoggerFactory(logger.value.prefix + ":" + tag)) {
         body
       }
   }
@@ -90,16 +90,16 @@ trait Logging {
    * @param tag
    * @return
    */
-  protected def getLogger(tag: Symbol): Logger = Logger(logger.value, tag)
+  protected def getLogger(tag: Symbol): LogWriter = LoggerFactory(logger.value, tag)
 
   /**
    * Create a sub logger with a given tag name
    * @param tag
    * @return
    */
-  protected def getLogger(tag: String): Logger = getLogger(Symbol(tag))
+  protected def getLogger(tag: String): LogWriter = getLogger(Symbol(tag))
 
-  protected def log[U](tag: String)(f: Logger => U) {
+  protected def log[U](tag: String)(f: LogWriter => U) {
     f(getLogger(tag))
   }
 
@@ -185,13 +185,13 @@ trait LogHelper {
 
 
 /**
- * Logger interface
+ * Interface of log writers
  * @author leo
  */
-trait Logger extends LogHelper {
+trait LogWriter extends LogHelper {
 
   val name: String
-  val shortName = Logger.leafName(name)
+  val shortName = LoggerFactory.leafName(name)
   def tag = {
     val pos = shortName.lastIndexOf(":")
     if (pos == -1)
@@ -224,23 +224,23 @@ trait Logger extends LogHelper {
 }
 
 
-object Logger {
+object LoggerFactory {
 
   private[log] var defaultLogLevel: LogLevel = LogLevel(System.getProperty("loglevel", "info"))
 
   private val rootLoggerName = "root"
-  val rootLogger = new ConsoleLogger(rootLoggerName, defaultLogLevel)
+  val rootLogger = new ConsoleLogWriter(rootLoggerName, defaultLogLevel)
 
   /**
    * Hold logger instances in weakly referenced hash map to allow releasing instances when necessary
    */
-  private val loggerHolder = new mutable.WeakHashMap[String, Logger]
+  private val loggerHolder = new mutable.WeakHashMap[String, LogWriter]
 
 
-  def apply(cl: Class[_]): Logger = getLogger(cl.getName)
-  def apply(name: String): Logger = getLogger(name)
-  def apply(logger: Logger, symbol: Symbol): Logger = getLogger(logger.name + ":" + symbol.name)
-  def apply(cl: Class[_], symbol: Symbol): Logger = apply(apply(cl), symbol)
+  def apply(cl: Class[_]): LogWriter = getLogger(cl.getName)
+  def apply(name: String): LogWriter = getLogger(name)
+  def apply(logger: LogWriter, symbol: Symbol): LogWriter = getLogger(logger.name + ":" + symbol.name)
+  def apply(cl: Class[_], symbol: Symbol): LogWriter = apply(apply(cl), symbol)
 
 
   def getDefaultLogLevel(loggerName:String) : LogLevel ={
@@ -259,11 +259,11 @@ object Logger {
   }
 
   /**
-   * Get the logger of the specified name. Logger names are
+   * Get the logger of the specified name. LogWriter names are
    * dot-separated list as of the package names.
    * This naming should be the same with java package/class naming convention.
    */
-  private def getLogger(name: String): Logger = {
+  private def getLogger(name: String): LogWriter = {
 
     def property(key: String) = Option(System.getProperty(key))
 
@@ -278,7 +278,7 @@ object Logger {
       rootLogger
     else {
       synchronized {
-        loggerHolder.getOrElseUpdate(name, new ConsoleLogger(name, getLogLevel))
+        loggerHolder.getOrElseUpdate(name, new ConsoleLogWriter(name, getLogLevel))
       }
     }
   }
@@ -355,7 +355,7 @@ object Logger {
 
 import javax.management.MXBean
 /**
- * Logger configuration API
+ * LogWriter configuration API
  * @author leo
  */
 @MXBean abstract trait LoggerConfig {
@@ -367,36 +367,36 @@ import javax.management.MXBean
 
 class LoggerConfigImpl extends LoggerConfig {
 
-  def getDefaultLogLevel = Logger.defaultLogLevel.toString
+  def getDefaultLogLevel = LoggerFactory.defaultLogLevel.toString
 
   def setLogLevel(loggerName: String, logLevel: String)  {
     System.setProperty("loglevel:%s".format(loggerName), logLevel)
-    val logger = Logger.apply(loggerName)
+    val logger = LoggerFactory.apply(loggerName)
     val level = LogLevel(logLevel)
     logger.logLevel = level
-    Logger.rootLogger.info("set the log level of %s to %s", loggerName, level)
+    LoggerFactory.rootLogger.info("set the log level of %s to %s", loggerName, level)
   }
 
   def setDefaultLogLevel(logLevel:String) {
     val level = LogLevel(logLevel)
     System.setProperty("loglevel", level.toString)
-    Logger.rootLogger.info("Set the default log level to %s", level)
+    LoggerFactory.rootLogger.info("Set the default log level to %s", level)
   }
 }
 
 
 
 /**
- * Empty logger
+ * Empty log writer
  */
-trait NullLogger extends Logger {
+trait NullLogWriter extends LogWriter {
   protected def write(level: LogLevel, message: Any) {}
 }
 
 /**
- * Logger for string messages
+ * LogWriter for string messages
  */
-trait StringLogger extends Logger {
+trait StringLogWriter extends LogWriter {
   def write(level: LogLevel, message: Any) = write(level, formatLog(level, message))
   /**
    * Override this method to customize the log format
@@ -426,7 +426,7 @@ trait StringLogger extends Logger {
   protected def write(level: LogLevel, message: String) = Console.err.println(message)
 }
 
-object ConsoleLogger {
+object ConsoleLogWriter {
 
   import LogLevel._
   val colorPrefix = Map[LogLevel, String](
@@ -441,10 +441,15 @@ object ConsoleLogger {
 
 }
 
-class ConsoleLogger(val name: String, var logLevel: LogLevel) extends StringLogger {
+/**
+ * Log writer using console
+ * @param name
+ * @param logLevel
+ */
+class ConsoleLogWriter(val name: String, var logLevel: LogLevel) extends StringLogWriter {
 
   override protected def formatLog(level:LogLevel, message: Any) = {
-    "%s%s%s".format(ConsoleLogger.colorPrefix(level), super.formatLog(level, message), Console.RESET)
+    "%s%s%s".format(ConsoleLogWriter.colorPrefix(level), super.formatLog(level, message), Console.RESET)
   }
 
   override protected def write(level: LogLevel, message: String) = Console.err.println(message)

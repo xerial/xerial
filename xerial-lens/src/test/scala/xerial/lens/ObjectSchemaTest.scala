@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package xerial.core.lens
+package xerial.lens
 
 
 import io.Source
 import xerial.core.XerialSpec
-import xerial.core.cui.option
+import org.scalatest.Tag
 
 
 //--------------------------------------
@@ -154,32 +154,6 @@ class ObjectSchemaTest extends XerialSpec {
     }
 
 
-    "find annotations attached to method arguments" in {
-      val methods = classOf[CommandLineAPI].methods
-      val m = methods(0)
-      m.name must be("hello")
-      val name = m.findAnnotationOf[option](0).get
-      name.symbol must be("n")
-      name.description must be("name")
-      val dh = m.findAnnotationOf[option](1).get
-      dh.symbol must be("h")
-      dh.description must be("display help message")
-    }
-
-    "find annotations of class parameters" in {
-      val params = classOf[CommandLineOption].parameters
-      val o1 = params(0)
-      val a1 = o1.findAnnotationOf[option].get
-      a1.symbol must be("h")
-      val o2 = params(1)
-      val a2 = o2.findAnnotationOf[option].get
-      a2.symbol must be("f")
-
-      val o3 = params(2)
-      val a3 = o3.findAnnotationOf[option].get
-      a3.symbol must be("o")
-    }
-
 
     "find parameters defined in extended traits" in {
       val schema = ObjectSchema.of[MixinSample]
@@ -220,6 +194,27 @@ class ObjectSchemaTest extends XerialSpec {
       }
     }
 
+    "be safe when resolving the field owner of a private field defined in a Trait" in {
+      val p = ObjectSchema.of[SampleA].parameters
+      val obj = new SampleA
+      p.collect {
+        case f:FieldParameter => f.get(obj)
+      }
+    }
+
+    "resolve method defined in companion object referenced from trait" taggedAs(Tag("trait-ref")) in {
+      val m = ObjectSchema.of[SampleB].methods
+      m should have size (2)
+      m(0).name should be ("hello")
+      m(1).name should be ("helloWithArg")
+
+      val b = new SampleB {}
+      val r = m(0).invoke(b)
+
+      r should be ("hello")
+      m(1).invoke(b, "world") should be ("hello world")
+    }
+
   }
 
 }
@@ -250,28 +245,6 @@ object ScalaClassLensTest {
 }
 
 
-class CommandLineAPI {
-  def hello(@option(symbol = "n", description = "name")
-            name: String,
-            @option(symbol = "h", description = "display help message")
-            displayHelp: Option[Boolean]
-           ): String = {
-    "hello"
-  }
-}
-
-class CommandLineOption
-  (
-  @option(symbol = "h", description = "display help")
-  val displayHelp: Option[Boolean],
-  @option(symbol = "f", description = "input files")
-  val files: Array[String]
-) {
-  @option(symbol = "o", description = "outdir")
-  var outDir: String = "temp"
-}
-
-
 trait SampleTrait1 {
   var param1: Boolean = false
 }
@@ -294,3 +267,19 @@ object ImportSample {
 class ImportSample {
   import ImportSample._
 }
+
+trait TraitWithPrivateField {
+  private val a : String = "hello"
+}
+
+class SampleA extends TraitWithPrivateField {
+
+}
+
+
+trait SampleB
+object SampleB {
+  def hello = "hello"
+  def helloWithArg(m:String) : String = "hello " + m
+}
+

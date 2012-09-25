@@ -17,7 +17,7 @@
 package xerial.core.collection
 
 import collection.mutable.{IndexedSeqOptimized, ArrayOps, ArrayLike}
-import xerial.core.log.Logging
+import xerial.core.log.Logger
 
 
 //--------------------------------------
@@ -42,7 +42,7 @@ object CyclicArray {
  * 
  * @author Taro L. Saito
  */
-class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A]) extends IndexedSeq[A] with Logging {
+class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A]) extends IndexedSeq[A] with Logger {
   require((capacity & (capacity - 1)) == 0, "queue size must be 2^i but %s".format(capacity))
   type self = this.type
   private var queue:Array[A] = m.newArray(capacity)

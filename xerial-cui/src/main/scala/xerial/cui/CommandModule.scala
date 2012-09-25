@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package xerial.core.cui
+package xerial.cui
 
 import java.lang.reflect.InvocationTargetException
-import xerial.core.cui._
-import xerial.core.log.Logging
+import xerial.cui._
+import xerial.core.log.Logger
 import xerial.core.util.{CommandLineTokenizer, CName}
-import xerial.core.lens.{ScMethod, MethodCallBuilder, ObjectSchema}
+import xerial.lens.{ObjectMethod, MethodCallBuilder, ObjectSchema}
 
 
 //--------------------------------------
@@ -41,7 +41,7 @@ object CommandLauncher {
 /**
  *
  */
-trait CommandModule extends Logging {
+trait CommandModule extends Logger {
   self =>
   type A = self.type
 
@@ -115,7 +115,7 @@ trait CommandModule extends Logging {
 
   private def findCommand(name: String): Option[CommandDef] = {
     val cname = CName(name)
-    trace("find command:%s", cname)
+    trace("trying to find command:%s", cname)
     commandList.find(e => CName(e.name) == cname)
   }
 
@@ -145,7 +145,7 @@ trait CommandModule extends Logging {
 
 }
 
-class CommandDef(val method: ScMethod, val command: command) {
+class CommandDef(val method: ObjectMethod, val command: command) {
   val name = method.name
   val description = command.description
 }
@@ -156,21 +156,23 @@ class CommandDef(val method: ScMethod, val command: command) {
  *
  * @author leo
  */
-class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[A]) extends Logging {
+class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[A]) extends Logger {
 
   trace("launcher class: %s", cl.getName)
 
-  def execute(argLine: String): Any =
+  def execute(argLine: String): Option[_] =
     execute(CommandLineTokenizer.tokenize(argLine))
 
-  def execute(args: Array[String]): Any = {
+  def execute(args: Array[String]): Option[_] = {
 
     val parser = OptionParser.of[A]
     val (module, parseResult) = parser.build[A](args)
 
     if (module.beforeExecute(args)) {
-      module.execute(parseResult.unusedArgument)
+      Some(module.execute(parseResult.unusedArgument))
     }
+    else
+      None
   }
 
 }
