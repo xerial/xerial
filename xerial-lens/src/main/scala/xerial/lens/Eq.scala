@@ -32,7 +32,8 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 
 /**
- * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class using Reflection
+ * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class using Reflection.
+ * [[xerial.core.lens.Eq]] trait is a faster version of this class, based on runtime code generation.
  *
  * @author leo
  */
@@ -68,7 +69,7 @@ trait EqByReflection {
 }
 
 /**
- * Add value based [Any#equals] comparison and [Any#hashCode] support to an arbitrary class
+ * Add value based [Any#equals] comparison and [Any#hashCode] support to an arbitrary class.
  *
  * @author leo
  */
@@ -85,6 +86,9 @@ trait Eq {
 
 import java.lang.{reflect => jr}
 
+/**
+ * A common trait that implements comparator and hash code generation.
+ */
 trait HasEq {
   def compare(a: AnyRef, b: AnyRef): Boolean
 
@@ -157,6 +161,8 @@ object EqGen extends Logging {
   def eqCodeOf(cl: Class[_]) : HasEq = {
     synchronized {
       eqCodeCache.getOrElseUpdate(cl, {
+        // Use the same class loader with Eq to ensure Eq trait is
+        // visible from the newly generated class.
         val loader = classOf[HasEq].getClassLoader
         val eqClassName = cl.getName + "$Eq"
 
