@@ -116,8 +116,8 @@ trait OptionSchema extends Logger {
       case opt: CLOption =>
         if (!opt.annot.symbol.isEmpty)
           h += opt.annot.symbol -> opt
-        if (!opt.annot.name.isEmpty)
-          h += opt.annot.name -> opt
+        if (!opt.annot.alias.isEmpty)
+          h += opt.annot.alias -> opt
     }
     h
   }
@@ -125,6 +125,12 @@ trait OptionSchema extends Logger {
   def apply(name: String): CLOption = symbolTable.apply(name)
 
   def findOption(name: String): Option[CLOption] = symbolTable.get(name)
+  def findFlagOption(name:String) : Option[CLOption] = {
+    findOption(name) filterNot (_.takesArgument)
+  }
+  def findOptionNeedsArg(name:String) : Option[CLOption] = {
+    findOption(name) filter (_.takesArgument)
+  }
 
   def findArgumentItem(argIndex: Int): Option[CLArgument] = {
     if (args.isDefinedAt(argIndex)) Some(args(argIndex)) else None
@@ -273,91 +279,57 @@ class OptionParser(val schema: OptionSchema) extends Logger {
   }
 
   /**
-   * Parse the command-line argumetns
+   * Parse the command-line arguments
    * @param args
    * @param exitAfterFirstArgument
    * @return parse result
    */
   def parse(args: Array[String], exitAfterFirstArgument: Boolean = false): OptionParserResult = {
 
-    def findMatch[T](p: Regex, s: String)(f: Match => Option[T]): Option[T] = {
-      p.findFirstMatchIn(s) match {
-        case None => None
-        case Some(m) => f(m)
-      }
-    }
+    def findMatch[T](p: Regex, s: String) : Option[Match] = p.findFirstMatchIn(s) 
 
     def group(m: Match, group: Int): Option[String] = {
       if (m.start(group) != -1) Some(m.group(group)) else None
     }
 
-    object ShortOrLongOption {
-      private val pattern = """^-{1,2}(\w)""".r
 
-      def unapply(s: List[String]): Option[(CLOption, List[String])] = {
-        findMatch(pattern, s.head) {
-          m =>
-            val symbol = m.group(1)
-            schema.findOption(symbol) match {
-              case None => None
-              case Some(opt) => {
-                if (opt.takesArgument)
-                  None
-                else
-                  Some((opt, s.tail))
-              }
-            }
+
+    case class Flag(opt:CLOption, remaining:List[String])
+    case class WithArg(opt:CLOption, v:String, remaining:List[String])
+
+    object OptionFlag {
+      private val pattern = """^-(\w)""".r
+
+      def unapply(s: List[String]): Option[Flag] = {
+        findMatch(pattern, s.head) flatMap { m =>
+          val symbol = m.group(1)
+          schema.findFlagOption(symbol) map { Flag(_, s.tail) }
         }
       }
     }
 
-    object ShortOrLongOptionWithArgument {
-      private val pattern = """^-{1,2}(\w)([:=](\w+))?""".r
+    object OptionWithArgument {
+      private val pattern = """^-(\w)([:=](\w+))?""".r
 
-      def unapply(s: List[String]): Option[(CLOption, String, List[String])] = {
-        findMatch(pattern, s.head) {
-          m =>
+      def unapply(s: List[String]): Option[WithArg] = {
+        findMatch(pattern, s.head) flatMap { m =>
             val symbol = m.group(1)
             val immediateArg = group(m, 3)
-            schema.findOption(symbol) match {
-              case None => None
-              case Some(opt) => {
-                if (!opt.takesArgument)
-                  None
+            schema.findOptionNeedsArg(symbol) map { opt =>
+              if (immediateArg.isEmpty) {
+                if (s.tail.isEmpty)
+                  throw new IllegalArgumentException("Option %s needs an argument" format opt)
                 else {
-                  if (immediateArg.isEmpty) {
-                    if (s.tail.isEmpty)
-                      throw new IllegalArgumentException("Option %s needs an argument" format opt)
-                    else {
-                      val remaining = s.tail
-                      Some((opt, remaining.head, remaining.tail))
-                    }
-                  }
-                  else
-                    Some((opt, immediateArg.get, s.tail))
+                  val remaining = s.tail
+                  WithArg(opt, remaining.head, remaining.tail)
                 }
               }
+              else
+                WithArg(opt, immediateArg.get, s.tail)
             }
         }
       }
     }
-
-    object ShortOptionSquashed {
-      private val pattern = """^-([^-\s]\w+)""".r
-
-      def unapply(s: List[String]): Option[(List[CLOption], List[String])] = {
-        findMatch(pattern, s.head) {
-          m =>
-            val squashedOptionSymbols = m.group(1)
-            val (known, unknown) = squashedOptionSymbols.partition(ch => isKnownOption(ch.toString))
-            if (!unknown.isEmpty)
-              throw new IllegalArgumentException("unknown option is squashed: " + s.head)
-            Some((known.map(ch => schema(ch.toString)).toList, s.tail))
-        }
-      }
-    }
-
-    def isKnownOption(name: String): Boolean = schema.findOption(name).isDefined
 
     // Hold mapping, option -> args ...
     val optionValues = collection.mutable.Map[CLOptionItem, ArrayBuffer[String]]()
@@ -391,17 +363,13 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       var remaining = l
       while (continue && !remaining.isEmpty) {
         val next = remaining match {
-          case ShortOptionSquashed(ops, rest) => {
-            ops.foreach(opt => appendOptionValue(opt, "true"))
-            rest
+          case OptionFlag(m) => {
+            appendOptionValue(m.opt, "true")
+            m.remaining
           }
-          case ShortOrLongOption(op, rest) => {
-            appendOptionValue(op, "true")
-            rest
-          }
-          case ShortOrLongOptionWithArgument(op, arg, rest) => {
-            appendOptionValue(op, arg)
-            rest
+          case OptionWithArgument(m) => {
+            appendOptionValue(m.opt, m.v)
+            m.remaining
           }
           case e :: rest => {
             setArgument(e)
@@ -450,20 +418,20 @@ class OptionParser(val schema: OptionSchema) extends Logger {
     yield {
       val opt: option = o.annot
       val hasShort = opt.symbol.length != 0
-      val hasLong = opt.name.length != 0
+      val hasAlias = opt.alias.length != 0
       val l = new StringBuilder
       if (hasShort) {
         l append "-%s".format(opt.symbol)
       }
-      if (hasLong) {
+      if (hasAlias) {
         if (hasShort)
           l append ", "
-        l append "--%s".format(opt.name)
+        l append "-%s".format(opt.alias)
       }
 
       if (o.takesArgument) {
 
-        if (hasLong)
+        if (hasAlias)
           l append ":"
         else if (hasShort)
           l append " "

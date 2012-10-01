@@ -17,24 +17,23 @@ public @interface option {
 
     /**
      * symbol of the option. If this symbol is "h", it handles option "-h".
-     * The symbol must be a single character.
      *
      */
     String symbol() default "";
 
     /**
-     * name of the option. If this name is "help", it handles option
-     * "--help"
+     * alias of the option. If the alias is "help", it handles option
+     * "-help"
      *
      */
-    String name() default "";
+    String alias() default "";
 
 
     /**
-     * Variable name used to describe option argument (e.g. --file=VALUE). The
-     * default value is capitalized name().
+     * Variable name used to describe option argument (e.g. -file:VALUE). The
+     * default value is capitalized parameter name.
      */
-    String varName() default "value";
+    String varName() default "";
 
     /**
      * Description of the option, used to generate a help message of this
