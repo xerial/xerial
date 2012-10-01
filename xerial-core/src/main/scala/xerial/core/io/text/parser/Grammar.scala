@@ -65,7 +65,7 @@ trait Grammar extends Logger {
 
   implicit def toParserExpr(a: String) = new {
     // convert to range
-    def -(b: String): Expr = CharRange(a, b)
+    def ~(b: String): Expr = CharRange(a, b)
 
     // Syntactic predicate without consumption of stream
     def !->(expr: => Expr): Expr = {
@@ -82,7 +82,7 @@ trait Grammar extends Logger {
   def repeat(expr: Expr, separator: Expr): Expr = Repeat(expr, separator)
   def repeat(expr: Expr): Expr = ZeroOrMore(expr)
   def zeroOrMore(expr: Expr): Expr = repeat(expr)
-  def oneOrMore(expr: Expr, separator: Expr): Expr = (expr ~ ZeroOrMore(separator ~ expr))
+  def oneOrMore(expr: Expr, separator: Expr): Expr = (expr - ZeroOrMore(separator - expr))
   def oneOrMore(expr: Expr): Expr = OneOrMore(expr)
   def option(expr: Expr): Expr = OptionNode(expr)
 
@@ -106,17 +106,6 @@ trait Grammar extends Logger {
   }
 
 
-  /**
-   * Construct an expression. The expression is called-by-name to enable recursive definitions, e.g.,
-   *
-   * <code>
-   * def expr = expr { ("(" ~ expr ~ ")") | Int }
-   * </code>
-   *
-   * @param expr
-   * @return
-   */
-  def expr(expr: => Expr): Expr = rule(getEnclosingMethodName(3), expr)
 
   /**
    * Add an ignored expr
@@ -130,6 +119,27 @@ trait Grammar extends Logger {
     }
   }
 
+  case class ExprStart(name:String, resultType:Class[_]) {
+    def :=(e: => Expr) : Expr = rule(name, e)
+  }
+
+  def expr[A](implicit m:ClassManifest[A]) : ExprStart = {
+    val name = getEnclosingMethodName(3)
+    debug("define expr %s[%s]", name, m.erasure.getSimpleName)
+    ExprStart(name, m.erasure)
+  }
+
+  /**
+   * Construct an expression. The expression is called-by-name to enable recursive definitions, e.g.,
+   *
+   * <code>
+   * def expr = expr { ("(" ~ expr ~ ")") | Int }
+   * </code>
+   *
+   * @param expr
+   * @return
+   */
+  def expr(expr: => Expr): Expr = rule(getEnclosingMethodName(3), expr)
 
   /**
    * Construct a new expr with a given name
@@ -169,12 +179,19 @@ trait Grammar extends Logger {
     new Throwable().getStackTrace()(stackLevel).getMethodName
   }
 
-  def parse(e:Expr, s:String) = {
+  def parse(e:Expr, s:String)  = {
     trace("preparing parser")
     val p = new Parser(new StringScanner(s), e, ignoredExprs)
     trace("parse start")
     p.parse
   }
+
+
+  def parseExpr[A](e:Expr, s:String) = {
+
+  }
+
+
 }
 
 
@@ -194,23 +211,32 @@ object Grammar extends Logger {
     text
   }
 
+
   /**
    * Parsing expression
    * @param name
    */
   sealed abstract class Expr(val name: String) { a: Expr =>
-    def ~(b: Expr): Expr = SeqNode(Array(a, b))
+    def -(b: Expr): Expr = SeqNode(Array(a, b))
     def |(b: Expr): Expr = OrNode(Array(a, b))
     def or(b: Expr): Expr = OrNode(Array(a, b))
 
+    def ~>(name:String) = Alias(name, this)
+
     override def toString = toVisibleString(name)
   }
+
+  case class Alias(alias:String, e:Expr) extends Expr("%s:%s".format(alias, e)) {
+  }
+
+
+
 
   case class OrNode(seq: Array[Expr]) extends Expr("(%s)".format(seq.map(_.name).mkString(" | "))) {
     override def |(b: Expr): Expr = OrNode(seq :+ b)
   }
   case class SeqNode(seq: Array[Expr]) extends Expr("(%s)".format(seq.map(_.name).mkString(" "))) {
-    override def ~(b: Expr): Expr = SeqNode(seq :+ b)
+    override def -(b: Expr): Expr = SeqNode(seq :+ b)
   }
   case class ExprRef(override val name: String, private var expr: Expr) extends Expr(name) {
     private[Grammar] def set(newExpr: Expr) {
@@ -231,11 +257,11 @@ object Grammar extends Logger {
   case class Leaf(override val name: String, tt: Int) extends Expr(name)
   case class ZeroOrMore(a: Expr) extends Expr("%s*".format(a.name))
   case class OneOrMore(a: Expr) extends Expr("%s+".format(a.name)) {
-    def expr = a ~ ZeroOrMore(a)
+    def expr = a - ZeroOrMore(a)
   }
   case class OptionNode(a: Expr) extends Expr("%s?".format(a.name))
   case class Repeat(a: Expr, separator: Expr) extends Expr("rep(%s, %s)".format(a.name, separator.name)) {
-    def expr = OptionNode(a ~ ZeroOrMore(separator ~ a))
+    def expr = OptionNode(a - ZeroOrMore(separator - a))
   }
 
 
