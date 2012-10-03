@@ -62,7 +62,7 @@ object GrammarExample extends Grammar {
   case class Comment(comment:String)
   def comment = expr[Comment] { "#" - untilEOF ~> "comment" }
   def value = expr { alphabet | digit }
-  def tuple = expr { "(" - value - repeat(value, ",") - ")" }
+  def tuple = expr { "(" - repeat(value, ",") - ")" }
   def alphabet   = expr { "A" ~ "Z" }
   def digit      = expr { "0" ~ "9" }
   def number     = expr { option("-") - option("0" | ("1" ~ "9") - repeat(digit)) - option("." - oneOrMore(digit)) }
@@ -84,10 +84,12 @@ class GrammarTest extends XerialSpec {
 
     "use syntax without paren" in {
       import GrammarExample._
-      val c = comment
 
-      GrammarExample.parseExpr(comment, "# this is comment line")
-
+      val c = GrammarExample.parseExpr(comment, "# this is a comment line")
+      c.isRight should be (true)
+      c.right.map { r =>
+        r.comment should be (" this is a comment line")
+      }
 
     }
 

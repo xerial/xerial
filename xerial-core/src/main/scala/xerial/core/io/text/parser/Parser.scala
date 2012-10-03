@@ -7,7 +7,7 @@
 
 package xerial.core.io.text.parser
 
-import xerial.core.io.text.parser.Grammar.{SeqNode, Expr}
+import xerial.core.io.text.parser.Grammar.Expr
 import xerial.core.io.text.Scanner
 import annotation.tailrec
 import xerial.core.log.Logger
@@ -29,14 +29,17 @@ object Parser {
     def ~(t: ParseTree) = Empty // TODO
   }
 
-  case class Token(t: Int) extends ParseTree {
-    def ~(t: ParseTree) = Empty // TODO
-  }
+//  case class Token(t: Int) extends ParseTree {
+//    def ~(t: ParseTree) = Empty // TODO
+//  }
 
   case object OK extends ParseTree {
     def ~(t: ParseTree) = Empty // TODO
   }
 
+  case class Match(s:CharSequence) extends ParseTree {
+    def ~(t: ParseTree) = Empty // TODO
+  }
 
   type ParseResult = Either[ParseError, ParseTree]
 
@@ -67,6 +70,8 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
   private val body = build(e)
   private lazy val ignored = EvalOr("ignored", (ignoredExprs map { build(_) }).toArray[Eval])
 
+  private var matchStack = collection.mutable.Stack[Any]()
+
 
   private def build(expr: Expr): Eval = {
     val cache = collection.mutable.Map[String, Eval]()
@@ -87,6 +92,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
             toEval(_)
           })
           case ExprRef(_, ref, rt) => toEval(ref)
+          case Alias(alias, expr) => EvalAlias(alias, toEval(expr))
           case Not(expr) => EvalNot(toEval(expr))
           case SyntacticPredicateFail(predToFail, expr) => EvalSyntacticPredicateFail(toEval(predToFail), toEval(expr))
           case Leaf(name, tt) => EvalCharPred(name, {t: Int =>
@@ -107,11 +113,28 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
     toEval(expr)
   }
 
-  //case class Context(Map[
 
 
   case class EvalRef(var e:Eval) extends Eval {
     def eval : ParseResult = e.eval
+  }
+
+
+//  case class EmitResult(exprRef:ExprRef[_]) extends Eval {
+//    def eval : ParseResult = {
+//    }
+//  }
+
+
+
+  case class EvalAlias(alias:String, e:Eval) extends Eval {
+    def eval : ParseResult = {
+      val ev = e.eval
+      ev.right.foreach { m =>
+        matchStack :+= alias -> m
+      }
+      ev
+    }
   }
 
   case class EvalNot(e: Eval) extends Eval {
@@ -207,21 +230,26 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
 
   case class EvalCharPred(name:String, pred: Int => Boolean) extends Eval {
     def eval: ParseResult = {
-      def loop : ParseResult = {
+      @tailrec
+      def loop(matchCount:Int) : ParseResult = {
+        def exit = if(matchCount == 0) Left(NoMatch) else Right(OK)
         val t = input.first
         //debug("eval char pred %s: %s", Grammar.toVisibleString(name), Grammar.toVisibleString(t.toChar.toString))
-        if (t != input.EOF && pred(t)) {
+        if (t == input.EOF)
+          exit
+        else if(pred(t)) {
           trace("match %s", t.toChar)
           input.consume
-          Right(OK)
+          loop(matchCount+1)
         }
         else
-          Left(NoMatch)
+          exit
       }
 
       input.withMark {
-        loop
+        loop(0).right.map { r => Match(input.selected) }
       }
+
     }
   }
 
@@ -252,6 +280,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
   def parse = {
     debug("parse %s", body)
     body.eval
+    debug("stack: %s", matchStack)
   }
 
 }

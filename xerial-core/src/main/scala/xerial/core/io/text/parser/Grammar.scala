@@ -181,7 +181,8 @@ trait Grammar extends Logger {
 
 
   def parseExpr[A](e:ExprRef[A], s:String) : Either[ParseError, A] = {
-
+    val p = new Parser(new StringScanner(s), e, ignoredExprs)
+    p.parse
     Left(NoMatch)
   }
 
