@@ -142,10 +142,13 @@ trait Grammar extends Logger {
     }
   }
 
-  def expr(expr: => Expr) : ExprRef[String] = exprOf[String](expr)
+  def expr(expr: => Expr) : ExprRef[_] = {
+    val exprName = getEnclosingMethodName(3)
+    defineExpr(exprName, expr)
+  }
 
 
-  private def defineExpr(exprName:String, expr: => Expr) : Expr = {
+  private def defineExpr(exprName:String, expr: => Expr) : ExprRef[_] = {
     exprCache.get(exprName).getOrElse {
       // Insert a reference to this expr first to avoid recursively calling this method
       val ref = ExprRef(exprName, null, classOf[String])
@@ -175,14 +178,6 @@ trait Grammar extends Logger {
   private def getEnclosingMethodName(stackLevel: Int): String = {
     new Throwable().getStackTrace()(stackLevel).getMethodName
   }
-
-  def parse(e:ExprRef[_], s:String)  = {
-    trace("preparing parser")
-    val p = new Parser(new StringScanner(s), e, ignoredExprs)
-    trace("parse start")
-    p.parse
-  }
-
 
   def parseExpr[A](e:ExprRef[A], s:String) : Either[ParseError, A] = {
     val p = new Parser(new StringScanner(s), e, ignoredExprs)

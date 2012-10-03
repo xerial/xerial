@@ -19,6 +19,7 @@ package xerial.lens
 import collection.mutable.{ArrayBuffer, Map}
 import xerial.lens
 import xerial.core.log.Logger
+import collection.mutable
 
 
 //--------------------------------------
@@ -38,22 +39,26 @@ object ObjectBuilder extends Logger {
   // class VarObj(var p1, var p2, ...)
 
   def apply[A](cl: Class[A]): ObjectBuilder[A] = {
-
-    if (!TypeUtil.canInstantiate(cl))
-      throw new IllegalArgumentException("Cannot instantiate class " + cl)
-
-    // collect default values of the object
-    val schema = ObjectSchema(cl)
-    val prop = Map.newBuilder[String, Any]
-    trace("class %s. values to set: %s", cl.getSimpleName, prop)
-    // get the default values (including constructor parameters and fields)
-    val default = TypeUtil.newInstance(cl)
-    for (p <- schema.parameters) {
-      trace("set parameter: %s", p)
-      prop += p.name -> p.get(default)
+    if(cl == classOf[String]) {
+      new StringObjectBuilder().asInstanceOf[ObjectBuilder[A]]
     }
+    else {
+      if (!TypeUtil.canInstantiate(cl))
+        throw new IllegalArgumentException("Cannot instantiate class " + cl)
 
-    new ObjectBuilderFromString(cl, prop.result)
+      // collect default values of the object
+      val schema = ObjectSchema(cl)
+      val prop = Map.newBuilder[String, Any]
+      trace("class %s. values to set: %s", cl.getSimpleName, prop)
+      // get the default values (including constructor parameters and fields)
+      val default = TypeUtil.newInstance(cl)
+      for (p <- schema.parameters) {
+        trace("set parameter: %s", p)
+        prop += p.name -> p.get(default)
+      }
+
+      new ObjectBuilderFromString(cl, prop.result)
+    }
   }
 
 }
@@ -72,6 +77,18 @@ trait ObjectBuilder[A] extends GenericBuilder {
   def get(name: String): Option[_]
   def build: A
 }
+
+class StringObjectBuilder extends ObjectBuilder[String] {
+
+  private val s = new mutable.StringBuilder
+
+  def set(name: String, value: Any) { s.append(value.toString) }
+
+  def get(name: String) = if(s.isEmpty) None else Some(s.result)
+
+  def build = s.result
+}
+
 
 class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) extends ObjectBuilder[A] with Logger {
   private val schema = ObjectSchema(cl)

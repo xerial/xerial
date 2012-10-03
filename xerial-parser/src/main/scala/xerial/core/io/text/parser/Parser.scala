@@ -48,12 +48,18 @@ object Parser {
 
   type ParseResult = Either[ParseError, ParseTree]
 
-  case class ParsingContext(builder:ObjectBuilder[_])
+
+  class ParsingContext(val exprName:String, val builder:ObjectBuilder[_]) {
+    def alias(n:String) : ParsingContext = new ParsingContext(n, builder)
+    def set(value:Any)  {  builder.set(exprName, value) }
+  }
+
+
 
   abstract class Eval {
-    def eval(resultType:Class[_]) : ParseResult = {
+    def eval(name:String, resultType:Class[_]) : ParseResult = {
       val b = ObjectBuilder(resultType)
-      val r = this.eval(ParsingContext(b))
+      val r = this.eval(new ParsingContext(name, b))
       r.right map { m =>
         MatchedObject(b.build)
       }
@@ -100,7 +106,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
           case OrNode(seq) => EvalOr(e.name, seq map {
             toEval(_)
           })
-          case ExprRef(_, ref, rt) => EvalObj(toEval(ref), rt)
+          case ExprRef(n, ref, rt) => EvalObj(n, toEval(ref), rt)
           case Alias(alias, expr) => EvalAlias(alias, toEval(expr))
           case Not(expr) => EvalNot(toEval(expr))
           case SyntacticPredicateFail(predToFail, expr) => EvalSyntacticPredicateFail(toEval(predToFail), toEval(expr))
@@ -129,24 +135,17 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
   }
 
 
-  case class EvalObj(e:Eval, resultType:Class[_]) extends Eval {
+  case class EvalObj(name:String, e:Eval, resultType:Class[_]) extends Eval {
     def eval(context:ParsingContext) : ParseResult = {
-      e.eval(resultType)
+      debug("eval %s in %s", e, name)
+      e.eval(name, resultType)
     }
   }
 
 
   case class EvalAlias(alias:String, e:Eval) extends Eval {
     def eval(context:ParsingContext) : ParseResult = {
-      val ev = e.eval(context)
-      ev.right.foreach {
-        case Match(s) => {
-          debug("bind %s -> %s", alias, s)
-          context.builder.set(alias, s)
-        }
-        case _ => // TODO
-      }
-      ev
+      e.eval(context.alias(alias))
     }
   }
 
@@ -258,11 +257,12 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
         else
           exit
       }
-
+      debug("eval char pred: %s", name)
       input.withMark {
-        loop(0).right.map { r => Match(input.selected) }
+        val r = loop(0)
+        r.right.foreach { m => context.set(input.selected) }
+        r
       }
-
     }
   }
 
@@ -292,7 +292,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   def parse = {
     debug("parse %s", body)
-    body.eval(ParsingContext(null))
+    body.eval(new ParsingContext(null, null))
   }
 
 }

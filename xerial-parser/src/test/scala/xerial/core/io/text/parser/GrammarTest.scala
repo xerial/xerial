@@ -89,9 +89,10 @@ class GrammarTest extends XerialSpec {
     }
 
     "parse alphabet" in {
+      debug("alphabet expr: %s", alphabet)
       val e = parseExpr(alphabet, "ABRACADABRA")
       e should be ('right)
-
+      e.right.foreach { _ should be ("ABRACADABRA") }
     }
 
   }
