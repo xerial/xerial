@@ -60,7 +60,7 @@ import org.scalatest.Tag
 object GrammarExample extends Grammar {
 
   case class Comment(comment:String)
-  def comment = expr[Comment] { "#" - untilEOF ~> "comment" }
+  def comment = exprOf[Comment] { "#" - untilEOF ~> "comment" }
   def value = expr { alphabet | digit }
   def tuple = expr { "(" - repeat(value, ",") - ")" }
   def alphabet   = expr { "A" ~ "Z" }
@@ -77,19 +77,20 @@ object GrammarExample extends Grammar {
  */
 class GrammarTest extends XerialSpec {
 
-
+  import GrammarExample._
 
   "Grammar" should {
-
-
-    "use syntax without paren" in {
-      import GrammarExample._
-
-      val c = GrammarExample.parseExpr(comment, "# this is a comment line")
-      c.isRight should be (true)
+    "parse comment line" in {
+      val c = parseExpr(comment, "# this is a comment line")
+      c should be ('right)
       c.right.map { r =>
         r.comment should be (" this is a comment line")
       }
+    }
+
+    "parse alphabet" in {
+      val e = parseExpr(alphabet, "ABRACADABRA")
+      e should be ('right)
 
     }
 

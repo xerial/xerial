@@ -125,7 +125,7 @@ trait Grammar extends Logger {
    * @param expr
    * @return
    */
-  def expr[A](expr: => Expr)(implicit m:ClassManifest[A]=classManifest[String]) : ExprRef[A] = {
+  def exprOf[A](expr: => Expr)(implicit m:ClassManifest[A]) : ExprRef[A] = {
     val exprName = getEnclosingMethodName(3)
     exprCache.get(exprName) match {
       case Some(r) => r.asInstanceOf[ExprRef[A]]
@@ -141,6 +141,9 @@ trait Grammar extends Logger {
         ref
     }
   }
+
+  def expr(expr: => Expr) : ExprRef[String] = exprOf[String](expr)
+
 
   private def defineExpr(exprName:String, expr: => Expr) : Expr = {
     exprCache.get(exprName).getOrElse {
