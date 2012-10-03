@@ -104,7 +104,7 @@ object XerialBuild extends Build {
     base = file("."),
     settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
       Seq(libraryDependencies ++= bootLib)
-  ) aggregate(core, lens, cui)
+  ) aggregate(core, lens, cui, parser)
 
   lazy val core = Project(
     id = "xerial-core",
@@ -129,6 +129,15 @@ object XerialBuild extends Build {
     base = file("xerial-cui"),
     settings = buildSettings ++ Seq(
       description := "command line parser and launcher",
+      libraryDependencies ++= testLib
+    )
+  ) dependsOn(lens % dependentScope)
+
+  lazy val parser = Project(
+    id = "xerial-parser",
+    base = file("xerial-parser"),
+    settings = buildSettings ++ Seq(
+      description := "Text parser generator",
       libraryDependencies ++= testLib
     )
   ) dependsOn(lens % dependentScope)
