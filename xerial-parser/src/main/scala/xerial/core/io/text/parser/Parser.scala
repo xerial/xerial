@@ -20,7 +20,7 @@ case object NoMatch extends ParseError
 case class SyntaxError(message: String) extends ParseError
 
 
-object Parser {
+object Parser extends Logger {
 
   sealed abstract class ParseTree {
     def ~(t: ParseTree): ParseTree
@@ -38,9 +38,6 @@ object Parser {
     def ~(t: ParseTree) = Empty // TODO
   }
 
-  case class Match(s:CharSequence) extends ParseTree {
-    def ~(t: ParseTree) = Empty // TODO
-  }
 
   case class MatchedObject(obj:Any) extends ParseTree {
     def ~(t: ParseTree) = Empty // TODO
@@ -51,7 +48,11 @@ object Parser {
 
   class ParsingContext(val exprName:String, val builder:ObjectBuilder[_]) {
     def alias(n:String) : ParsingContext = new ParsingContext(n, builder)
-    def set(value:Any)  {  builder.set(exprName, value) }
+    def set(value:Any)  {
+      debug("set %s := %s", exprName, value)
+      builder.set(exprName, value)
+    }
+
   }
 
 
@@ -260,7 +261,9 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       debug("eval char pred: %s", name)
       input.withMark {
         val r = loop(0)
-        r.right.foreach { m => context.set(input.selected) }
+        r.right.foreach { m =>
+          context.set(input.selected)
+        }
         r
       }
     }

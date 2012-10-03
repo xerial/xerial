@@ -95,6 +95,13 @@ class GrammarTest extends XerialSpec {
       e.right.foreach { _ should be ("ABRACADABRA") }
     }
 
+    "parse or expr" in {
+      val e = parseExpr(GrammarExample.value, "0123")
+      e should be ('right)
+      e.right.foreach { _ should be ("0123") }
+    }
+
+
   }
 
 }
