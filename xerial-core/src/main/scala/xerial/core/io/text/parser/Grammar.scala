@@ -70,7 +70,7 @@ trait Grammar extends Logger {
     // Syntactic predicate without consumption of stream
     def !->(expr: => Expr): Expr = {
       val pred = toToken(a)
-      SyntacticPredicateFail(pred, rule(newNonDuplicateRuleID("Then"), expr))
+      SyntacticPredicateFail(pred, defineExpr(newNonDuplicateRuleID("Then"), expr))
     }
   }
 
@@ -86,19 +86,14 @@ trait Grammar extends Logger {
   def oneOrMore(expr: Expr): Expr = OneOrMore(expr)
   def option(expr: Expr): Expr = OptionNode(expr)
 
-  /**
-   * Construct a token expr from a string
-   * @param str
-   * @return
-   */
-  def token(str: String): Expr = {
+  def token(str: String): ExprRef[String] = {
     require(str.length == 1, "token string be a single character")
     val tokenName = getEnclosingMethodName(3)
-    ruleCache.get(tokenName) match {
-      case Some(t) => t
+    exprCache.get(tokenName) match {
+      case Some(t) => t.asInstanceOf[ExprRef[String]]
       case None => {
-        val l = Leaf(tokenName, str.charAt(0))
-        ruleCache += tokenName -> l
+        val l = ExprRef[String](tokenName, Leaf(tokenName, str.charAt(0)), classOf[String])
+        exprCache += tokenName -> l
         debug("Define token %14s := '%s'", tokenName, str)
         l
       }
@@ -119,16 +114,6 @@ trait Grammar extends Logger {
     }
   }
 
-  case class ExprStart(name:String, resultType:Class[_]) {
-    def :=(e: => Expr) : Expr = rule(name, e)
-  }
-
-  def expr[A](implicit m:ClassManifest[A]) : ExprStart = {
-    val name = getEnclosingMethodName(3)
-    debug("define expr %s[%s]", name, m.erasure.getSimpleName)
-    ExprStart(name, m.erasure)
-  }
-
   /**
    * Construct an expression. The expression is called-by-name to enable recursive definitions, e.g.,
    *
@@ -139,32 +124,40 @@ trait Grammar extends Logger {
    * @param expr
    * @return
    */
-  def expr(expr: => Expr): Expr = rule(getEnclosingMethodName(3), expr)
-
-  /**
-   * Construct a new expr with a given name
-   * @param ruleName
-   * @param expr
-   * @return
-   */
-  def rule(ruleName: String, expr: => Expr): Expr = {
-    ruleCache.get(ruleName) match {
-      case Some(r) => r
-      case None => {
+  def expr[A](expr: => Expr)(implicit m:ClassManifest[A]=classManifest[String]) : ExprRef[A] = {
+    val exprName = getEnclosingMethodName(3)
+    exprCache.get(exprName) match {
+      case Some(r) => r.asInstanceOf[ExprRef[A]]
+      case None =>
         // Insert a reference to this expr first to avoid recursively calling this method
-        val ref = ExprRef(ruleName, null)
-        ruleCache += ruleName -> ref
+        val ref = ExprRef[A](exprName, null, m.erasure)
+        exprCache += exprName -> ref
         // Prepare the expr
         val newExpr: Expr = expr
         // Update the reference
         ref.set(newExpr)
-        debug("Define expr %15s := %s", ruleName, newExpr)
+        debug("Define expr %15s := %s", exprName, newExpr)
         ref
-      }
     }
   }
 
-  private var ruleCache: Map[String, Expr] = Map[String, Expr]()
+  private def defineExpr(exprName:String, expr: => Expr) : Expr = {
+    exprCache.get(exprName).getOrElse {
+      // Insert a reference to this expr first to avoid recursively calling this method
+      val ref = ExprRef(exprName, null, classOf[String])
+      exprCache += exprName -> ref
+      // Prepare the expr
+      val newExpr: Expr = expr
+      // Update the reference
+      ref.set(newExpr)
+      debug("Define expr %15s := %s", exprName, newExpr)
+      ref
+    }
+  }
+
+
+
+  private var exprCache: Map[String, ExprRef[_]] = Map[String, ExprRef[_]]()
   private val prefixCount = collection.mutable.Map[String, Int]()
 
   private def newNonDuplicateRuleID(prefix: String): String = {
@@ -187,8 +180,9 @@ trait Grammar extends Logger {
   }
 
 
-  def parseExpr[A](e:Expr, s:String) = {
+  def parseExpr[A](e:ExprRef[A], s:String) : Either[ParseError, A] = {
 
+    Left(NoMatch)
   }
 
 
@@ -238,7 +232,7 @@ object Grammar extends Logger {
   case class SeqNode(seq: Array[Expr]) extends Expr("(%s)".format(seq.map(_.name).mkString(" "))) {
     override def -(b: Expr): Expr = SeqNode(seq :+ b)
   }
-  case class ExprRef(override val name: String, private var expr: Expr) extends Expr(name) {
+  case class ExprRef[A](override val name: String, private var expr: Expr, resultType:Class[_])(implicit m:ClassManifest[A]) extends Expr(name) {
     private[Grammar] def set(newExpr: Expr) {
       expr = newExpr
     }

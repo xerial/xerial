@@ -86,7 +86,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
           case OrNode(seq) => EvalOr(e.name, seq map {
             toEval(_)
           })
-          case ExprRef(_, ref) => toEval(ref)
+          case ExprRef(_, ref, rt) => toEval(ref)
           case Not(expr) => EvalNot(toEval(expr))
           case SyntacticPredicateFail(predToFail, expr) => EvalSyntacticPredicateFail(toEval(predToFail), toEval(expr))
           case Leaf(name, tt) => EvalCharPred(name, {t: Int =>
