@@ -30,6 +30,7 @@ trait StringHolder {
   def +(s:CharSequence) : StringHolder
   def clear: Unit
   def result: CharSequence
+  def isEmpty : Boolean
 }
 
 import FastStringBuilder._
@@ -46,6 +47,7 @@ class FastStringBuilder(private var holder : StringHolder = StringHolder0) {
     holder = StringHolder0
     this
   }
+  def isEmpty : Boolean = holder.isEmpty
   def result : CharSequence = holder.result
 }
 
@@ -58,9 +60,10 @@ object FastStringBuilder {
 
 
   object StringHolder0 extends StringHolder {
-      def +(s: CharSequence) = new StringHolder1(s)
+    def +(s: CharSequence) = new StringHolder1(s)
     def clear {}
     def result = emptyString
+    def isEmpty : Boolean = true
   }
 
   class StringHolder1(private var str:CharSequence) extends StringHolder {
@@ -71,6 +74,7 @@ object FastStringBuilder {
     }
     def clear { str = emptyString }
     def result = str
+    def isEmpty : Boolean = false
   }
 
   class BufferedStringHolder(buf:StringBuilder) extends StringHolder {
@@ -80,6 +84,7 @@ object FastStringBuilder {
     }
     def clear { buf.clear() }
     def result = buf.result
+    def isEmpty : Boolean = buf.isEmpty
   }
 
 

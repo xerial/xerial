@@ -20,6 +20,7 @@ import collection.mutable.{ArrayBuffer, Map}
 import xerial.lens
 import xerial.core.log.Logger
 import collection.mutable
+import xerial.core.io.text.FastStringBuilder
 
 
 //--------------------------------------
@@ -80,13 +81,15 @@ trait ObjectBuilder[A] extends GenericBuilder {
 
 class StringObjectBuilder extends ObjectBuilder[String] {
 
-  private val s = new mutable.StringBuilder
+  private val s = FastStringBuilder.newBuilder
 
-  def set(name: String, value: Any) { s.append(value.toString) }
+  def set(name: String, value: Any) { s += value.toString }
 
   def get(name: String) = if(s.isEmpty) None else Some(s.result)
 
-  def build = s.result
+  def build = s.result.toString
+
+  override def toString = s.result.toString
 }
 
 

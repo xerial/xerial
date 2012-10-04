@@ -53,20 +53,13 @@ object Parser extends Logger {
       builder.set(exprName, value)
     }
 
-    override def toString = "%s, "
+    override def toString = "%s:%s".format(exprName, builder)
 
   }
 
 
 
   abstract class Eval {
-    def eval(name:String, resultType:Class[_]) : ParseResult = {
-      val b = ObjectBuilder(resultType)
-      val r = this.eval(new ParsingContext(name, b))
-      r.right map { m =>
-        MatchedObject(b.build)
-      }
-    }
     def eval(context:ParsingContext) :  ParseResult
   }
 
@@ -140,8 +133,13 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   case class EvalObj(name:String, e:Eval, resultType:Class[_]) extends Eval {
     def eval(context:ParsingContext) : ParseResult = {
-      debug("eval %s in %s", e, name)
-      e.eval(name, resultType)
+      debug("eval %s[%s] %s", name, resultType.getSimpleName, e)
+      val b = ObjectBuilder(resultType)
+      val r = e.eval(new ParsingContext(name, b))
+      r.right map { m =>
+            MatchedObject(b.build)
+        }
+      //e.eval(name, resultType)
     }
   }
 
@@ -193,9 +191,6 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   case class EvalOr(name:String, seq: Array[Eval]) extends Eval {
     def eval(context:ParsingContext): ParseResult = {
-
-      debug("EvalOr %s", toVisibleString(name))
-
       // TODO Use an automaton that looks next characters, then switches matching patterns
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
@@ -212,6 +207,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
             case other => other
           }
       }
+      debug("EvalOr %s, context:%s", toVisibleString(name), context)
       val m = loop(0, Empty)
       debug("context: %s", context)
       m
