@@ -53,6 +53,8 @@ object Parser extends Logger {
       builder.set(exprName, value)
     }
 
+    override def toString = "%s, "
+
   }
 
 
@@ -194,9 +196,11 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
       debug("EvalOr %s", toVisibleString(name))
 
+      // TODO Use an automaton that looks next characters, then switches matching patterns
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length) {
+          // Uses pattern matching for making the code tail recursive.
           evalIgnored(context) match {
             case l@ Left(_) => l
             case r@ Right(_) => loop(0, Empty)
@@ -208,7 +212,9 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
             case other => other
           }
       }
-      loop(0, Empty)
+      val m = loop(0, Empty)
+      debug("context: %s", context)
+      m
     }
   }
 
