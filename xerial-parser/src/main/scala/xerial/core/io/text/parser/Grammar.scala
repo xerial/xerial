@@ -26,7 +26,6 @@ package xerial.core.io.text.parser
 import xerial.core.log.Logger
 import annotation.tailrec
 import xerial.core.io.text.StringScanner
-import xerial.core.io.text.parser.Parser.MatchedObject
 
 
 /**
@@ -182,7 +181,7 @@ trait Grammar extends Logger {
   def parseExpr[A](e:ExprRef[A], s:String) : Either[ParseError, A] = {
     val p = new Parser(new StringScanner(s), e, ignoredExprs)
     p.parse.right.flatMap {
-      case MatchedObject(obj) => Right(obj.asInstanceOf[A])
+      case Parser.Leaf(v) => Right(v.value.asInstanceOf[A])
       case other => Left(NoMatch)
     }
   }

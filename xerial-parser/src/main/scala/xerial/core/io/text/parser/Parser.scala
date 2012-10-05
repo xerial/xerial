@@ -22,41 +22,48 @@ case class SyntaxError(message: String) extends ParseError
 
 object Parser extends Logger {
 
+
+  case class Value(name:String, value:Any)
+
   sealed abstract class ParseTree {
-    def ~(t: ParseTree): ParseTree
+    def foreach[U](f: Value => U) : Unit
+    def addSibling(t:ParseTree) : ParseTree
+    def addChild(t:ParseTree) : ParseTree
+  }
+
+
+  case class Node(v:Value, child:ParseTree, sibling:ParseTree) extends ParseTree {
+    def foreach[U](f: Value => U) {
+      // depth-first search
+      child.foreach(f)
+      f(v)
+      sibling.foreach(f)
+    }
+    def addSibling(t: ParseTree) = Node(v, child, sibling.addSibling(t))
+    def addChild(t: ParseTree) = Node(v, child.addSibling(t), sibling)
+  }
+
+  case class Leaf(v:Value) extends ParseTree {
+    def foreach[U](f: Value => U) { f(v) }
+    def addSibling(t: ParseTree) = Node(v, Empty, t)
+    def addChild(t: ParseTree) = Node(v, t, Empty)
   }
 
   case object Empty extends ParseTree {
-    def ~(t: ParseTree) = Empty // TODO
-  }
-
-//  case class Token(t: Int) extends ParseTree {
-//    def ~(t: ParseTree) = Empty // TODO
-//  }
-
-  case object OK extends ParseTree {
-    def ~(t: ParseTree) = Empty // TODO
-  }
-
-
-  case class MatchedObject(obj:Any) extends ParseTree {
-    def ~(t: ParseTree) = Empty // TODO
+    def foreach[U](f: Value => U) {
+      // do nothing
+    }
+    def addSibling(t: ParseTree) = t
+    def addChild(t: ParseTree) = t
   }
 
   type ParseResult = Either[ParseError, ParseTree]
 
+  case class ParsingContext(exprName:String) {
+    def alias(n:String) : ParsingContext = new ParsingContext(n)
 
-  class ParsingContext(val exprName:String, val builder:ObjectBuilder[_]) {
-    def alias(n:String) : ParsingContext = new ParsingContext(n, builder)
-    def set(value:Any)  {
-      debug("set %s := %s", exprName, value)
-      builder.set(exprName, value)
-    }
-
-    override def toString = "%s:%s".format(exprName, builder)
-
+    def newNode(v:Any) = Leaf(Value(exprName, v))
   }
-
 
 
   abstract class Eval {
@@ -78,7 +85,7 @@ import Parser._
  */
 class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Logger {
 
-  import Grammar._
+
 
   private val body = build(e)
   private lazy val ignored = EvalOr("ignored", (ignoredExprs map { build(_) }).toArray[Eval])
@@ -86,6 +93,8 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   private def build(expr: Expr): Eval = {
     val cache = collection.mutable.Map[String, Eval]()
+
+    import Grammar._
 
     def toEval(e: Expr): Eval = {
       if(cache.contains(e.name))
@@ -134,12 +143,15 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
   case class EvalObj(name:String, e:Eval, resultType:Class[_]) extends Eval {
     def eval(context:ParsingContext) : ParseResult = {
       debug("eval %s[%s] %s", name, resultType.getSimpleName, e)
+      val r = e.eval(new ParsingContext(name))
       val b = ObjectBuilder(resultType)
-      val r = e.eval(new ParsingContext(name, b))
       r.right map { m =>
-            MatchedObject(b.build)
-        }
-      //e.eval(name, resultType)
+        debug("parse tree: %s", m)
+        m.foreach(v =>
+          b.set(v.name, v.value)
+        )
+        context.newNode(b.build)
+      }
     }
   }
 
@@ -154,7 +166,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
     def eval(context:ParsingContext): ParseResult = {
       input.withMark {
         e.eval(context) match {
-          case Left(_) => input.consume; Right(OK)
+          case Left(_) => Right(Empty)
           case Right(_) => input.rewind; Left(NoMatch)
         }
       }
@@ -174,7 +186,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   case class EvalSeq(name:String, seq: Array[Eval]) extends Eval {
     def eval(context:ParsingContext): ParseResult = {
-      debug("EvalSeq %s", toVisibleString(name))
+      debug("EvalSeq %s", Grammar.toVisibleString(name))
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length)
@@ -182,7 +194,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
         else
           seq(i).eval(context) match {
             case l@Left(_) => l
-            case r@Right(cc) => loop(i + 1, t ~ cc)
+            case r@Right(cc) => loop(i + 1, t.addSibling(cc))
           }
       }
       loop(0, Empty)
@@ -207,10 +219,8 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
             case other => other
           }
       }
-      debug("EvalOr %s, context:%s", toVisibleString(name), context)
-      val m = loop(0, Empty)
-      debug("context: %s", context)
-      m
+      debug("EvalOr %s, context:%s", Grammar.toVisibleString(name), context)
+      loop(0, Empty)
     }
   }
 
@@ -234,7 +244,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       input.withMark {
         noIgnore(ignored.eval(context)) match {
           case nm@Left(NoMatch) => nm
-          case Right(_) => Right(OK)
+          case Right(_) => Right(Empty)
           case other => other
         }
       }
@@ -247,7 +257,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
     def eval(context:ParsingContext): ParseResult = {
       @tailrec
       def loop(matchCount:Int) : ParseResult = {
-        def exit = if(matchCount == 0) Left(NoMatch) else Right(OK)
+        def exit = if(matchCount == 0) Left(NoMatch) else Right(context.newNode(input.selected))
         val t = input.first
         //debug("eval char pred %s: %s", Grammar.toVisibleString(name), Grammar.toVisibleString(t.toChar.toString))
         if (t == input.EOF)
@@ -261,13 +271,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
           exit
       }
       debug("eval char pred: %s", name)
-      input.withMark {
-        val r = loop(0)
-        r.right.foreach { m =>
-          context.set(input.selected)
-        }
-        r
-      }
+      input.withMark { loop(0) }
     }
   }
 
@@ -277,7 +281,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
         a.eval(context) match {
           case Left(NoMatch) => Right(t)
           case l@Left(_) => l
-          case Right(next) => loop(t ~ next)
+          case Right(next) => loop(t.addSibling(next))
         }
       }
       loop(Empty)
@@ -288,7 +292,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
   case class EvalOption(a: Eval) extends Eval {
     def eval(context:ParsingContext): ParseResult = {
       a.eval(context) match {
-        case Left(NoMatch) => Right(OK)
+        case Left(NoMatch) => Right(Empty)
         case other => other
       }
     }
@@ -297,7 +301,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   def parse = {
     debug("parse %s", body)
-    body.eval(new ParsingContext(null, null))
+    body.eval(new ParsingContext(null))
   }
 
 }
