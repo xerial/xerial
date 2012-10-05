@@ -100,6 +100,18 @@ class GrammarTest extends XerialSpec {
       e should be ('right)
       e.right.foreach { _ should be ("0123") }
     }
+    "ignore specified tokens" in {
+      val e = parseExpr(GrammarExample.value, "     0123    ")
+      e should be ('right)
+      e.right.foreach { _ should be ("0123") }
+    }
+
+    "parse repeatetive exprs" taggedAs("rep") in {
+      val e = parseExpr(GrammarExample.tuple, "(1, 2, A)")
+      e should be ('right)
+      debug(e)
+      e.right.foreach { _ should be ("(1,2,A)") }
+    }
 
 
   }

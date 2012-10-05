@@ -37,6 +37,10 @@ class FastStringBuilderTest extends XerialSpec {
       b.result should be ("hello world")
       b.clear
       b.result should be ('empty)
+
+      b += "hello"
+      b += " world!"
+      b.result should be ("hello world!")
     }
 
     "have no overhead in initialization" in {
@@ -58,6 +62,7 @@ class FastStringBuilderTest extends XerialSpec {
       t("FastStringBuilder") should be <= (t("StringBuilder"))
 
     }
+
 
 
   }

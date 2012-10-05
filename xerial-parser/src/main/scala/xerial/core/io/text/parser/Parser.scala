@@ -85,8 +85,6 @@ import Parser._
  */
 class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Logger {
 
-
-
   private val body = build(e)
   private lazy val ignored = EvalOr("ignored", (ignoredExprs map { build(_) }).toArray[Eval])
 
@@ -197,7 +195,9 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
             case r@Right(cc) => loop(i + 1, t.addSibling(cc))
           }
       }
-      loop(0, Empty)
+      val r = loop(0, Empty)
+      debug("eval seq result: %s", r)
+      r
     }
   }
 

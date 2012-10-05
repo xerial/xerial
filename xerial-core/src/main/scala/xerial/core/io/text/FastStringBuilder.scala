@@ -69,6 +69,7 @@ object FastStringBuilder {
   class StringHolder1(private var str:CharSequence) extends StringHolder {
     def +(s: CharSequence) = {
       val b = new StringBuilder
+      b.append(str)
       b.append(s)
       new BufferedStringHolder(b)
     }
