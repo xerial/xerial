@@ -68,6 +68,8 @@ object GrammarExample extends Grammar {
   def number     = expr { option("-") - option("0" | ("1" ~ "9") - repeat(digit)) - option("." - oneOrMore(digit)) }
   def whiteSpace = expr { " " | "\t" | "\n" | "\r"  }
 
+  def numArray = exprOf[Seq[Int]] { "(" - repeat(digit, ",") - ")" }
+
   ignore(whiteSpace)
 
 }
@@ -111,6 +113,13 @@ class GrammarTest extends XerialSpec {
       e should be ('right)
       debug(e)
       e.right.foreach { _ should be ("(1,2,A)") }
+    }
+
+    "parse Seq[Int]" taggedAs("seq") in {
+      val e = parseExpr(GrammarExample.numArray, "(1, 2, 3)")
+      e should be ('right)
+      debug(e)
+      e.right.foreach { _ should be (Seq(1, 2, 3)) }
     }
 
 

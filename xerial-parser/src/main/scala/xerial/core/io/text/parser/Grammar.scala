@@ -224,9 +224,6 @@ object Grammar extends Logger {
   case class Alias(alias:String, e:Expr) extends Expr("%s:%s".format(alias, e)) {
   }
 
-
-
-
   case class OrNode(seq: Array[Expr]) extends Expr("(%s)".format(seq.map(_.name).mkString(" | "))) {
     override def |(b: Expr): Expr = OrNode(seq :+ b)
   }
@@ -249,7 +246,27 @@ object Grammar extends Logger {
     def pred(i:Int): Boolean = { begin <= i && i <= end }
   }
   case class CharPred(override val name: String, pred: Int => Boolean) extends Expr(name)
-  case class Leaf(override val name: String, tt: Int) extends Expr(name)
+  case class Leaf(override val name: String, tt: Int) extends Expr(name) {
+    override def |(b: Expr): Expr = or(b)
+    override def or(b: Expr): Expr = {
+      b match {
+        case Leaf(n, t) => CharSetPred("%s|%s".format(name, n), Set(tt, t))
+        case other => super.or(other)
+      }
+    }
+  }
+
+  case class CharSetPred(override val name:String, charSet:Set[Int]) extends Expr(name) {
+    override def |(b: Expr): Expr = or(b)
+    override def or(b: Expr): Expr = {
+      b match {
+        case Leaf(n, t) => CharSetPred("%s|%s".format(name, n), charSet + t)
+        case other => super.or(other)
+      }
+    }
+  }
+
+
   case class ZeroOrMore(a: Expr) extends Expr("%s*".format(a.name))
   case class OneOrMore(a: Expr) extends Expr("%s+".format(a.name)) {
     def expr = a - ZeroOrMore(a)

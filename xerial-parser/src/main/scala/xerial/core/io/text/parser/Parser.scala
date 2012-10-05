@@ -117,6 +117,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
             t == tt
           })
           case CharPred(_, pred) => EvalCharPred(e.name, pred)
+          case CharSetPred(name, cs) => EvalCharPred(e.name, cs.contains(_))
           case r@CharRange(_, _) => EvalCharPred(r.name, r.pred)
           case ZeroOrMore(a) => EvalZeroOrMore(toEval(a))
           case r@OneOrMore(a) => toEval(r.expr)
@@ -140,7 +141,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
 
   case class EvalObj(name:String, e:Eval, resultType:Class[_]) extends Eval {
     def eval(context:ParsingContext) : ParseResult = {
-      debug("eval %s[%s] %s", name, resultType.getSimpleName, e)
+      debug("eval %s[%s] %s", Grammar.toVisibleString(name), resultType.getSimpleName, e.toString)
       val r = e.eval(new ParsingContext(name))
       val b = ObjectBuilder(resultType)
       r.right map { m =>
@@ -187,8 +188,10 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       debug("EvalSeq %s", Grammar.toVisibleString(name))
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
-        if(i >= seq.length)
+        if(i >= seq.length) {
+          //trace("eval seq end: %s", t)
           Right(t)
+        }
         else
           seq(i).eval(context) match {
             case l@Left(_) => l
@@ -196,7 +199,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
           }
       }
       val r = loop(0, Empty)
-      debug("eval seq result: %s", r)
+      //debug("eval seq result: %s", r)
       r
     }
   }
@@ -207,11 +210,12 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length) {
-          // Uses pattern matching for making the code tail recursive.
-          evalIgnored(context) match {
-            case l@ Left(_) => l
-            case r@ Right(_) => loop(0, Empty)
-          }
+          Left(NoMatch)
+//          // Uses pattern matching for making the code tail recursive.
+//          evalIgnored(context) match {
+//            case l@ Left(_) => l
+//            case r@ Right(_) => loop(0, Empty)
+//          }
         }
         else
           seq(i).eval(context) match {
@@ -224,28 +228,30 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
     }
   }
 
-  private val fallbackToIgnoredToken = new DynamicVariable[Boolean](true)
+  private val ignoredTokensEnabled = new DynamicVariable[Boolean](true)
 
   private def noIgnore(f: => ParseResult) : ParseResult = {
-    val prev = fallbackToIgnoredToken.value
-    fallbackToIgnoredToken.value = false
+    val prev = ignoredTokensEnabled.value
+    ignoredTokensEnabled.value = false
     try
       f
     finally
-      fallbackToIgnoredToken.value = prev
+      ignoredTokensEnabled.value = prev
   }
 
   /*
    * lookup ignored tokens
    */
   private def evalIgnored(context:ParsingContext): ParseResult = {
-    if(fallbackToIgnoredToken.value) {
+    if(ignoredTokensEnabled.value) {
       trace("Eval ignored token: %s", input.first.toChar)
       input.withMark {
-        noIgnore(ignored.eval(context)) match {
-          case nm@Left(NoMatch) => nm
-          case Right(_) => Right(Empty)
-          case other => other
+        val m = noIgnore(ignored.eval(context))
+        trace("match : %s", m)
+        m match {
+          case nm@Left(NoMatch) => { input.rewind; nm } // non-ignorable pattern
+          case Right(_) => Right(Empty) // matched to an ignored pattern
+          case other => other // other error
         }
       }
     }
@@ -253,24 +259,41 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       Left(NoMatch)
   }
 
+
   case class EvalCharPred(name:String, pred: Int => Boolean) extends Eval {
     def eval(context:ParsingContext): ParseResult = {
+
+      def exit(matchCount:Int) : ParseResult = {
+        if(matchCount == 0) {
+          evalIgnored(context) match {
+            case Right(_) => {
+              //trace("ignore token: %s (next char:%s)", Grammar.toVisibleString(input.selected), input.first.toChar)
+              // consume the input
+              input.withMark {
+                loop(0)
+              }
+            }
+            case Left(_) => Left(NoMatch)
+          }
+        }
+        else
+          Right(context.newNode(input.selected))
+      }
+
       @tailrec
       def loop(matchCount:Int) : ParseResult = {
-        def exit = if(matchCount == 0) Left(NoMatch) else Right(context.newNode(input.selected))
         val t = input.first
         //debug("eval char pred %s: %s", Grammar.toVisibleString(name), Grammar.toVisibleString(t.toChar.toString))
-        if (t == input.EOF)
-          exit
-        else if(pred(t)) {
+        if (t == input.EOF || !pred(t))
+          exit(matchCount)
+        else {
           trace("match %s", t.toChar)
           input.consume
           loop(matchCount+1)
         }
-        else
-          exit
       }
-      debug("eval char pred: %s", name)
+      debug("eval char pred: %s", Grammar.toVisibleString(name))
+      // TODO need to distinguish repetitive match and single character match
       input.withMark { loop(0) }
     }
   }

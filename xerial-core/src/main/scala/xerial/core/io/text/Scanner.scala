@@ -98,6 +98,7 @@ trait PositionMark { this: Scanner =>
    */
   def selected : CharSequence
 
+
   /**
    * Return the character sequence from the first mark to the current cursor position
    * @return
@@ -116,6 +117,7 @@ trait PositionMarkImpl extends PositionMark with Logger { this: Scanner =>
   private val markQueue = new CyclicArray[Int]
 
   def mark : Unit = {
+    trace("mark at %d", cursor)
     markQueue.append(cursor)
   }
 
