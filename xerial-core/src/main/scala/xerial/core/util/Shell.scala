@@ -22,6 +22,8 @@ import sys.process.Process
 import xerial.core.log.Logger
 import xerial.core.util
 import java.lang.reflect.Field
+import collection.JavaConversions._
+import io.Source
 
 //--------------------------------------
 //
@@ -67,6 +69,24 @@ object Shell extends Logger {
   }
 
   /**
+   * Kill the process tree rooted from pid
+   * @param pid
+   * @return exit code
+   */
+  def killTree(pid:Int) : Int = {
+    exec("kill -STOP %d".format(pid))
+
+    // retrieve child processes
+    val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid))
+    for(line <- Process(pb).lines_!) {
+      val childPID = line.trim.toInt
+      exec("killtree -9 %d".format(childPID))
+    }
+
+    exec("kill -9 %d".format(pid))
+  }
+
+  /**
    * Returns process id
    * @param p
    * @return process id or -1 if pid cannot be detected
@@ -95,8 +115,27 @@ object Shell extends Logger {
     launchProcess(cmdLine)
   }
 
+  /**
+   * Launch a process then retrieves the exit code
+   * @param cmdLine
+   * @return
+   */
+  def exec(cmdLine:String) : Int = {
+    val pb = prepareProcessBuilder(cmdLine)
+    val exitCode = Process(pb).!
+    debug("exec command %s", cmdLine)
+    exitCode
+  }
+
 
   def launchProcess(cmdLine: String) = {
+    val pb = prepareProcessBuilder(cmdLine)
+    val p = pb.start
+    debug("exec command [pid:%d] %s", getProcessID(p), pb.command.mkString(" "))
+    p
+  }
+
+  private def prepareProcessBuilder(cmdLine:String): ProcessBuilder = {
     val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), cmdLine)
     val pb = new ProcessBuilder(CommandLineTokenizer.tokenize(c):_*)
     pb.inheritIO()
@@ -105,10 +144,9 @@ object Shell extends Logger {
       env += ("CYGWIN" -> "notty")
     val envMap = pb.environment()
     env.foreach(e => envMap.put(e._1, e._2))
-    val p = pb.start()
-    debug("exec command [pid:%d] %s", getProcessID(p), c)
-    p
+    pb
   }
+
 
   def getEnv : Map[String, String] = {
     import collection.JavaConversions._
@@ -117,10 +155,7 @@ object Shell extends Logger {
 
   def launchCmdExe(cmdLine: String) = {
     val c = "%s /c \"%s\"".format(Shell.getCommand("cmd"), cmdLine)
-    debug {
-      "exec command: " + c
-    }
-
+    debug("exec command: %s", c)
     Process(CommandLineTokenizer.tokenize(c), None, getEnv.toSeq:_*).run
   }
 

@@ -63,6 +63,11 @@ class ShellTest extends XerialSpec {
       val exitCode = Shell.kill(pid)
     }
 
+    "be able to kill process trees" in { 
+      val p = Shell.launchProcess("cat")
+      val pid = Shell.getProcessID(p)
+      Shell.killTree(pid)
+    }
 
     "find sh" in {
       val cmd = Shell.findSh
