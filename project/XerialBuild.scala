@@ -162,7 +162,7 @@ object XerialBuild extends Build {
         ExclusionRule(organization="com.sun.jdmk"),
         ExclusionRule(organization="com.sun.jmx"),
         ExclusionRule(organization="javax.jms")),
-      "netty.io" % "netty" % "3.5.7.Final",
+      "io.netty" % "netty" % "3.5.7.Final",
       "org.xerial.snappy" % "snappy-java" % "1.0.5-M3"
     )
   }
