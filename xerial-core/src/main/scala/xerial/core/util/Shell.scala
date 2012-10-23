@@ -21,6 +21,7 @@ import java.io.File
 import sys.process.Process
 import xerial.core.log.Logger
 import xerial.core.util
+import java.lang.reflect.Field
 
 //--------------------------------------
 //
@@ -29,11 +30,48 @@ import xerial.core.util
 //
 //--------------------------------------
 
+
+
+
 /**
  * Launch UNIX (or cygwin) commands from Scala
  * @author leo
  */
 object Shell extends Logger {
+
+  private def access[U](f:Field)(body: => U) : U = {
+    val a = f.isAccessible
+    try {
+      if(!a)
+        f.setAccessible(true)
+      body
+    }
+    finally {
+      if(!a)
+        f.setAccessible(a)
+    }
+
+  }
+
+  /**
+   * Returns process id
+   * @param p
+   * @return process id or -1 if pid cannot be detected
+   */
+  def getProcessID(p:java.lang.Process) : Int = {
+    try {
+      // If the current OS is *Nix, the class of p is UNIXProcess and its pid can be obtained
+      // from pid field by using reflection.
+      val f = p.getClass().getDeclaredField("pid")
+      val pid : Int = access(f) {
+        f.get(p).asInstanceOf[Int]
+      }
+      pid
+    }
+    catch {
+      case e => -1
+    }
+  }
 
   def launchJava(args: String) = {
     val javaCmd = Shell.findJavaCommand()
@@ -41,23 +79,22 @@ object Shell extends Logger {
       throw new IllegalStateException("No JVM is found. Set JAVA_HOME environmental variable")
 
     val cmdLine = "%s %s".format(javaCmd.get, args)
-
-    debug("Run command: " + cmdLine)
-
-    Process(CommandLineTokenizer.tokenize(cmdLine)).run()
+    launchProcess(cmdLine)
   }
 
 
   def launchProcess(cmdLine: String) = {
     val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), cmdLine)
-    debug {
-      "exec command: " + c
-    }
-
+    val pb = new ProcessBuilder(CommandLineTokenizer.tokenize(c):_*)
+    pb.inheritIO()
     var env = getEnv
     if(OS.isWindows)
       env += ("CYGWIN" -> "notty")
-    Process(CommandLineTokenizer.tokenize(c), None, env.toSeq:_*).run
+    val envMap = pb.environment()
+    env.foreach(e => envMap.put(e._1, e._2))
+    val p = pb.start()
+    debug("exec command [pid:%d] %s", getProcessID(p), c)
+    p
   }
 
   def getEnv : Map[String, String] = {
@@ -128,22 +165,20 @@ object Shell extends Logger {
     })
   }
 
-  def findJavaHome: Option[String] = {
-    // lookup environment variable JAVA_HOME first
-    val e = System.getenv("JAVA_HOME")
+  def sysProp(key:String) : Option[String] = Option(System.getProperty(key))
+  def env(key:String) : Option[String] = Option(System.getenv(key))
 
+
+  def findJavaHome: Option[String] = {
+
+    // lookup environment variable JAVA_HOME first.
     // If JAVA_HOME is not defined, use java.home system property
-    if (e == null) {
-      return System.getProperty("java.home") match {
-        case null => None
-        case x => Some(x)
-      }
-    }
+    val e : Option[String] = env("JAVA_HOME") orElse sysProp("java.home")
 
     def resolveCygpath(p: String) = {
       if (OS.isWindows) {
         // If the path is for Cygwin environment
-        val m = """/cygdrive/(\w)(/.*)""".r.findFirstMatchIn(e)
+        val m = """/cygdrive/(\w)(/.*)""".r.findFirstMatchIn(p)
         if (m.isDefined)
           "%s:%s".format(m.get.group(1), m.get.group(2))
         else
@@ -152,7 +187,8 @@ object Shell extends Logger {
       else
         p
     }
-    val p = Some(resolveCygpath(e))
+
+    val p = e.map(resolveCygpath(_))
     debug("Found JAVA_HOME=" + p.get)
     p
   }

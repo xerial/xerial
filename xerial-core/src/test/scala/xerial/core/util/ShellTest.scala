@@ -31,9 +31,8 @@ import xerial.core.XerialSpec
 class ShellTest extends XerialSpec {
   "Shell" should {
     "find JVM" in {
-      val cmd = Shell.findJavaCommand()
-      debug("JAVA_HOME:%s", System.getenv("JAVA_HOME"))
-      debug(cmd)
+      val j = Shell.findJavaCommand()
+      j should be ('defined)
     }
 
     "find javaw.exe" in {
@@ -43,7 +42,15 @@ class ShellTest extends XerialSpec {
         cmd must not be (null)
         cmd must include("javaw")
       }
+    }
 
+    "detect process IDs" in {
+      val p = Shell.launchProcess("echo hello world")
+      val pid = Shell.getProcessID(p)
+      debug("process ID:%d", pid)
+      if(!OS.isWindows) {
+        pid should be > (0)
+      }
     }
 
     "be able to launch Java" in {
@@ -53,7 +60,7 @@ class ShellTest extends XerialSpec {
 
     "find sh" in {
       val cmd = Shell.findSh
-
+      cmd should be ('defined)
     }
 
     "launch command" in {
