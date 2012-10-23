@@ -60,8 +60,8 @@ object Shell extends Logger {
    * @param pid
    * @return
    */
-  def kill(pid:Int) : Int ={
-    val p = launchProcess("kill -9 %d".format(pid))
+  def kill(pid:Int, signal:String="TERM") : Int ={
+    val p = launchProcess("kill -%s %d".format(signal, pid))
     p.waitFor()
     val exitCode = p.exitValue()
     debug("killed process %d with exit code %d", pid, exitCode)
@@ -73,17 +73,22 @@ object Shell extends Logger {
    * @param pid
    * @return exit code
    */
-  def killTree(pid:Int) : Int = {
+  def killTree(pid:Int, signal:String="TERM") : Int = {
+    // stop the parent process first to keep it from forking another child process
     exec("kill -STOP %d".format(pid))
 
     // retrieve child processes
     val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid))
     for(line <- Process(pb).lines_!) {
       val childPID = line.trim.toInt
-      killTree(childPID)
+      killTree(childPID, signal)
     }
 
-    exec("kill -9 %d".format(pid))
+    // Now send the signal
+    exec("kill -%s %d".format(signal, pid))
+    // Try and continue the process in case the signal is non-terminating
+    // but doesn't continue the process
+    exec("kill -CONT %d".format(pid))
   }
 
   /**
@@ -123,7 +128,7 @@ object Shell extends Logger {
   def exec(cmdLine:String) : Int = {
     val pb = prepareProcessBuilder(cmdLine)
     val exitCode = Process(pb).!
-    debug("exec command %s", cmdLine)
+    debug("exec command %s with exitCode:%d", cmdLine, exitCode)
     exitCode
   }
 
@@ -135,8 +140,15 @@ object Shell extends Logger {
     p
   }
 
+
+
   private def prepareProcessBuilder(cmdLine:String): ProcessBuilder = {
-    val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), cmdLine)
+
+    def quote(s:String) : String = {
+      s.replaceAll("""\"""", """\\"""")
+    }
+
+    val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), quote(cmdLine))
     val pb = new ProcessBuilder(CommandLineTokenizer.tokenize(c):_*)
     pb.inheritIO()
     var env = getEnv
