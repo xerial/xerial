@@ -57,6 +57,12 @@ class ShellTest extends XerialSpec {
       Shell.launchJava("-version -Duser.language=en")
     }
 
+    "be able to kill processes" in {
+      val p = Shell.launchProcess("cat")
+      val pid = Shell.getProcessID(p)
+      val exitCode = Shell.kill(pid)
+    }
+
 
     "find sh" in {
       val cmd = Shell.findSh

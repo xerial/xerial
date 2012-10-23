@@ -54,6 +54,19 @@ object Shell extends Logger {
   }
 
   /**
+   * Kills the process
+   * @param pid
+   * @return
+   */
+  def kill(pid:Int) : Int ={
+    val p = launchProcess("kill -9 %d".format(pid))
+    p.waitFor()
+    val exitCode = p.exitValue()
+    debug("killed process %d with exit code %d", pid, exitCode)
+    exitCode
+  }
+
+  /**
    * Returns process id
    * @param p
    * @return process id or -1 if pid cannot be detected
