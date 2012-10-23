@@ -80,7 +80,7 @@ object Shell extends Logger {
     val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid))
     for(line <- Process(pb).lines_!) {
       val childPID = line.trim.toInt
-      exec("killtree -9 %d".format(childPID))
+      killTree(childPID)
     }
 
     exec("kill -9 %d".format(pid))
