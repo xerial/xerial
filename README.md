@@ -35,6 +35,12 @@ Retrives object type information embeded in Scala-generated class files.
     * Use `ObjectSchema(cl:Class[_])` to obtain consturctors, methods and the other parameters defined in a class.  
     * SigParser of the scalap is used for reading ScalaSignatures.
 
+## xerial-cui 
+Command-line parser
+
+## xerial-clio
+Cluster resource (CPU, memory, disk, network) management platform.
+
 ### Applications of ObjectSchema
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  

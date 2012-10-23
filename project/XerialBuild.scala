@@ -133,6 +133,16 @@ object XerialBuild extends Build {
     )
   ) dependsOn(lens % dependentScope)
 
+  lazy val clio = Project(
+   id = "xerial-clio",
+   base = file("xerial-clio"),
+    settings = buildSettings ++ Seq(
+     description := "cluster resource management platform",
+     libraryDependencies ++= clioLib
+   )
+  ) dependsOn(lens % dependentScope)
+
+
 
   object Dependencies {
     val testLib = Seq(
@@ -146,6 +156,14 @@ object XerialBuild extends Build {
     val lensLib = Seq(
       "org.javassist" % "javassist" % "3.15.0-GA",
       "org.scala-lang" % "scalap" % SCALA_VERSION
+    )
+    val clioLib = Seq(
+      "org.apache.zookeeper" % "zookeeper" % "3.4.4" excludeAll(
+        ExclusionRule(organization="com.sun.jdmk"),
+        ExclusionRule(organization="com.sun.jmx"),
+        ExclusionRule(organization="javax.jms")),
+      "netty.io" % "netty" % "3.5.7.Final",
+      "org.xerial.snappy" % "snappy-java" % "1.0.5-M3"
     )
   }
 
