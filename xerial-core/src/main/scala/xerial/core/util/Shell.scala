@@ -60,8 +60,8 @@ object Shell extends Logger {
    */
   def getProcessID(p:java.lang.Process) : Int = {
     try {
-      // If the current OS is *Nix, the process class of p is UNIXProcess and its pid can be obtained
-      // from pid field.
+      // If the current OS is *Nix, the class of p is UNIXProcess and its pid can be obtained
+      // from pid field by using reflection.
       val f = p.getClass().getDeclaredField("pid")
       val pid : Int = access(f) {
         f.get(p).asInstanceOf[Int]
