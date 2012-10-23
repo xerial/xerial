@@ -68,7 +68,7 @@ object GrammarExample extends Grammar {
   def number     = expr { option("-") - option("0" | ("1" ~ "9") - repeat(digit)) - option("." - oneOrMore(digit)) }
   def whiteSpace = expr { " " | "\t" | "\n" | "\r"  }
 
-  def numArray = exprOf[Seq[Int]] { "(" - repeat(digit, ",") - ")" }
+  def numArray = expr { "(" - repeat(digit, ",") - ")" }
 
   ignore(whiteSpace)
 

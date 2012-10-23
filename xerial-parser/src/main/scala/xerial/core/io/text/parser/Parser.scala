@@ -143,9 +143,10 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
     def eval(context:ParsingContext) : ParseResult = {
       debug("eval %s[%s] %s", Grammar.toVisibleString(name), resultType.getSimpleName, e.toString)
       val r = e.eval(new ParsingContext(name))
-      val b = ObjectBuilder(resultType)
+
       r.right map { m =>
         debug("parse tree: %s", m)
+        val b = ObjectBuilder(resultType)
         m.foreach(v =>
           b.set(v.name, v.value)
         )
@@ -188,10 +189,8 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       debug("EvalSeq %s", Grammar.toVisibleString(name))
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
-        if(i >= seq.length) {
-          //trace("eval seq end: %s", t)
+        if(i >= seq.length)
           Right(t)
-        }
         else
           seq(i).eval(context) match {
             case l@Left(_) => l
@@ -209,14 +208,8 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       // TODO Use an automaton that looks next characters, then switches matching patterns
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
-        if(i >= seq.length) {
+        if(i >= seq.length)
           Left(NoMatch)
-//          // Uses pattern matching for making the code tail recursive.
-//          evalIgnored(context) match {
-//            case l@ Left(_) => l
-//            case r@ Right(_) => loop(0, Empty)
-//          }
-        }
         else
           seq(i).eval(context) match {
             case Left(NoMatch) => loop(i + 1, t)
@@ -266,13 +259,7 @@ class Parser(input: Scanner, e: ExprRef[_], ignoredExprs: Set[Expr]) extends Log
       def exit(matchCount:Int) : ParseResult = {
         if(matchCount == 0) {
           evalIgnored(context) match {
-            case Right(_) => {
-              //trace("ignore token: %s (next char:%s)", Grammar.toVisibleString(input.selected), input.first.toChar)
-              // consume the input
-              input.withMark {
-                loop(0)
-              }
-            }
+            case Right(_) => input.withMark { loop(0) }  // Skip the ignored token, then reevaluate this expression
             case Left(_) => Left(NoMatch)
           }
         }
