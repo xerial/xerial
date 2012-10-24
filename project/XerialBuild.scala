@@ -104,7 +104,7 @@ object XerialBuild extends Build {
     base = file("."),
     settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
       Seq(libraryDependencies ++= bootLib)
-  ) aggregate(core, lens, cui)
+  ) aggregate(core, lens, cui, clio)
 
   lazy val core = Project(
     id = "xerial-core",
@@ -158,12 +158,14 @@ object XerialBuild extends Build {
       "org.scala-lang" % "scalap" % SCALA_VERSION
     )
     val clioLib = Seq(
-      "org.apache.zookeeper" % "zookeeper" % "3.4.4" excludeAll(
+      "org.apache.zookeeper" % "zookeeper" % "3.4.3" excludeAll(
         ExclusionRule(organization="com.sun.jdmk"),
         ExclusionRule(organization="com.sun.jmx"),
         ExclusionRule(organization="javax.jms")),
       "io.netty" % "netty" % "3.5.7.Final",
-      "org.xerial.snappy" % "snappy-java" % "1.0.5-M3"
+      "org.xerial.snappy" % "snappy-java" % "1.0.5-M3",
+      "com.netflix.curator" % "curator-recipes" % "1.2.3",
+      "com.netflix.curator" % "curator-test" % "1.2.3" % "test"
     )
   }
 
