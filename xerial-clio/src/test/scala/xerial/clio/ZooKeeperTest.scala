@@ -172,7 +172,7 @@ class ZooKeeperEnsembleTest extends XerialSpec with BeforeAndAfter {
     server = new TestingCluster(5)
     server.start
 
-    info("started zookeeper ensemble: %s", server.getInstances.toSeq.mkString(", "))
+    info("started zookeeper ensemble: %s", server.getConnectString)
   }
 
   after {

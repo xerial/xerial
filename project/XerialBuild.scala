@@ -140,7 +140,7 @@ object XerialBuild extends Build {
      description := "cluster resource management platform",
      libraryDependencies ++= clioLib
    )
-  ) dependsOn(lens % dependentScope)
+  ) dependsOn(cui, lens % dependentScope)
 
 
 
