@@ -25,7 +25,7 @@ package xerial.clio
 
 import xerial.core.XerialSpec
 import collection.JavaConversions._
-import com.netflix.curator.test.TestingServer
+import com.netflix.curator.test.{TestingCluster, TestingServer}
 import com.netflix.curator.framework.{CuratorFrameworkFactory, CuratorFramework}
 import com.netflix.curator.retry.ExponentialBackoffRetry
 import com.google.common.io.Closeables
@@ -35,6 +35,8 @@ import java.util.concurrent.{TimeUnit, Callable}
 import com.netflix.curator.framework.recipes.leader.{LeaderSelectorListener, LeaderSelector}
 import java.io.Closeable
 import com.netflix.curator.framework.state.ConnectionState
+import util.Random
+import com.netflix.curator.utils.{ZKPaths, EnsurePath}
 
 
 /**
@@ -81,14 +83,20 @@ class ZooKeeperTest extends XerialSpec with BeforeAndAfter {
     }
 
     def takeLeadership(client: CuratorFramework) {
-      info("%s takes the leadership", name)
+      val path = new EnsurePath("/xerial-clio/leader")
+      path.ensure(client.getZookeeperClient)
 
-      debug("participants: %s", leaderSelector.getParticipants.map{ p =>
-        p.toString
-      } mkString(", "))
+      val prevLeader = new String(client.getData().forPath("/xerial-clio/leader"))
+
+      info("%s takes the leadership (previous leader was %s)", name, prevLeader)
+
+      debug("leader selector has %d participants", leaderSelector.getParticipants.size())
       ourThread = Thread.currentThread
-      try
+      try {
+        client.setData().forPath("/xerial-clio/leader", name.getBytes)
+
         Thread.sleep(TimeUnit.SECONDS.toMillis(1))
+      }
       catch {
         case e:InterruptedException => {
           info("%s was interrupted", name)
@@ -132,7 +140,7 @@ class ZooKeeperTest extends XerialSpec with BeforeAndAfter {
 
 
     "elect a leader" in {
-      val clients = for(i <- 0 until 5) yield {
+      val clients = for(i <- 0 until 20) yield {
         val c = CuratorFrameworkFactory.newClient(server.getConnectString, new ExponentialBackoffRetry(1000, 3))
         val s = new LeaderSelectorExample(c, "/xerial-clio/test/leader", "client%d".format(i))
         c.start
@@ -152,5 +160,72 @@ class ZooKeeperTest extends XerialSpec with BeforeAndAfter {
     }
   }
 
+
+}
+
+
+class ZooKeeperEnsembleTest extends XerialSpec with BeforeAndAfter {
+
+  var server: TestingCluster = null
+
+  before {
+    server = new TestingCluster(5)
+    server.start
+
+    info("started zookeeper ensemble: %s", server.getInstances.toSeq.mkString(", "))
+  }
+
+  after {
+    Closeables.closeQuietly(server)
+  }
+
+  def withClient[U](f: CuratorFramework => U) : U = {
+    val c = CuratorFrameworkFactory.newClient(server.getConnectString, new ExponentialBackoffRetry(1000, 3))
+    try {
+      c.start
+      f(c)
+    }
+    finally {
+      Closeables.closeQuietly(c)
+    }
+  }
+
+
+  "ZooKeeperEnsemble" should {
+
+    "run safely if one of the nodes is down" in {
+      val m = "Hello Zookeeper Quorum"
+
+      withClient { client =>
+        client.create.forPath("/xerial-clio")
+        client.create.forPath("/xerial-clio/demo")
+        client.setData.forPath("/xerial-clio/demo", m.getBytes)
+        val servers = server.getInstances.toSeq
+        val victim = servers(Random.nextInt(servers.size))
+        info("kill a zookeeper server: %s", victim)
+        server.killServer(victim)
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1))
+
+        val b = client.getData.forPath("/xerial-clio/demo")
+        new String(b) should be (m)
+
+        //info("restart a zookeeper server: %s", victim)
+        //server.restartServer(victim)
+
+        //Thread.sleep(TimeUnit.SECONDS.toMillis(1))
+
+        val b2 = client.getData.forPath("/xerial-clio/demo")
+        new String(b2) should be (m)
+      }
+
+      withClient { client =>
+        val b = client.getData.forPath("/xerial-clio/demo")
+        new String(b) should be (m)
+      }
+
+    }
+
+  }
 
 }
