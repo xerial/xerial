@@ -29,22 +29,30 @@ import sys.process.Process
 import xerial.core.util.Shell
 import xerial.core.log.Logger
 import collection.JavaConversions._
-import java.net.NetworkInterface
+import java.net.{InetAddress, NetworkInterface}
 
 /**
  * Machine resource information
  *
  * @author leo
  */
-case class MachineResource(numCPUs:Int, memory:Long, networkInterfaces:Seq[NetworkIF]) {
-  override def toString = "CPU:%d, memeory:%s, networkInterface:%s".format(numCPUs, MachineResource.toHumanReadableFormat(memory), networkInterfaces.mkString(", "))
+case class MachineResource(host:Host, numCPUs:Int, memory:Long, networkInterfaces:Seq[NetworkIF]) {
+  override def toString = "host:%s, CPU:%d, memeory:%s, networkInterface:%s".format(host, numCPUs, MachineResource.toHumanReadableFormat(memory), networkInterfaces.mkString(", "))
 }
 
-case class NetworkIF(name:String, address:Seq[String]) {
-  override def toString = "%s:%s".format(name, address.mkString(","))
+case class Host(name:String, address:String)
+
+case class NetworkIF(name:String, address:String) {
+  override def toString = "%s:%s".format(name, address)
 }
 
 object MachineResource extends Logger {
+
+  def hostName : Host =  {
+    val lh = InetAddress.getLocalHost
+    debug("host:%s, %s", lh.getHostName, lh.getHostAddress)
+    Host(lh.getHostName, lh.getHostAddress)
+  }
 
   def toHumanReadableFormat(byteSize:Long) : String = {
     // kilo, mega, giga, tera, peta, exa, zetta, yotta
@@ -84,6 +92,7 @@ object MachineResource extends Logger {
 
     def isValidNetworkInterface(nif:NetworkInterface) : Boolean = {
 
+      // Retrieve ethernet and infiniband network interfaces
       val prefix = Seq("eth", "ib")
       val name = nif.getName
 
@@ -93,10 +102,10 @@ object MachineResource extends Logger {
     // Network interfaces
     val interfaces = for(nif <- NetworkInterface.getNetworkInterfaces if isValidNetworkInterface(nif)) yield {
       debug("network %s:%s MTU:%d", nif.getName, nif.getInetAddresses.map(_.getHostAddress).mkString(","), nif.getMTU)
-      NetworkIF(nif.getName, nif.getInetAddresses.map(_.getHostAddress).toSeq)
+      NetworkIF(nif.getName, nif.getInetAddresses.map(_.getHostAddress).toSeq.head)
     }
 
-    MachineResource(numCPUs, memory, interfaces.toSeq)
+    MachineResource(hostName, numCPUs, memory, interfaces.toSeq)
   }
 
 }
