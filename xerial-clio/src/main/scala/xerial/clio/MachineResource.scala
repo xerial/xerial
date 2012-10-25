@@ -37,7 +37,7 @@ import java.net.{InetAddress, NetworkInterface}
  * @author leo
  */
 case class MachineResource(host:Host, numCPUs:Int, memory:Long, networkInterfaces:Seq[NetworkIF]) {
-  override def toString = "host:%s, CPU:%d, memeory:%s, networkInterface:%s".format(host, numCPUs, MachineResource.toHumanReadableFormat(memory), networkInterfaces.mkString(", "))
+  override def toString = "host:%s, CPU:%d, memory:%s, networkInterface:%s".format(host, numCPUs, MachineResource.toHumanReadableFormat(memory), networkInterfaces.mkString(", "))
 }
 
 case class Host(name:String, address:String)
@@ -72,7 +72,10 @@ object MachineResource extends Logger {
     "%d%s".format(f._1, f._2)
   }
 
-
+  /**
+   * Retrieve [[xerial.clio.MachineResource]] information of this machine
+   * @return
+   */
   def thisMachine : MachineResource = {
     val osInfo = ManagementFactory.getOperatingSystemMXBean
     // number of CPUs in this machine
@@ -85,7 +88,6 @@ object MachineResource extends Logger {
         // Use system command to test memory size
         val pb = Shell.prepareProcessBuilder("""free -b | head -2 | tail -1 | awk '{ print $2; }'""", inheritIO=false)
         val r = Process(pb).!!
-        debug("result = %s", r)
         r.trim.toLong
       }
     }
@@ -101,7 +103,7 @@ object MachineResource extends Logger {
 
     // Network interfaces
     val interfaces = for(nif <- NetworkInterface.getNetworkInterfaces if isValidNetworkInterface(nif)) yield {
-      debug("network %s:%s MTU:%d", nif.getName, nif.getInetAddresses.map(_.getHostAddress).mkString(","), nif.getMTU)
+      trace("network %s:%s MTU:%d", nif.getName, nif.getInetAddresses.map(_.getHostAddress).mkString(","), nif.getMTU)
       NetworkIF(nif.getName, nif.getInetAddresses.map(_.getHostAddress).toSeq.head)
     }
 
