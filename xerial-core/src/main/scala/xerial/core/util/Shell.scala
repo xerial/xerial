@@ -142,7 +142,7 @@ object Shell extends Logger {
 
 
 
-  private def prepareProcessBuilder(cmdLine:String): ProcessBuilder = {
+  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean=true): ProcessBuilder = {
 
     def quote(s:String) : String = {
       s.replaceAll("""\"""", """\\"""")
@@ -150,7 +150,8 @@ object Shell extends Logger {
 
     val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), quote(cmdLine))
     val pb = new ProcessBuilder(CommandLineTokenizer.tokenize(c):_*)
-    pb.inheritIO()
+    if(inheritIO)
+      pb.inheritIO()
     var env = getEnv
     if(OS.isWindows)
       env += ("CYGWIN" -> "notty")

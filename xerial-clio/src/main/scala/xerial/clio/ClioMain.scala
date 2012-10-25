@@ -122,15 +122,19 @@ class ClioMain(@option(symbol = "h", name = "help", description = "display help 
   @command(description = "Start a ZooKeeper server in this machine")
   def startZooKeeperServer(port: Int) = {
     // read ensemble file $HOME/.clio/zookeeper-ensemble
-    val ensembleFile = sys.props.get("user.home") map {
+    val ensembleServers = sys.props.get("user.home") map {
       home =>
         home + "/.clio/zookeeper-ensemble"
-    }
+    } map readHostsFile
 
-    ensembleFile.map(readHostsFile(_)) map { servers =>
-      checkZooKeeperServers(servers)
-    }
+    // Check zoo keeper ensemble instances
+    val isRunning = ensembleServers map checkZooKeeperServers getOrElse(false)
+    if(!isRunning) {
+      // Start zoo keeper servers
 
+
+
+    }
 
 
   }
