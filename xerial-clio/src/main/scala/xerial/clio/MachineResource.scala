@@ -29,7 +29,7 @@ import sys.process.Process
 import xerial.core.util.Shell
 import xerial.core.log.Logger
 import collection.JavaConversions._
-import java.net.{InetAddress, NetworkInterface}
+import java.net.{Inet4Address, InetAddress, NetworkInterface}
 
 /**
  * Machine resource information
@@ -42,9 +42,8 @@ case class MachineResource(host:Host, numCPUs:Int, memory:Long, networkInterface
 
 case class Host(name:String, address:String)
 
-case class NetworkIF(name:String, address:String) {
-  override def toString = "%s:%s".format(name, address)
-}
+case class NetworkIF(name:String, address:InetAddress)
+
 
 object MachineResource extends Logger {
 
@@ -93,18 +92,25 @@ object MachineResource extends Logger {
     }
 
     def isValidNetworkInterface(nif:NetworkInterface) : Boolean = {
-
       // Retrieve ethernet and infiniband network interfaces
-      val prefix = Seq("eth", "ib")
+      val prefix = Seq("eth", "ib", "net")
       val name = nif.getName
-
-      nif.isUp && !nif.isLoopback && prefix.exists(name.startsWith(_))
+      (!nif.isLoopback) && prefix.exists(name.startsWith(_))
     }
 
+    def getInet4Address(nif:NetworkInterface) : Option[InetAddress] =
+      nif.getInetAddresses.collectFirst {
+        case i:Inet4Address => i
+      }
+
     // Network interfaces
-    val interfaces = for(nif <- NetworkInterface.getNetworkInterfaces if isValidNetworkInterface(nif)) yield {
-      trace("network %s:%s MTU:%d", nif.getName, nif.getInetAddresses.map(_.getHostAddress).mkString(","), nif.getMTU)
-      NetworkIF(nif.getName, nif.getInetAddresses.map(_.getHostAddress).toSeq.head)
+    val interfaces =
+      for{
+        nif <- NetworkInterface.getNetworkInterfaces if isValidNetworkInterface(nif)
+        address <- getInet4Address(nif)
+      }  yield {
+        trace("network %s:%s MTU:%d ", nif.getName, nif.getInetAddresses.map(_.getHostAddress).mkString(","), nif.getMTU)
+        NetworkIF(nif.getName, address)
     }
 
     MachineResource(hostName, numCPUs, memory, interfaces.toSeq)
