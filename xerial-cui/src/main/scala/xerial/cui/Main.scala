@@ -21,7 +21,7 @@ object Main {
 }
 
 class Main extends CommandModule {
-  val moduleName = "xerial"
+  val moduleName = "core"
 
   @command(description = "Set the log level of the JVM. Use jps to lookup JVM process IDs.")
   def loglevel(@option(symbol="l", description="logger name")

@@ -46,8 +46,8 @@ class ClioMainTest extends XerialSpec {
       w.flush
       w.close
 
-      val serversInFile = ClioMain.readHostsFile(t.getPath)
-      serversInFile.map(_.name) should be (servers)
+      val serversInFile = ClioMain.readHostsFile(t.getPath).getOrElse(Seq.empty)
+      serversInFile map (_.name) should be (servers)
 
       val isStarted = ClioMain.checkZooKeeperServers(serversInFile)
       isStarted should be (false)

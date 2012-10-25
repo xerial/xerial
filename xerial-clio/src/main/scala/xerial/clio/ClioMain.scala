@@ -23,7 +23,7 @@
 
 package xerial.clio
 
-import xerial.cui.{command, option}
+import xerial.cui.{CommandModule, command, option}
 import io.Source
 import xerial.core.log.Logger
 import java.io.File
@@ -32,7 +32,7 @@ import com.netflix.curator.retry.ExponentialBackoffRetry
 import com.netflix.curator.CuratorZookeeperClient
 
 
-class ZkEnsembleHost(hostName: String, quorumPort: Int = 2888, leaderElectionPort: Int = 3888) {
+class ZkEnsembleHost(val hostName: String, val quorumPort: Int = 2888, val leaderElectionPort: Int = 3888) {
   def serverName = "%s:%s".format(hostName, quorumPort)
   def name = "%s:%s:%s".format(hostName, quorumPort, leaderElectionPort)
 }
@@ -60,12 +60,13 @@ object ZkEnsembleHost extends Logger {
 object ClioMain extends Logger {
 
 
-  def readHostsFile(fileName:String) : Seq[ZkEnsembleHost] = {
+  def readHostsFile(fileName:String) : Option[Seq[ZkEnsembleHost]] = {
     if (!new File(fileName).exists()) {
       warn("file %s not found", fileName)
-      Seq.empty
+      None
     }
     else {
+      info("Reading %s", fileName)
       val r = for {
         (l, i) <- Source.fromFile(fileName).getLines().toSeq.zipWithIndex
         h <- l.trim match {
@@ -76,7 +77,11 @@ object ClioMain extends Logger {
         }
       }
       yield h
-      r.toSeq
+      val hosts = r.toSeq
+      if(hosts.length == 0)
+        None
+      else
+        Some(hosts)
     }
   }
 
@@ -99,11 +104,24 @@ object ClioMain extends Logger {
     }
   }
 
-//  def startZooKeeperServers(servers:Seq[ZkEnsembleHost]): Boolean = {
-//
-//
-//
-//  }
+  def startZooKeeperServers(servers:Seq[ZkEnsembleHost]) {
+
+    //
+    for(s <- servers) yield {
+      // login and launch the zookeeper server
+      val cmd = s.hostName match {
+        case "localhost" => "nohup xerial clio startZookeeperServer -port:%d < /dev/null > /dev/null &"
+        case _ =>
+          val launchCmd = "nohup startZookeeperServer -port:%d < /dev/null > /dev/null &".format(s.quorumPort)
+          "ssh %s '%s'".format(s.serverName, launchCmd)
+      }
+      debug("launch command:%s", cmd)
+
+
+    }
+
+
+  }
 
 }
 
@@ -112,28 +130,44 @@ object ClioMain extends Logger {
  */
 class ClioMain(@option(symbol = "h", name = "help", description = "display help messages")
                val displayHelp: Boolean = false)
-
   extends Logger {
 
   import ClioMain._
 
 
+  def startZookeeperServer(port:Int) {
+
+  }
+
 
   @command(description = "Start a ZooKeeper server in this machine")
-  def startZooKeeperServer(port: Int) = {
+  def init(port: Int) = {
+
+    val homeDir = sys.props.get("user.home") getOrElse(".")
+    val clioDir = homeDir + "/.clio"
+
     // read ensemble file $HOME/.clio/zookeeper-ensemble
-    val ensembleServers = sys.props.get("user.home") map {
-      home =>
-        home + "/.clio/zookeeper-ensemble"
-    } map readHostsFile
+    val ensembleServers = readHostsFile(clioDir + "/zookeeper-ensemble") getOrElse {
+      info("randomly pick up servers from $HOME/.clio/hosts")
+      val randomHosts = readHostsFile(clioDir + "/hosts") map { hosts =>
+        val n = hosts.length
+        if(n < 3)
+          Seq.empty
+        else
+          hosts.take(3) // use first three hosts as zk servers
+      }
+      randomHosts getOrElse {
+        warn("Missing $HOME/.clio/hosts file. Use localhost as a zookeeper master")
+        Seq(new ZkEnsembleHost("localhost"))
+      }
+    }
 
     // Check zoo keeper ensemble instances
-    val isRunning = ensembleServers map checkZooKeeperServers getOrElse(false)
+    val isRunning = checkZooKeeperServers(ensembleServers)
     if(!isRunning) {
+      info("No zookeeper server is running. Start new servers.")
       // Start zoo keeper servers
-
-
-
+      startZooKeeperServers(ensembleServers)
     }
 
 
