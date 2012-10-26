@@ -153,12 +153,12 @@ class ClassOptionSchema(val cl: Class[_]) extends OptionSchema {
 
   val options: Array[CLOption] = {
     //debug("schema of %s:%s", cl.getSimpleName, schema)
-    for (p <- schema.parameters; opt <- p.findAnnotationOf[option])
+    for (p <- schema.constructor.params; opt <- p.findAnnotationOf[option])
     yield new CLOption(opt, p)
   }
 
   val args: Array[CLArgument] = {
-    val argParams = for (p <- schema.parameters; arg <- p.findAnnotationOf[argument])
+    val argParams = for (p <- schema.constructor.params; arg <- p.findAnnotationOf[argument])
     yield new CLArgument(arg, p)
     argParams.sortBy(x => x.arg.index())
   }
@@ -342,21 +342,6 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       }
     }
 
-    object ShortOptionSquashed {
-      private val pattern = """^-([^-\s]\w+)""".r
-
-      def unapply(s: List[String]): Option[(List[CLOption], List[String])] = {
-        findMatch(pattern, s.head) {
-          m =>
-            val squashedOptionSymbols = m.group(1)
-            val (known, unknown) = squashedOptionSymbols.partition(ch => isKnownOption(ch.toString))
-            if (!unknown.isEmpty)
-              throw new IllegalArgumentException("unknown option is squashed: " + s.head)
-            Some((known.map(ch => schema(ch.toString)).toList, s.tail))
-        }
-      }
-    }
-
     def isKnownOption(name: String): Boolean = schema.findOption(name).isDefined
 
     // Hold mapping, option -> args ...
@@ -458,7 +443,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       if (hasLong) {
         if (hasShort)
           l append ", "
-        l append "--%s".format(opt.name)
+        l append "-%s".format(opt.name)
       }
 
       if (o.takesArgument) {

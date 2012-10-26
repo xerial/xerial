@@ -23,20 +23,6 @@ public @interface option {
     String symbol() default "";
 
     /**
-     * name of the option. If this name is "help", it handles option
-     * "--help"
-     *
-     */
-    String name() default "";
-
-
-    /**
-     * Variable name used to describe option argument (e.g. --file=VALUE). The
-     * default value is capitalized name().
-     */
-    String varName() default "value";
-
-    /**
      * Description of the option, used to generate a help message of this
      * command-line option.
      */
