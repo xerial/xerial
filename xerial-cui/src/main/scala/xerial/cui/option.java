@@ -17,7 +17,6 @@ public @interface option {
 
     /**
      * symbol of the option. If this symbol is "h", it handles option "-h".
-     * The symbol must be a single character.
      *
      */
     String symbol() default "";

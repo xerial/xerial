@@ -17,7 +17,7 @@ import xerial.core.log.{LogLevel, Logger}
 
 object CommandLineLensTest {
 
-  class GlobalOption(@option(symbol = "h", name = "help", description = "display help message")
+  class GlobalOption(@option(symbol = "h", alias="help", description = "display help message")
                      displayHelp: Boolean = false,
                      @argument(index = 0, description = "command name")
                      commandName: Option[String])
