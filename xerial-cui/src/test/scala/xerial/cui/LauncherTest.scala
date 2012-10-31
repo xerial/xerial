@@ -31,11 +31,16 @@ import xerial.core.log.{Logger, LogLevel}
  */
 class LauncherTest extends XerialSpec {
 
+  import Launcher._
+
   "Launcher" should {
 
     "populate arguments in constructor" in {
-      Launcher.of[SampleMain]
+      val l = Launcher.execute[SampleMain]("-h -l debug")
+      l.help should be (true)
+      l.loglevel should be (Some(LogLevel.DEBUG))
     }
+
 
   }
 }
@@ -46,6 +51,5 @@ class SampleMain(@option(symbol="h", description="display help messages")
                  val loglevel:Option[LogLevel]=None)
   extends Logger
 {
-
   info("Hello launcher")
 }
