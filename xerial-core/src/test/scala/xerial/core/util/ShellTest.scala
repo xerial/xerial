@@ -53,6 +53,12 @@ class ShellTest extends XerialSpec {
       }
     }
 
+    "detect current JVM process ID" in {
+      val pid = Shell.getProcessIDOfCurrentJVM
+      debug("JVM process ID:%d", pid)
+      pid should not be (-1)
+    }
+
     "be able to launch Java" in {
       Shell.launchJava("-version -Duser.language=en")
     }
@@ -84,6 +90,10 @@ class ShellTest extends XerialSpec {
         when("OS is windows")
         Shell.launchCmdExe("echo hello cmd.exe")
       }
+    }
+
+    "launch a remote process as a daemon" in {
+      Shell.launchRemoteDaemon("localhost", "sleep 5")
     }
   }
 
