@@ -29,6 +29,7 @@ import java.io.File
 object Path extends Logger {
 
   def root : Path = Root
+  def current : Path = Current
 
   def apply(s:String) : Path = {
     if(s.startsWith("""/""")) {
@@ -65,7 +66,7 @@ object Path extends Logger {
     override def iterator = Iterator.empty
     override def /(child: String) = new AbsolutePath(None, child)
   }
-  private case object Current extends RelativePath(None, "") {
+  private[Path] case object Current extends RelativePath(None, "") {
     override def iterator = Iterator.empty
     override def /(child: String) = new RelativePath(None, child)
   }
@@ -88,6 +89,10 @@ trait Path extends Iterable[String] {
   def isAbsolute : Boolean = !isRelative
   def parent: Option[Path]
   def f : File = new File(fullPath)
+  def isLeaf = size == 1
+  def tailPath : Path = if(isEmpty) Path.Current else {
+    drop(1).foldLeft[Path](Path.Current){ (p, c) => p / c }
+  }
 
   def iterator: Iterator[String] = parent match {
     case Some(p) => p.iterator ++ Iterator.single(name)

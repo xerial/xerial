@@ -70,6 +70,8 @@ $OPTION_LIST$
  */
 sealed abstract class CLOptionItem(val param: Parameter) {
 
+  def path : Path
+
   def takesArgument: Boolean = false
 
   def takesMultipleArguments: Boolean = {
@@ -84,7 +86,7 @@ sealed abstract class CLOptionItem(val param: Parameter) {
  * @param annot
  * @param param
  */
-case class CLOption(val annot: option, override val param: Parameter) extends CLOptionItem(param) {
+case class CLOption(val path:Path, val annot: option, override val param: Parameter) extends CLOptionItem(param) {
 
   // validate prefixes
   val prefixes : Seq[String] =
@@ -103,7 +105,7 @@ case class CLOption(val annot: option, override val param: Parameter) extends CL
  * @param arg
  * @param param
  */
-case class CLArgument(val arg: argument, override val param: Parameter) extends CLOptionItem(param) {
+case class CLArgument(val path:Path, val arg: argument, override val param: Parameter) extends CLOptionItem(param) {
   def name: String = {
     var n = arg.name
     if (n.isEmpty)
@@ -162,18 +164,18 @@ object ClassOptionSchema {
   /**
    * Create an option schema from a given class definition
    */
-  def apply(cl:Class[_]) : ClassOptionSchema = {
+  def apply(cl:Class[_], path:Path = Path.current) : ClassOptionSchema = {
     val schema = ObjectSchema(cl)
 
     val o = Array.newBuilder[CLOption]
     val a = Array.newBuilder[CLArgument]
     for (c <- schema.findConstructor; p <- c.params) {
       p.findAnnotationOf[option] match {
-        case Some(opt) => o += new CLOption(opt, p)
+        case Some(opt) => o += new CLOption(path, opt, p)
         case None => p.findAnnotationOf[argument] match {
-          case Some(arg) => a += new CLArgument(arg, p)
+          case Some(arg) => a += new CLArgument(path, arg, p)
           case None => // nested option
-            val nested = ClassOptionSchema(p.valueType.rawType)
+            val nested = ClassOptionSchema(p.valueType.rawType, path / p.name)
             o ++= nested.options
             a ++= nested.args
         }
@@ -210,10 +212,10 @@ class ClassOptionSchema(val cl: Class[_], val options:Array[CLOption], val args:
 class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 
   val options =
-    for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(opt, p)
+    for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(Path.current, opt, p)
 
   val args = {
-    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield new CLArgument(arg, p)
+    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield new CLArgument(Path.current, arg, p)
     l.sortBy(x => x.arg.index())
   }
 
