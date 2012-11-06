@@ -47,7 +47,7 @@ trait CommandModule extends Logger {
 
   val moduleName: String
 
-  @option(symbol = "h", alias="help", description = "display help message")
+  @option(prefix = "-h,--help", description = "display help message")
   var displayHelp: Boolean = false
 
   @argument(index = 0, name = "command name", description = "sub command name")

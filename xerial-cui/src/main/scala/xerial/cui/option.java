@@ -16,18 +16,10 @@ import java.lang.annotation.Target;
 public @interface option {
 
     /**
-     * symbol of the option. If this symbol is "h", it handles option "-h".
-     * The symbol must be a single character.
-     *
+     * Comma-separated list of option prefixes. For example, "-h,--help" handles option "-h" and
+     * "--help".
      */
-    String symbol() default "";
-
-    /**
-     * alias of the option. If this name is "help", it handles option
-     * "-help"
-     *
-     */
-    String alias() default "";
+    String prefix();
 
     /**
      * Description of the option, used to generate a help message of this
@@ -35,6 +27,10 @@ public @interface option {
      */
     String description() default "";
 
+    /**
+     * If this option is used to display help messages of the commands, set this value to true.
+     */
+    boolean isHelp() default false;
 }
 
 

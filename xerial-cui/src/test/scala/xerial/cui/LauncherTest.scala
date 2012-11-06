@@ -35,23 +35,36 @@ class LauncherTest extends XerialSpec {
 
   "Launcher" should {
 
-
+    import LauncherTest._
 
     "populate arguments in constructor" in {
       val l = Launcher.execute[SampleMain]("-h -l debug")
-      l.help should be (true)
-      l.loglevel should be (Some(LogLevel.DEBUG))
+      l.help should be(true)
+      l.loglevel should be(Some(LogLevel.DEBUG))
+      l.started should be(true)
     }
 
 
   }
 }
 
-class SampleMain(@option(symbol="h", description="display help messages")
-                 val help:Boolean=false,
-                 @option(symbol="l", description="log level")
-                 val loglevel:Option[LogLevel]=None)
-  extends Logger
-{
-  info("Hello launcher")
+object LauncherTest {
+
+  class SampleMain(@option(prefix = "-h,--help", description = "display help messages", isHelp=true)
+                   val help: Boolean = false,
+                   @option(prefix = "-l,--loglevel", description = "log level")
+                   val loglevel: Option[LogLevel] = None, var started: Boolean = false)
+    extends Logger {
+
+    trace("started SampleMain")
+    started = true
+  }
+
+  class SampleMain2(val help:Boolean = false) extends Logger {
+
+    @command
+    def hello(message:String) = debug("hello %s", message)
+
+  }
+
 }

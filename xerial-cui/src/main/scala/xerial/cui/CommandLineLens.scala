@@ -85,6 +85,16 @@ sealed abstract class CLOptionItem(val param: Parameter) {
  * @param param
  */
 case class CLOption(val annot: option, override val param: Parameter) extends CLOptionItem(param) {
+
+  // validate prefixes
+  val prefixes =
+    for(p <- annot.prefix.split(",")) yield {
+      if(p.startsWith("--") || p.startsWith("-"))
+         p
+      else
+        throw new IllegalArgumentException("Invalid prefix %s (not beginning with - or --). Fix option of %s".format(p, param.name))
+    }
+
   override def takesArgument: Boolean = !param.valueType.isBooleanType
 }
 
@@ -114,10 +124,10 @@ trait OptionSchema extends Logger {
     var h = Map[String, CLOption]()
     options.foreach {
       case opt: CLOption =>
-        if (!opt.annot.symbol.isEmpty)
-          h += opt.annot.symbol -> opt
-        if (!opt.param.name.isEmpty)
-          h += opt.param.name -> opt
+        for(p <- opt.prefixes)
+          h += p -> opt
+        //if (!opt.param.name.isEmpty)
+        //  h += opt.param.name -> opt
     }
     h
   }
@@ -297,7 +307,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
     case class WithArg(opt:CLOption, v:String, remaining:List[String])
 
     object OptionFlag {
-      private val pattern = """^-(\w)""".r
+      private val pattern = """^(-{1,2}\w+)""".r
 
       def unapply(s: List[String]): Option[Flag] = {
         findMatch(pattern, s.head) flatMap { m =>
@@ -308,7 +318,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
     }
 
     object OptionWithArgument {
-      private val pattern = """^-(\w)([:=](\w+))?""".r
+      private val pattern = """^(-{1,2}\w+)([:=](\w+))?""".r
 
       def unapply(s: List[String]): Option[WithArg] = {
         findMatch(pattern, s.head) flatMap { m =>
@@ -418,25 +428,17 @@ class OptionParser(val schema: OptionSchema) extends Logger {
     val optDscr: Array[(CLOption, String)] = for (o <- schema.options)
     yield {
       val opt: option = o.annot
-      val hasShort = opt.symbol.length != 0
-      val hasAlias = opt.alias.length != 0
+      val hasShort = o.prefixes.exists(_.length==2)
+      val hasAlias = o.prefixes.exists(_.length>2)
       val l = new StringBuilder
-      if (hasShort) {
-        l append "-%s".format(opt.symbol)
-      }
-      if (hasAlias) {
-        if (hasShort)
-          l append ", "
-        l append "-%s".format(opt.alias)
-      }
+      l append o.prefixes.mkString(", ")
 
       if (o.takesArgument) {
         if (hasAlias)
           l append ":"
         else if (hasShort)
           l append " "
-        val name = (if(hasAlias) opt.alias else "value").toUpperCase
-        l append "[%s]".format(name)
+        l append "[%s]".format(o.param.name.toUpperCase)
       }
       (o, l.toString)
     }

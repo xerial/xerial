@@ -26,4 +26,6 @@ public @interface command {
      * @return
      */
     String usage() default "";
+
+    String detailedHelp() default "";
 }

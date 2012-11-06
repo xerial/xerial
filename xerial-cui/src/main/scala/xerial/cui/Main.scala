@@ -24,7 +24,7 @@ class Main extends CommandModule {
   val moduleName = "xerial"
 
   @command(description = "Set the log level of the JVM. Use jps to lookup JVM process IDs.")
-  def loglevel(@option(symbol="l", description="logger name")
+  def loglevel(@option(prefix="-l", description="logger name")
                loggerName:Option[String] = None,
                @argument(index=0, description="JVM process id. (use jps to see PIDs)")
                pid: Int,

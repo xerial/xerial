@@ -17,12 +17,12 @@ import xerial.core.log.{LogLevel, Logger}
 
 object CommandLineLensTest {
 
-  class GlobalOption(@option(symbol = "h", alias="help", description = "display help message")
+  class GlobalOption(@option(prefix="-h,--help", description = "display help message")
                      displayHelp: Boolean = false,
                      @argument(index = 0, description = "command name")
                      commandName: Option[String])
 
-  class CatOption(@option(symbol = "n", description = "show line number")
+  class CatOption(@option(prefix = "-n", description = "show line number")
                   showLineNumber: Boolean = false)
   
   
@@ -42,9 +42,9 @@ object CommandLineLensTest {
   }
 
   class CommandLineAPI {
-    def hello(@option(symbol = "n", description = "name")
+    def hello(@option(prefix = "-n", description = "name")
               name: String,
-              @option(symbol = "h", description = "display help message")
+              @option(prefix = "-h", description = "display help message")
               displayHelp: Option[Boolean]
                ): String = {
       "hello"
@@ -53,12 +53,12 @@ object CommandLineLensTest {
 
   class CommandLineOption
   (
-    @option(symbol = "h", description = "display help")
+    @option(prefix = "-h", description = "display help")
     val displayHelp: Option[Boolean],
-    @option(symbol = "f", description = "input files")
+    @option(prefix = "-f", description = "input files")
     val files: Array[String]
     ) {
-    @option(symbol = "o", description = "outdir")
+    @option(prefix = "-o", description = "outdir")
     var outDir: String = "temp"
   }
 
@@ -81,10 +81,10 @@ class CommandLineLensTest extends XerialSpec {
       val m = methods(0)
       m.name must be("hello")
       val name = m.findAnnotationOf[option](0).get
-      name.symbol must be("n")
+      name.prefix must be("-n")
       name.description must be("name")
       val dh = m.findAnnotationOf[option](1).get
-      dh.symbol must be("h")
+      dh.prefix must be("-h")
       dh.description must be("display help message")
     }
 
@@ -92,14 +92,14 @@ class CommandLineLensTest extends XerialSpec {
       val params = classOf[CommandLineOption].parameters
       val o1 = params(0)
       val a1 = o1.findAnnotationOf[option].get
-      a1.symbol must be("h")
+      a1.prefix must be("-h")
       val o2 = params(1)
       val a2 = o2.findAnnotationOf[option].get
-      a2.symbol must be("f")
+      a2.prefix must be("-f")
 
       val o3 = params(2)
       val a3 = o3.findAnnotationOf[option].get
-      a3.symbol must be("o")
+      a3.prefix must be("-o")
     }
 
   }
