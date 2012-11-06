@@ -17,9 +17,17 @@ public @interface option {
 
     /**
      * symbol of the option. If this symbol is "h", it handles option "-h".
+     * The symbol must be a single character.
      *
      */
     String symbol() default "";
+
+    /**
+     * alias of the option. If this name is "help", it handles option
+     * "-help"
+     *
+     */
+    String alias() default "";
 
     /**
      * Description of the option, used to generate a help message of this

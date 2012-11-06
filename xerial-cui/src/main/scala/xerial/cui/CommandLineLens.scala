@@ -116,8 +116,8 @@ trait OptionSchema extends Logger {
       case opt: CLOption =>
         if (!opt.annot.symbol.isEmpty)
           h += opt.annot.symbol -> opt
-        if (!opt.annot.alias.isEmpty)
-          h += opt.annot.alias -> opt
+        if (!opt.param.name.isEmpty)
+          h += opt.param.name -> opt
     }
     h
   }
@@ -158,7 +158,6 @@ class ClassOptionSchema(val cl: Class[_]) extends OptionSchema {
   private val schema = ObjectSchema(cl)
 
   val options: Array[CLOption] = {
-    //debug("schema of %s:%s", cl.getSimpleName, schema)
     for (p <- schema.constructor.params; opt <- p.findAnnotationOf[option])
     yield new CLOption(opt, p)
   }
@@ -331,11 +330,8 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       }
     }
 
-<<<<<<< HEAD
     def isKnownOption(name: String): Boolean = schema.findOption(name).isDefined
 
-=======
->>>>>>> 618c67beb8175c3b84c83bd74b275f1982a58382
     // Hold mapping, option -> args ...
     val optionValues = collection.mutable.Map[CLOptionItem, ArrayBuffer[String]]()
     val unusedArguments = new ArrayBuffer[String]
@@ -431,16 +427,16 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       if (hasAlias) {
         if (hasShort)
           l append ", "
-        l append "-%s".format(opt.name)
+        l append "-%s".format(opt.alias)
       }
 
       if (o.takesArgument) {
-
         if (hasAlias)
           l append ":"
         else if (hasShort)
           l append " "
-        l append "[%s]".format(opt.varName)
+        val name = (if(hasAlias) opt.alias else "value").toUpperCase
+        l append "[%s]".format(name)
       }
       (o, l.toString)
     }
