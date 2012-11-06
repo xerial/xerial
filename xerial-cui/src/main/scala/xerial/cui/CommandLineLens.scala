@@ -40,14 +40,14 @@ object OptionParser extends Logger {
   }
 
   def apply(cl: Class[_]): OptionParser = {
-    val schema = new ClassOptionSchema(cl)
+    val schema = ClassOptionSchema(cl)
     assert(schema != null)
     new OptionParser(schema)
   }
 
   def newParser[A <: AnyRef](optionHolder: A) = {
     val cl = optionHolder.getClass
-    new OptionParser(new ClassOptionSchema(cl))
+    new OptionParser(ClassOptionSchema(cl))
   }
 
   def parse[A <: AnyRef](args: Array[String])(implicit m: ClassManifest[A]): A = {
@@ -87,13 +87,13 @@ sealed abstract class CLOptionItem(val param: Parameter) {
 case class CLOption(val annot: option, override val param: Parameter) extends CLOptionItem(param) {
 
   // validate prefixes
-  val prefixes =
-    for(p <- annot.prefix.split(",")) yield {
-      if(p.startsWith("--") || p.startsWith("-"))
-         p
-      else
-        throw new IllegalArgumentException("Invalid prefix %s (not beginning with - or --). Fix option of %s".format(p, param.name))
-    }
+  val prefixes : Seq[String] =
+      for(p <- annot.prefix.split(",")) yield {
+        if(p.startsWith("--") || p.startsWith("-"))
+          p
+        else
+          throw new IllegalArgumentException("Invalid prefix %s (not beginning with - or --). Fix option of %s".format(p, param.name))
+      }
 
   override def takesArgument: Boolean = !param.valueType.isBooleanType
 }
@@ -126,8 +126,6 @@ trait OptionSchema extends Logger {
       case opt: CLOption =>
         for(p <- opt.prefixes)
           h += p -> opt
-        //if (!opt.param.name.isEmpty)
-        //  h += opt.param.name -> opt
     }
     h
   }
@@ -159,24 +157,37 @@ trait OptionSchema extends Logger {
   override def toString = "options:[%s], args:[%s]".format(options.mkString(", "), args.mkString(", "))
 }
 
+object ClassOptionSchema {
+
+  /**
+   * Create an option schema from a given class definition
+   */
+  def apply(cl:Class[_]) : ClassOptionSchema = {
+    val schema = ObjectSchema(cl)
+
+    val o = Array.newBuilder[CLOption]
+    val a = Array.newBuilder[CLArgument]
+    for (c <- schema.findConstructor; p <- c.params) {
+      p.findAnnotationOf[option] match {
+        case Some(opt) => o += new CLOption(opt, p)
+        case None => p.findAnnotationOf[argument] match {
+          case Some(arg) => a += new CLArgument(arg, p)
+          case None => // nested option
+            val nested = ClassOptionSchema(p.valueType.rawType)
+            o ++= nested.options
+            a ++= nested.args
+        }
+      }
+    }
+    new ClassOptionSchema(cl, o.result, a.result().sortBy(x => x.arg.index))
+  }
+}
+
 /**
- * OptionSchema crated from a class definition
+ * OptionSchema created from a class definition
  * @param cl
  */
-class ClassOptionSchema(val cl: Class[_]) extends OptionSchema {
-
-  private val schema = ObjectSchema(cl)
-
-  val options: Array[CLOption] = {
-    for (p <- schema.constructor.params; opt <- p.findAnnotationOf[option])
-    yield new CLOption(opt, p)
-  }
-
-  val args: Array[CLArgument] = {
-    val argParams = for (p <- schema.constructor.params; arg <- p.findAnnotationOf[argument])
-    yield new CLArgument(arg, p)
-    argParams.sortBy(x => x.arg.index())
-  }
+class ClassOptionSchema(val cl: Class[_], val options:Array[CLOption], val args:Array[CLArgument]) extends OptionSchema {
 
   def description = {
     cl.getDeclaredAnnotations.collectFirst {
@@ -227,19 +238,14 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
  * Option -> value mapping result
  */
 sealed abstract class OptionMapping
-
 case class OptSetFlag(opt: CLOption) extends OptionMapping
-
 case class OptMapping(opt: CLOption, value: String) extends OptionMapping
-
 case class OptMappingMultiple(opt: CLOption, value: Array[String]) extends OptionMapping
-
 case class ArgMapping(opt: CLArgument, value: String) extends OptionMapping
-
 case class ArgMappingMultiple(opt: CLArgument, value: Array[String]) extends OptionMapping
 
-class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Array[String]) {
-}
+class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Array[String])
+
 
 /**
  * CommandTrait-line argument parser
@@ -301,11 +307,10 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       if (m.start(group) != -1) Some(m.group(group)) else None
     }
 
-
-
     case class Flag(opt:CLOption, remaining:List[String])
     case class WithArg(opt:CLOption, v:String, remaining:List[String])
 
+    // case object for pattern matching of options
     object OptionFlag {
       private val pattern = """^(-{1,2}\w+)""".r
 
@@ -317,6 +322,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       }
     }
 
+    // case object for pattern matching of options that take arguments
     object OptionWithArgument {
       private val pattern = """^(-{1,2}\w+)([:=](\w+))?""".r
 

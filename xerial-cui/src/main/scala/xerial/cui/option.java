@@ -17,9 +17,9 @@ public @interface option {
 
     /**
      * Comma-separated list of option prefixes. For example, "-h,--help" handles option "-h" and
-     * "--help".
+     * "--help". If no prefix is specified, this parameter is handled as a nested option.
      */
-    String prefix();
+    String prefix() default "";
 
     /**
      * Description of the option, used to generate a help message of this

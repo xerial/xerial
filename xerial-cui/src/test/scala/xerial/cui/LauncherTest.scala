@@ -38,10 +38,23 @@ class LauncherTest extends XerialSpec {
     import LauncherTest._
 
     "populate arguments in constructor" in {
-      val l = Launcher.execute[SampleMain]("-h -l debug")
+      val l = Launcher.execute[GlobalOption]("-h -l debug")
       l.help should be(true)
       l.loglevel should be(Some(LogLevel.DEBUG))
       l.started should be(true)
+    }
+
+    "parse double hyphen options" in {
+      val l = Launcher.execute[GlobalOption]("--help --loglevel debug")
+      l.help should be(true)
+      l.loglevel should be(Some(LogLevel.DEBUG))
+    }
+
+    "populate nested options" in {
+      val l = Launcher.execute[NestedOption]("-h -l debug")
+      l.g.help should be(true)
+      l.g.loglevel should be(Some(LogLevel.DEBUG))
+      l.g.started should be(true)
     }
 
 
@@ -50,20 +63,19 @@ class LauncherTest extends XerialSpec {
 
 object LauncherTest {
 
-  class SampleMain(@option(prefix = "-h,--help", description = "display help messages", isHelp=true)
-                   val help: Boolean = false,
-                   @option(prefix = "-l,--loglevel", description = "log level")
-                   val loglevel: Option[LogLevel] = None, var started: Boolean = false)
+  case class GlobalOption(@option(prefix = "-h,--help", description = "display help messages", isHelp=true)
+                          val help: Boolean = false,
+                          @option(prefix = "-l,--loglevel", description = "log level")
+                          val loglevel: Option[LogLevel] = None, var started: Boolean = false)
     extends Logger {
 
-    trace("started SampleMain")
+    trace("started GlobalOption")
     started = true
   }
 
-  class SampleMain2(val help:Boolean = false) extends Logger {
 
-    @command
-    def hello(message:String) = debug("hello %s", message)
+  class NestedOption(val g:GlobalOption) extends Logger {
+
 
   }
 

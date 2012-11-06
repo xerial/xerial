@@ -447,12 +447,12 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
   def containsParameter(name: String) = parameterIndex.contains(name)
 
   lazy val constructor: Constructor = {
-    findConstructor(cl) match {
+    findConstructor match {
       case Some(c) => c
       case None => throw new IllegalArgumentException("no constructor is found for " + cl)
     }
   }
-
+  def findConstructor : Option[Constructor] = ObjectSchema.findConstructor(cl)
 
   override def toString = {
     if (parameters.isEmpty)
