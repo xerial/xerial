@@ -69,9 +69,8 @@ class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends GenericBuilder wit
         val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
         arr += TypeConverter.convert(value, gt)
       }
-      else {
-        valueHolder(name) = TypeConverter.convert(value, p.valueType)
-      }
+      else
+        TypeConverter.convert(value, p.valueType) map { valueHolder(name) = _ }
     }
 
   }
@@ -79,7 +78,7 @@ class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends GenericBuilder wit
   def execute : Any = {
     val args = for(p <- m.params) yield {
       val v = valueHolder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
-      TypeConverter.convert(v, p.valueType).asInstanceOf[AnyRef]
+      TypeConverter.convert(v, p.valueType).get.asInstanceOf[AnyRef]
     }
 
     trace { "args: " + args.mkString(", ") }

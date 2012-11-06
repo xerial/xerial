@@ -30,6 +30,30 @@ object TypeUtil extends Logger {
     cl.isArray || cl.getSimpleName == "Array"
   }
 
+  /**
+   * If the class has unapply(s:String) : T method in the companion object for instantiating class T, returns true.
+   * @param cl
+   * @tparam T
+   * @return
+   */
+  def hasStringUnapplyConstructor[T](cl:Class[T]) : Boolean = {
+    companionObject(cl) map { co =>
+      cls(co).getDeclaredMethods.find{ p =>
+        def acceptString = {
+          val t = p.getParameterTypes
+          t.length == 1 && t(0) == classOf[String]
+        }
+        def returnOptionOfT = {
+          val rt = p.getGenericReturnType
+          val t = Reflect.getTypeParameters(rt)
+          isOption(p.getReturnType) && t.length == 1 && t(0) == cl
+        }
+
+        p.getName == "unapply" && acceptString && returnOptionOfT
+      } isDefined
+    } getOrElse (false)
+  }
+
   def isOption[T](cl: ClassManifest[T]): Boolean = {
     val name = cl.erasure.getSimpleName
     // Option None is an object ($)
@@ -126,12 +150,15 @@ object TypeUtil extends Logger {
       return true
 
     val fields = cl.getDeclaredFields
+    debug("fields: %s", fields.mkString(", "))
     val c = cl.getConstructors().find {
       x =>
         val p = x.getParameterTypes
+        debug("parameter types: %s", p.mkString(", "))
         if (p.length != fields.length)
           return false
 
+        debug("here")
         fields.zip(p).forall(e =>
           e._1.getType == e._2)
     }

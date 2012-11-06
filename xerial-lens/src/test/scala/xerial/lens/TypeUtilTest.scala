@@ -16,12 +16,12 @@
 
 //--------------------------------------
 //
-// LauncherTest.scala
-// Since: 2012/10/25 4:38 PM
+// TypeUtilTest.scala
+// Since: 2012/11/06 11:01 AM
 //
 //--------------------------------------
 
-package xerial.cui
+package xerial.lens
 
 import xerial.core.XerialSpec
 import xerial.core.log.{Logger, LogLevel}
@@ -29,29 +29,16 @@ import xerial.core.log.{Logger, LogLevel}
 /**
  * @author leo
  */
-class LauncherTest extends XerialSpec {
-
-  import Launcher._
-
-  "Launcher" should {
-
-
-
-    "populate arguments in constructor" in {
-      val l = Launcher.execute[SampleMain]("-h -l debug")
-      l.help should be (true)
-      l.loglevel should be (Some(LogLevel.DEBUG))
+class TypeUtilTest extends XerialSpec
+{
+  "TypeConverter" should {
+    "Create singleton object from name" in {
+      for(l <- LogLevel.values) {
+        val m = TypeConverter.convert(l.name, classOf[LogLevel]) getOrElse None
+        m should be (l)
+      }
     }
-
-
   }
 }
 
-class SampleMain(@option(symbol="h", description="display help messages")
-                 val help:Boolean=false,
-                 @option(symbol="l", description="log level")
-                 val loglevel:Option[LogLevel]=None)
-  extends Logger
-{
-  info("Hello launcher")
-}
+class A(val flag:Option[LogLevel]=None) extends Logger

@@ -46,6 +46,7 @@ object LogLevel extends xerial.core.collection.Enum[LogLevel] {
   object ALL extends LogLevel(7, "all")
 
   val values = IndexedSeq(OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL)
+  private lazy val index = values.map { l => l.name.toLowerCase -> l } toMap
 
   def apply(name: String): LogLevel = {
     val n = name.toLowerCase
@@ -57,6 +58,8 @@ object LogLevel extends xerial.core.collection.Enum[LogLevel] {
     else
       lv.get
   }
+
+  def unapply(name:String) : Option[LogLevel] = index.get(name.toLowerCase)
 }
 
 sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered[LogLevel] {

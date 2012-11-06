@@ -453,6 +453,7 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
     }
   }
 
+
   override def toString = {
     if (parameters.isEmpty)
       name

@@ -63,6 +63,26 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: In
     findAnnotationOf[T](annot)
   }
 
+  /**
+   * Get the default value of this parameter or
+   * @return
+   */
+  def getDefaultValue : Option[Any] = {
+    TypeUtil.companionObject(owner).flatMap { companion =>
+      val methodName = "init$default$%d".format(index + 1)
+      try {
+        val m = TypeUtil.cls(companion).getDeclaredMethod(methodName)
+        Some(m.invoke(companion))
+      }
+      catch {
+        // When no method for the initial value is found, use 'zero' value of the type
+        case e => {
+          None
+        }
+      }
+    }
+  }
+
   def get(obj: Any) = {
     Reflect.readField(obj, field)
   }

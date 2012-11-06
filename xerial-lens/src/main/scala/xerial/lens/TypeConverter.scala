@@ -11,32 +11,33 @@ package xerial.lens
 import collection.mutable
 import java.text.DateFormat
 import java.io.File
+import xerial.core.log.Logger
 
 /**
  * @author leo
  */
-object TypeConverter {
+object TypeConverter extends Logger {
 
   import TypeUtil._
   import java.lang.{reflect=>jr}
 
-  def convert(value: Any, targetType: ObjectType): Any = {
+  def convert(value: Any, targetType: ObjectType): Option[Any] = {
     if (targetType.isOption) {
       if (isOption(cls(value)))
-        value
+        Some(value)
       else {
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
-        Some(convert(value, gt(0)))
+        Some(Some(convert(value, gt(0))))
       }
     }
     else if (isArray(targetType.rawType) && isArray(cls(value))) {
-      value
+      Some(value)
     }
     else {
       val t: Class[_] = targetType.rawType
       val s: Class[_] = cls(value)
       if (t.isAssignableFrom(s))
-        value
+        Some(value)
       else if (TypeUtil.isBuffer(s)) {
         val buf = value.asInstanceOf[mutable.Buffer[_]]
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
@@ -45,19 +46,21 @@ object TypeConverter {
         if (TypeUtil.isArray(t)) {
           val arr = e.newArray(buf.length).asInstanceOf[Array[Any]]
           buf.copyToArray(arr)
-          arr
+          Some(arr)
         }
         else if (isSeq(t)) {
-          buf.toSeq
+          Some(buf.toSeq)
         }
         else if (isSet(t)) {
-          buf.toSet
+          Some(buf.toSet)
         }
         else if (isMap(t)) {
-          buf.asInstanceOf[mutable.Buffer[(_, _)]].toMap
+          Some(buf.asInstanceOf[mutable.Buffer[(_, _)]].toMap)
         }
-        else
-          throw sys.error("cannot convert %s to %s".format(s.getSimpleName, t.getSimpleName))
+        else {
+          warn("cannot convert %s to %s", s.getSimpleName, t.getSimpleName)
+          None
+        }
       }
       else
         convert(value, targetType.rawType)
@@ -67,13 +70,26 @@ object TypeConverter {
   /**
    * Convert the input value into the target type
    */
-  def convert[A](value: Any, targetType: Class[A]): A = {
+  def convert[A](value: Any, targetType: Class[A]): Option[A] = {
     val cl: Class[_] = cls(value)
     if (targetType.isAssignableFrom(cl))
-      value.asInstanceOf[A]
+      Some(value.asInstanceOf[A])
+    else if(hasStringUnapplyConstructor(targetType)) {
+    // call unapply
+      companionObject(targetType) flatMap { co =>
+        val m = cls(co).getDeclaredMethod("unapply", Array(classOf[String]):_*)
+        val v = m.invoke(co, Array(value.toString):_*).asInstanceOf[Option[A]]
+        v match {
+          case Some(c) => v
+          case None =>
+            warn("cannot create an instance of %s from %s", targetType, value)
+            None
+        }
+      }
+    }
     else {
       stringConstructor(targetType) match {
-        case Some(cc) => cc.newInstance(value.toString).asInstanceOf[A]
+        case Some(cc) => Some(cc.newInstance(value.toString).asInstanceOf[A])
         case None => convertToPrimitive(value, Primitive(targetType))
       }
     }
@@ -82,7 +98,7 @@ object TypeConverter {
   /**
    * Convert the input value into the target type
    */
-  def convertToPrimitive[A](value: Any, targetType: ObjectType): A = {
+  def convertToPrimitive[A](value: Any, targetType: ObjectType): Option[A] = {
     val s = value.toString
     val v: Any = targetType match {
       case TextType.String => s
@@ -97,9 +113,10 @@ object TypeConverter {
       case TextType.File => new File(s)
       case TextType.Date => DateFormat.getDateInstance.parse(s)
       case _ =>
-        throw new IllegalArgumentException("""Failed to convert "%s" to %s""".format(s, targetType.toString))
+        warn("""Failed to convert "%s" to %s""", s, targetType.toString)
+        None
     }
-    v.asInstanceOf[A]
+    Some(v.asInstanceOf[A])
   }
 
   def stringConstructor(cl: Class[_]): Option[jr.Constructor[_]] = {

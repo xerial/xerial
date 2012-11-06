@@ -48,13 +48,12 @@ object Launcher {
  */
 class Launcher[A](schema:OptionSchema)(implicit m:ClassManifest[A]) {
 
-  def execute(argLine:String) = execute(CommandLineTokenizer.tokenize(argLine))
+  def execute(argLine:String) : A = execute(CommandLineTokenizer.tokenize(argLine))
   def execute(args:Array[String]) : A = {
-    val a = m.erasure.newInstance().asInstanceOf[A]
-
-
-
-    a
+    val schema = new ClassOptionSchema(m.erasure)
+    val parser = new OptionParser(schema)
+    val r = parser.build(args)
+    r._1
   }
 
 }

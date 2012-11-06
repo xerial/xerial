@@ -39,8 +39,8 @@ object ObjectBuilder extends Logger {
 
   def apply[A](cl: Class[A]): ObjectBuilder[A] = {
 
-    if (!TypeUtil.canInstantiate(cl))
-      throw new IllegalArgumentException("Cannot instantiate class " + cl)
+    //if (!TypeUtil.canInstantiate(cl))
+//      throw new IllegalArgumentException("Cannot instantiate class " + cl)
 
     // collect default values of the object
     val schema = ObjectSchema(cl)
@@ -128,7 +128,7 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
       if (v != null) {
         val cv = TypeConverter.convert(v, p.valueType)
         trace("getValue:%s, v:%s => cv:%s", p, v, cv)
-        Some(cv)
+        cv
       }
       else
         None

@@ -102,20 +102,6 @@ class CommandLineLensTest extends XerialSpec {
       a3.symbol must be("o")
     }
 
-    import CommandLineLensTest._
-
-    "accept silk line argument" in {
-      val c = CommandLauncher.of[MyCommand]
-      c.execute("-displayHelp -loglevel:info ")
-
-    }
-
-    "allow nested option" in {
-
-
-
-
-    }
   }
 
 }
