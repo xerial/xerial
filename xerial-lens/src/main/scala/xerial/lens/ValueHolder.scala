@@ -82,7 +82,7 @@ object ValueHolder extends Logger {
 
     def get(path:Path) = {
       if(path.isEmpty)
-        throw new IllegalStateException("path is not found")
+        Seq.empty
       else
         child(path.head).get(path.tailPath)
     }
@@ -102,7 +102,7 @@ object ValueHolder extends Logger {
       if(path.isEmpty)
         Seq(value)
       else
-        throw new NoSuchElementException(path.toString)
+        Seq.empty
     }
   }
 
@@ -120,7 +120,7 @@ object ValueHolder extends Logger {
       if(path.isEmpty)
         seq
       else
-        throw new NoSuchElementException(path.toString)
+        Seq.empty
   }
 
 }
