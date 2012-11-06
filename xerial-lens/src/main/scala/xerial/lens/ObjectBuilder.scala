@@ -110,7 +110,7 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
       val gt = t.genericTypes(0).rawType
       type E = gt.type
       val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
-      arr += TypeConverter.convert(value, gt)
+      TypeConverter.convert(value, gt) map { arr += _ }
     }
     else {
       valueHolder(name) = value

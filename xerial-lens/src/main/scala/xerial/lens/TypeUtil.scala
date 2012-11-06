@@ -135,7 +135,8 @@ object TypeUtil extends Logger {
     }
     catch {
       case e => {
-        warn("no companion object is found for %s: %s", cl, e)
+        //warn("no companion object is found for %s: %s", cl, e)
+        //e.printStackTrace()
         None
       }
     }

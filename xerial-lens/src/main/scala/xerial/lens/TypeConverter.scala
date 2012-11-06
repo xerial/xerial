@@ -27,7 +27,7 @@ object TypeConverter extends Logger {
         Some(value)
       else {
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
-        Some(Some(convert(value, gt(0))))
+        Some(convert(value, gt(0)))
       }
     }
     else if (isArray(targetType.rawType) && isArray(cls(value))) {
