@@ -31,9 +31,8 @@ import xerial.core.XerialSpec
 class ShellTest extends XerialSpec {
   "Shell" should {
     "find JVM" in {
-      val cmd = Shell.findJavaCommand()
-      debug("JAVA_HOME:%s", System.getenv("JAVA_HOME"))
-      debug(cmd)
+      val j = Shell.findJavaCommand()
+      j should be ('defined)
     }
 
     "find javaw.exe" in {
@@ -43,17 +42,42 @@ class ShellTest extends XerialSpec {
         cmd must not be (null)
         cmd must include("javaw")
       }
+    }
 
+    "detect process IDs" in {
+      val p = Shell.launchProcess("echo hello world")
+      val pid = Shell.getProcessID(p)
+      debug("process ID:%d", pid)
+      if(!OS.isWindows) {
+        pid should be > (0)
+      }
+    }
+
+    "detect current JVM process ID" in {
+      val pid = Shell.getProcessIDOfCurrentJVM
+      debug("JVM process ID:%d", pid)
+      pid should not be (-1)
     }
 
     "be able to launch Java" in {
       Shell.launchJava("-version -Duser.language=en")
     }
 
+    "be able to kill processes" in {
+      val p = Shell.launchProcess("cat")
+      val pid = Shell.getProcessID(p)
+      val exitCode = Shell.kill(pid)
+    }
+
+    "be able to kill process trees" in { 
+      val p = Shell.launchProcess("cat")
+      val pid = Shell.getProcessID(p)
+      Shell.killTree(pid)
+    }
 
     "find sh" in {
       val cmd = Shell.findSh
-
+      cmd should be ('defined)
     }
 
     "launch command" in {
@@ -66,6 +90,10 @@ class ShellTest extends XerialSpec {
         when("OS is windows")
         Shell.launchCmdExe("echo hello cmd.exe")
       }
+    }
+
+    "launch a remote process as a daemon" in {
+      Shell.launchRemoteDaemon("localhost", "sleep 5")
     }
   }
 

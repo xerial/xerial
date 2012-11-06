@@ -34,7 +34,7 @@ import util.DynamicVariable
  *
  * @author Taro L. Saito
  */
-object LogLevel {
+object LogLevel extends xerial.core.collection.Enum[LogLevel] {
 
   object OFF extends LogLevel(0, "off")
   object FATAL extends LogLevel(1, "fatal")
@@ -45,7 +45,7 @@ object LogLevel {
   object TRACE extends LogLevel(6, "trace")
   object ALL extends LogLevel(7, "all")
 
-  val values = Seq(OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL)
+  val values = IndexedSeq(OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL)
 
   def apply(name: String): LogLevel = {
     val n = name.toLowerCase
