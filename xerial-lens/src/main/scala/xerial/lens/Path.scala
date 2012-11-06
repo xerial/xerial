@@ -63,9 +63,11 @@ object Path extends Logger {
 
   private case object Root extends AbsolutePath(None, "") {
     override def iterator = Iterator.empty
+    override def /(child: String) = new AbsolutePath(None, child)
   }
   private case object Current extends RelativePath(None, "") {
     override def iterator = Iterator.empty
+    override def /(child: String) = new RelativePath(None, child)
   }
 
 }
