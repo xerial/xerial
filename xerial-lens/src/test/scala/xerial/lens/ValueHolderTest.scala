@@ -40,6 +40,10 @@ class ValueHolderTest extends XerialSpec {
       debug(h4)
       val h5 = h4.set("B/c", "cake")
       debug(h5)
+      val h6 = h5.set("B/b", "magazine")
+      debug(h6)
+      val h7 = h6.set("B/b/note", "my bookshelf")
+      debug(h7)
     }
   }
 }

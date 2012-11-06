@@ -45,7 +45,7 @@ import xerial.core.log.Logger
 trait ValueHolder {
   def set(path:String, value:String) : ValueHolder = set(Path(path), value)
   def set(path:Path, value:String) : ValueHolder
-  def get(path:Path) : Seq[String]
+  def get(path:Path) : Seq[ValueHolder]
 }
 
 
@@ -92,28 +92,22 @@ object ValueHolder extends Logger {
   private case class Leaf(value:String) extends ValueHolder {
     override def toString = value
     def set(path: Path, value: String) = {
-      if(path.isEmpty)
-        SeqLeaf(Seq(this.value, value))
-      else
-        throw new IllegalStateException("cannot add a child to a leaf node")
+      SeqLeaf(Seq(this, Empty.set(path, value)))
     }
 
     def get(path: Path) = {
       if(path.isEmpty)
-        Seq(value)
+        Seq(this)
       else
         Seq.empty
     }
   }
 
-  private case class SeqLeaf(seq:Seq[String]) extends ValueHolder {
+  private case class SeqLeaf(seq:Seq[ValueHolder]) extends ValueHolder {
     override def toString = "[%s]".format(seq.mkString(", "))
 
     def set(path: Path, value: String) = {
-      if(path.isEmpty)
-        SeqLeaf(seq :+ value)
-      else
-        throw new IllegalStateException("cannot add a child to a seq node")
+      SeqLeaf(seq :+ Empty.set(path, value))
     }
 
     def get(path: Path) =
