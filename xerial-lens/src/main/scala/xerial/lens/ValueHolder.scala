@@ -43,9 +43,36 @@ import xerial.core.log.Logger
  *
  */
 trait ValueHolder {
+  /**
+   * Set a value to the specified path
+   * @param path string representation of [[xerial.lens.Path]]
+   * @param value
+   * @return updated value holder
+   */
   def set(path:String, value:String) : ValueHolder = set(Path(path), value)
+
+  /**
+   * Set a value to the specified path
+   * @param path path
+   * @param value String value to set
+   * @return updated value holder
+   */
   def set(path:Path, value:String) : ValueHolder
-  def get(path:Path) : Seq[ValueHolder]
+
+  /**
+   * Extract a part of the value holder under the path
+   * @param path
+   * @return value holder under the path
+   */
+  def get(path:String) : ValueHolder = get(Path(path))
+
+  /**
+   * Extract a part of the value holder under the path
+   * @param path
+   * @return value holder under the path
+   */
+  def get(path:Path) : ValueHolder
+
 }
 
 
@@ -64,8 +91,8 @@ object ValueHolder extends Logger {
       else
         Node(IMap.empty[String, ValueHolder]).set(path, value)
     }
-
     def get(path:Path) = throw new NoSuchElementException(path.toString)
+    def extract(path:Path) = Empty
   }
 
   private case class Node(child:IMap[String, ValueHolder]) extends ValueHolder {
@@ -82,11 +109,10 @@ object ValueHolder extends Logger {
 
     def get(path:Path) = {
       if(path.isEmpty)
-        Seq.empty
+        this
       else
-        child(path.head).get(path.tailPath)
+        child.get(path.head) map { _.get(path.tailPath) } getOrElse Empty
     }
-
   }
 
   private case class Leaf(value:String) extends ValueHolder {
@@ -97,24 +123,24 @@ object ValueHolder extends Logger {
 
     def get(path: Path) = {
       if(path.isEmpty)
-        Seq(this)
+        this
       else
-        Seq.empty
+        Empty
     }
   }
 
-  private case class SeqLeaf(seq:Seq[ValueHolder]) extends ValueHolder {
-    override def toString = "[%s]".format(seq.mkString(", "))
+  private case class SeqLeaf(elems:Seq[ValueHolder]) extends ValueHolder {
+    override def toString = "[%s]".format(elems.mkString(", "))
 
     def set(path: Path, value: String) = {
-      SeqLeaf(seq :+ Empty.set(path, value))
+      SeqLeaf(elems :+ Empty.set(path, value))
     }
 
     def get(path: Path) =
       if(path.isEmpty)
-        seq
+        this
       else
-        Seq.empty
+        Empty
   }
 
 }
