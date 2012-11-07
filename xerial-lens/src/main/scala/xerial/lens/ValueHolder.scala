@@ -26,6 +26,9 @@ package xerial.lens
 import xerial.core.log.Logger
 
 /**
+ * Holder of structured data of named strings. ValueHolder is immutable, so
+ * set operations return another ValueHolder and never modify the original ValueHolder.
+ *
  * <pre>
  * A(a, B(b, c))
  *
@@ -44,7 +47,7 @@ import xerial.core.log.Logger
  */
 trait ValueHolder {
   /**
-   * Set a value to the specified path
+   * Set a value at the specified path
    * @param path string representation of [[xerial.lens.Path]]
    * @param value
    * @return updated value holder
@@ -52,7 +55,7 @@ trait ValueHolder {
   def set(path:String, value:String) : ValueHolder = set(Path(path), value)
 
   /**
-   * Set a value to the specified path
+   * Set a value at the specified path
    * @param path path
    * @param value String value to set
    * @return updated value holder
