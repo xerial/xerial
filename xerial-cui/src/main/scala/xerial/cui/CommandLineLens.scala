@@ -58,10 +58,11 @@ object OptionParser extends Logger {
     parse(tokenize(argLine))
   }
 
-  val defaultUsageTemplate = """usage:$COMMAND$ $ARGUMENT_LIST$
-  $DESCRIPTION$
-$OPTION_LIST$
-"""
+  val defaultUsageTemplate = """|usage:$COMMAND$ $ARGUMENT_LIST$
+                                |$DESCRIPTION$
+                                |$OPTION_LIST$""".stripMargin
+
+
 
 }
 
@@ -236,15 +237,26 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 
 }
 
+
 /**
  * Option -> value mapping result
  */
-sealed abstract class OptionMapping
-case class OptSetFlag(opt: CLOption) extends OptionMapping
-case class OptMapping(opt: CLOption, value: String) extends OptionMapping
-case class OptMappingMultiple(opt: CLOption, value: Array[String]) extends OptionMapping
-case class ArgMapping(opt: CLArgument, value: String) extends OptionMapping
-case class ArgMappingMultiple(opt: CLArgument, value: Array[String]) extends OptionMapping
+sealed abstract class OptionMapping extends Iterable[(Path, String)]
+case class OptSetFlag(opt: CLOption) extends OptionMapping{
+  def iterator = Iterator.single(opt.path -> "true")
+}
+case class OptMapping(opt: CLOption, value: String) extends OptionMapping{
+  def iterator = Iterator.single(opt.path -> value)
+}
+case class OptMappingMultiple(opt: CLOption, value: Array[String]) extends OptionMapping{
+  def iterator = value.map(opt.path -> _).iterator
+}
+case class ArgMapping(opt: CLArgument, value: String) extends OptionMapping{
+  def iterator = Iterator.single(opt.path -> value)
+}
+case class ArgMappingMultiple(opt: CLArgument, value: Array[String]) extends OptionMapping{
+  def iterator = value.map(opt.path -> _).iterator
+}
 
 class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Array[String])
 
@@ -260,28 +272,6 @@ class OptionParser(val schema: OptionSchema) extends Logger {
 
   import OptionParser._
 
-  def build[A](args: Array[String], b: GenericBuilder): OptionParserResult = {
-    trace("schema: " + schema)
-
-    val result = parse(args)
-    val logger = getLogger("build")
-    for (each <- result.mapping) {
-      logger.trace("build option: %s", each)
-      each match {
-        case OptSetFlag(opt) => b.set(opt.param.name, "true")
-        case OptMapping(opt, value) => b.set(opt.param.name, value)
-        case OptMappingMultiple(opt, value) => {
-          value.foreach(v => b.set(opt.param.name, v))
-        }
-        case ArgMapping(opt, value) => b.set(opt.param.name, value)
-        case ArgMappingMultiple(opt, value) => {
-          value.foreach(v => b.set(opt.param.name, v))
-        }
-      }
-    }
-    result
-  }
-
   /**
    * Build an option holder object from command line arguments
    * @param args
@@ -290,10 +280,19 @@ class OptionParser(val schema: OptionSchema) extends Logger {
    * @return
    */
   def build[A](args: Array[String])(implicit m: ClassManifest[A]): (A, OptionParserResult) = {
+
+    trace("schema: " + schema)
+    val result = parse(args)
+    var holder : ValueHolder[String] = ValueHolder(for (m <- result.mapping; (p, v) <- m) yield p -> v)
+
     val b = ObjectBuilder(m.erasure)
-    val result = build(args, b)
+
+
+
     (b.build.asInstanceOf[A], result)
   }
+
+
 
   /**
    * Parse the command-line arguments
@@ -348,7 +347,6 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       }
     }
 
-    def isKnownOption(name: String): Boolean = schema.findOption(name).isDefined
 
     // Hold mapping, option -> args ...
     val optionValues = collection.mutable.Map[CLOptionItem, ArrayBuffer[String]]()

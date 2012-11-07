@@ -56,11 +56,18 @@ object ObjectBuilder extends Logger {
     new ObjectBuilderFromString(cl, prop.result)
   }
 
+  sealed trait BuilderElement
+  case object Empty extends BuilderElement
+  case class Holder(holder:ObjectBuilder[_]) extends BuilderElement
+  case class Value(value:Any) extends BuilderElement
+
 }
 
 trait GenericBuilder {
 
-  def set(name: String, value: Any): Unit
+  def set(path:String, value:Any): Unit = set(Path(path), value)
+  def set(path: Path, value:Any): Unit
+
 }
 
 /**
@@ -69,16 +76,23 @@ trait GenericBuilder {
  */
 trait ObjectBuilder[A] extends GenericBuilder {
 
-  def get(name: String): Option[_]
+  //def get(path: String) : Option[_] = get(Path(path))
+  //def get(path: Path): Option[_]
   def build: A
 }
 
 class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) extends ObjectBuilder[A] with Logger {
+
+  import ObjectBuilder._
+
   private val schema = ObjectSchema(cl)
-  private val valueHolder = collection.mutable.Map[String, Any]()
+  private val holder = Map.empty[String, BuilderElement]
+
+  private var valueHolder : ValueHolder[Any] = ValueHolder.empty
 
   import lens.TypeUtil._
 
+  // set default value of the object
   defaultValue.foreach {
     case (name, value) => {
       val v =
@@ -92,29 +106,51 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
               value
           case None => value
         }
-      valueHolder += name -> v
+      valueHolder += Path(name) -> v
     }
   }
 
-  def get(name: String) = valueHolder.get(name)
+  def getBuilder(path:Path) : Map[String, BuilderElement] = {
+    if(path.isEmpty)
+      this.holder
+    else if(path.isLeaf) {
 
-  def set(name: String, value: Any) {
-    val p = schema.getParameter(name)
-    updateValueHolder(name, p.valueType, value)
-  }
-
-  private def updateValueHolder(name: String, valueType: ObjectType, value: Any): Unit = {
-    trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
-    if (canBuildFromBuffer(valueType.rawType)) {
-      val t = valueType.asInstanceOf[GenericType]
-      val gt = t.genericTypes(0).rawType
-      type E = gt.type
-      val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
-      TypeConverter.convert(value, gt) map { arr += _ }
     }
     else {
-      valueHolder(name) = value
+      holder.getOrElseUpdate(path.head, Empty) match {
+        case Empty =>
+      }
     }
+
+
+
+  }
+
+  def get(path: Path) = valueHolder.get(path)
+
+  def set(path: Path, value: Any) {
+    if(path.isEmpty) {
+      // do nothing
+    }
+    else if(path.isLeaf) {
+      val name = path.name
+      val p = schema.getParameter(name)
+      val valueType = p.valueType
+      trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
+      if (canBuildFromBuffer(valueType.rawType)) {
+        val t = valueType.asInstanceOf[GenericType]
+        val gt = t.genericTypes(0).rawType
+        type E = gt.type
+        val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
+        TypeConverter.convert(value, gt) map { arr += _ }
+      }
+      else {
+        valueHolder(name) = value
+      }
+    }
+    else
+      set(path.tailPath
+
   }
 
   def build: A = {

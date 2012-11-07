@@ -45,14 +45,18 @@ import xerial.core.log.Logger
  * @author Taro L. Saito
  *
  */
-trait ValueHolder {
+trait ValueHolder[+A] {
+
+  def +[A1 >: A](e:(Path, A1)) : ValueHolder[A1] = set(e._1, e._2)
+  def ++[A1 >: A](it:Iterable[(Path, A1)]) : ValueHolder[A1] = it.foldLeft[ValueHolder[A1]](this){ (h, e) => h.set(e._1, e._2) }
+
   /**
    * Set a value at the specified path
    * @param path string representation of [[xerial.lens.Path]]
    * @param value
    * @return updated value holder
    */
-  def set(path:String, value:String) : ValueHolder = set(Path(path), value)
+  def set[A1 >: A](path:String, value:A1) : ValueHolder[A1] = set(Path(path), value)
 
   /**
    * Set a value at the specified path
@@ -60,48 +64,51 @@ trait ValueHolder {
    * @param value String value to set
    * @return updated value holder
    */
-  def set(path:Path, value:String) : ValueHolder
+  def set[A1 >: A](path:Path, value:A1) : ValueHolder[A1]
 
   /**
    * Extract a part of the value holder under the path
    * @param path
    * @return value holder under the path
    */
-  def get(path:String) : ValueHolder = get(Path(path))
+  def get(path:String) : ValueHolder[A] = get(Path(path))
 
   /**
    * Extract a part of the value holder under the path
    * @param path
    * @return value holder under the path
    */
-  def get(path:Path) : ValueHolder
+  def get(path:Path) : ValueHolder[A]
+
+
 
 }
 
 
-object ValueHolder extends Logger {
 
+object ValueHolder extends Logger {
   import collection.immutable.{Map => IMap}
 
-  type Holder = IMap[String, ValueHolder]
 
-  def empty : ValueHolder = Empty
+  def apply[A](elems:Iterable[(Path, A)]) : ValueHolder[A] = Empty.++[A](elems)
 
-  private case object Empty extends ValueHolder {
-    def set(path: Path, value: String) = {
+  def empty : ValueHolder[Nothing] = Empty
+
+  private case object Empty extends ValueHolder[Nothing] {
+    def set[A1 >: Nothing](path: Path, value: A1) = {
       if(path.isEmpty)
         Leaf(value)
       else
-        Node(IMap.empty[String, ValueHolder]).set(path, value)
+        Node(IMap.empty[String, ValueHolder[A1]]).set(path, value)
     }
     def get(path:Path) = throw new NoSuchElementException(path.toString)
     def extract(path:Path) = Empty
   }
 
-  private case class Node(child:IMap[String, ValueHolder]) extends ValueHolder {
+  private case class Node[A](child:IMap[String, ValueHolder[A]]) extends ValueHolder[A] {
     override def toString = "{%s}".format(child.map{e => "%s:%s".format(e._1, e._2) }.mkString(", "))
 
-    def set(path: Path, value: String) = {
+    def set[A1 >: A](path: Path, value: A1) : ValueHolder[A1] = {
       if(path.isEmpty)
         throw new IllegalStateException("path cannot be empty")
       else {
@@ -118,10 +125,10 @@ object ValueHolder extends Logger {
     }
   }
 
-  private case class Leaf(value:String) extends ValueHolder {
-    override def toString = value
-    def set(path: Path, value: String) = {
-      SeqLeaf(Seq(this, Empty.set(path, value)))
+  private case class Leaf[A](value:A) extends ValueHolder[A] {
+    override def toString = value.toString
+    def set[A1 >: A](path: Path, value: A1) = {
+      SeqLeaf(Seq(this, Empty.set[A1](path, value)))
     }
 
     def get(path: Path) = {
@@ -132,10 +139,10 @@ object ValueHolder extends Logger {
     }
   }
 
-  private case class SeqLeaf(elems:Seq[ValueHolder]) extends ValueHolder {
+  private case class SeqLeaf[A](elems:Seq[ValueHolder[A]]) extends ValueHolder[A] {
     override def toString = "[%s]".format(elems.mkString(", "))
 
-    def set(path: Path, value: String) = {
+    def set[A1 >: A](path: Path, value: A1) = {
       SeqLeaf(elems :+ Empty.set(path, value))
     }
 
