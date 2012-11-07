@@ -47,8 +47,8 @@ import xerial.core.log.Logger
  */
 trait ValueHolder[+A] {
 
-  def +[A1 >: A](e:(Path, A1)) : ValueHolder[A1] = set(e._1, e._2)
-  def ++[A1 >: A](it:Iterable[(Path, A1)]) : ValueHolder[A1] = it.foldLeft[ValueHolder[A1]](this){ (h, e) => h.set(e._1, e._2) }
+  def +[B >: A](e:(Path, B)) : ValueHolder[B] = set(e._1, e._2)
+  def ++[B >: A](it:Iterable[(Path, B)]) : ValueHolder[B] = it.foldLeft[ValueHolder[B]](this){ (h, e) => h.set(e._1, e._2) }
 
   /**
    * Set a value at the specified path
@@ -56,7 +56,7 @@ trait ValueHolder[+A] {
    * @param value
    * @return updated value holder
    */
-  def set[A1 >: A](path:String, value:A1) : ValueHolder[A1] = set(Path(path), value)
+  def set[B >: A](path:String, value:B) : ValueHolder[B] = set(Path(path), value)
 
   /**
    * Set a value at the specified path
@@ -64,7 +64,7 @@ trait ValueHolder[+A] {
    * @param value String value to set
    * @return updated value holder
    */
-  def set[A1 >: A](path:Path, value:A1) : ValueHolder[A1]
+  def set[B >: A](path:Path, value:B) : ValueHolder[B]
 
   /**
    * Extract a part of the value holder under the path
@@ -95,11 +95,11 @@ object ValueHolder extends Logger {
   def empty : ValueHolder[Nothing] = Empty
 
   private case object Empty extends ValueHolder[Nothing] {
-    def set[A1 >: Nothing](path: Path, value: A1) = {
+    def set[B >: Nothing](path: Path, value: B) = {
       if(path.isEmpty)
         Leaf(value)
       else
-        Node(IMap.empty[String, ValueHolder[A1]]).set(path, value)
+        Node(IMap.empty[String, ValueHolder[B]]).set(path, value)
     }
     def get(path:Path) = throw new NoSuchElementException(path.toString)
     def extract(path:Path) = Empty
@@ -108,7 +108,7 @@ object ValueHolder extends Logger {
   private case class Node[A](child:IMap[String, ValueHolder[A]]) extends ValueHolder[A] {
     override def toString = "{%s}".format(child.map{e => "%s:%s".format(e._1, e._2) }.mkString(", "))
 
-    def set[A1 >: A](path: Path, value: A1) : ValueHolder[A1] = {
+    def set[B >: A](path: Path, value: B) : ValueHolder[B] = {
       if(path.isEmpty)
         throw new IllegalStateException("path cannot be empty")
       else {
@@ -127,8 +127,8 @@ object ValueHolder extends Logger {
 
   private case class Leaf[A](value:A) extends ValueHolder[A] {
     override def toString = value.toString
-    def set[A1 >: A](path: Path, value: A1) = {
-      SeqLeaf(Seq(this, Empty.set[A1](path, value)))
+    def set[B >: A](path: Path, value: B) = {
+      SeqLeaf(Seq(this, Empty.set[B](path, value)))
     }
 
     def get(path: Path) = {
@@ -142,7 +142,7 @@ object ValueHolder extends Logger {
   private case class SeqLeaf[A](elems:Seq[ValueHolder[A]]) extends ValueHolder[A] {
     override def toString = "[%s]".format(elems.mkString(", "))
 
-    def set[A1 >: A](path: Path, value: A1) = {
+    def set[B >: A](path: Path, value: B) = {
       SeqLeaf(elems :+ Empty.set(path, value))
     }
 
