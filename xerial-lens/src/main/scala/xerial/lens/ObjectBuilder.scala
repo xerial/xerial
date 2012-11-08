@@ -82,13 +82,32 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
 
   // set default value of the object
   for((name, value) <- defaultValues) {
-    val v = findParameter(name).
-      filter(p => TypeUtil.canBuildFromBuffer(p.valueType.rawType)).
-      map { x =>
-      trace("name:%s valueType:%s", name, x.valueType)
-      toBuffer(value, x.valueType)
-    } getOrElse value
-    holder += name -> Value(v)
+    val v : BuilderElement = findParameter(name).map {
+      case p if TypeUtil.canBuildFromBuffer(p.rawType) => Value(toBuffer(value, p.valueType))
+      case p if canBuildFromStringValue(p.valueType) => Value(value)
+      case p => {
+        // nested object
+        // TODO handling of recursive objects
+        val b = ObjectBuilder(p.rawType)
+        val schema = ObjectSchema(p.rawType)
+        for(p <- schema.constructor.params) {
+          b.set(p.name, p.get(value))
+        }
+        Holder(b)
+      }
+    } getOrElse Value(value)
+
+    holder += name -> v
+  }
+
+  private def canBuildFromStringValue(t:ObjectType) : Boolean = {
+    if(canBuildFromString(t.rawType))
+      true
+    else
+      t match {
+        case g:GenericType => t.isOption && (g.genericTypes.headOption.map{ t => canBuildFromString(t.rawType) }.getOrElse(false))
+        case _ => false
+      }
   }
 
   def set(path: Path, value: Any) {
@@ -105,15 +124,6 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
 
     trace("set path %s : %s", path, value)
 
-    def canBuildFromStringValue(t:ObjectType) : Boolean = {
-      if(canBuildFromString(t.rawType))
-        true
-      else
-        t match {
-          case g:GenericType => t.isOption && (g.genericTypes.headOption.map{ t => canBuildFromString(t.rawType) }.getOrElse(false))
-          case _ => false
-        }
-    }
 
     if(path.isLeaf) {
       val valueType = p.get.valueType
@@ -140,7 +150,10 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       val h = holder.getOrElseUpdate(path.head, Holder(ObjectBuilder(p.get.valueType.rawType)))
       h match {
         case Holder(b) => b.set(path.tailPath, value)
-        case _ => throw new IllegalStateException("invalid path:%s".format(p))
+        case other =>
+          // overwrite the existing holder
+
+          throw new IllegalStateException("invalid path:%s, value:%s, holder:%s".format(path, value, other))
       }
     }
   }
