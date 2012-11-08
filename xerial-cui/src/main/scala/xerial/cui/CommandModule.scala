@@ -80,9 +80,8 @@ trait CommandModule extends Logger {
           val result = command.map {
             c =>
               val parser = new OptionParser(c.method)
-              val builder = new MethodCallBuilder(c.method, this)
-              parser.build(unusedArgs, builder)
-
+              val r = parser.parse(unusedArgs)
+              val builder = r.build(new MethodCallBuilder(c.method, this))
               try
                 builder.execute
               catch {
@@ -165,11 +164,10 @@ class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[
 
   def execute(args: Array[String]): Option[_] = {
 
-    val parser = OptionParser.of[A]
-    val (module, parseResult) = parser.build[A](args)
-
+    val r = OptionParser.parse[A](args)
+    val module = r.buildObject[A](m)
     if (module.beforeExecute(args)) {
-      Some(module.execute(parseResult.unusedArgument))
+      Some(module.execute(r.unusedArgument))
     }
     else
       None

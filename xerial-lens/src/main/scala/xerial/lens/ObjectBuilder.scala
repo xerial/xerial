@@ -16,7 +16,7 @@ package xerial.lens
  * limitations under the License.
  */
 
-import collection.mutable.{ArrayBuffer, Map}
+import collection.mutable.{ArrayBuffer}
 import xerial.lens
 import xerial.core.log.Logger
 
@@ -34,14 +34,118 @@ import xerial.core.log.Logger
  */
 object ObjectBuilder extends Logger {
 
-  // class ValObj(val p1, val p2, ...)
-  // class VarObj(var p1, var p2, ...)
-
   def apply[A](cl: Class[A]): ObjectBuilder[A] = {
-
     //if (!TypeUtil.canInstantiate(cl))
 //      throw new IllegalArgumentException("Cannot instantiate class " + cl)
+    new SimpleObjectBuilder(cl)
+  }
 
+  sealed trait BuilderElement
+  case class Holder(holder:ObjectBuilder[_]) extends BuilderElement
+  case class Value(value:Any) extends BuilderElement
+  case class ArrayHolder[E : ClassManifest](holder:ArrayBuffer[E]) extends BuilderElement {
+    def +=(elem:E) = holder += elem
+  }
+
+}
+
+trait GenericBuilder {
+
+  def set(path:String, value:Any): Unit = set(Path(path), value)
+  def set(path:Path, value:Any): Unit
+
+  def get(name:String) : Option[Any]
+}
+
+/**
+ * Generic object builder
+ * @author leo
+ */
+trait ObjectBuilder[A] extends GenericBuilder {
+
+  def build: A
+
+}
+
+trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger {
+
+  import ObjectBuilder._
+  import TypeUtil._
+
+
+  protected val holder = collection.mutable.Map.empty[String, BuilderElement]
+
+  protected def findParameter(name:String) : Option[ParamType]
+  protected def getParameterTypeOf(name:String) = findParameter(name).map{_.valueType.rawType} getOrElse(classOf[AnyRef])
+
+  protected def defaultValues : collection.immutable.Map[String, Any]
+
+  // set default value of the object
+  for((name, value) <- defaultValues) {
+    val v = findParameter(name).
+      filter(p => TypeUtil.canBuildFromBuffer(p.valueType.rawType)).
+      map { x =>
+      trace("name:%s valueType:%s", name, x.valueType)
+      toBuffer(value, x.valueType)
+    } getOrElse value
+    holder += name -> Value(v)
+  }
+
+  def set(path: Path, value: Any) {
+    if(path.isEmpty) {
+      // do nothing
+      return
+    }
+    val name = path.head
+    val p = findParameter(name)
+    if(p.isEmpty) {
+      error("no parameter is found for path %s", path)
+      return
+    }
+
+    if(path.isLeaf) {
+      val valueType = p.get.valueType
+      trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
+      if (canBuildFromBuffer(valueType.rawType)) {
+        val t = valueType.asInstanceOf[GenericType]
+        val gt = t.genericTypes(0).rawType
+        type E = gt.type
+
+        val arr = holder.getOrElseUpdate(name, ArrayHolder[E](new ArrayBuffer[E])).asInstanceOf[ArrayHolder[E]]
+        TypeConverter.convert(value, gt) map { arr += _.asInstanceOf[E] }
+      }
+      else if(canBuildFromString(valueType.rawType)) {
+        holder += name -> Value(TypeConverter.convert(value, valueType.rawType))
+      }
+      else {
+        error("failed to set %s to path %s", value, path)
+      }
+    }
+    else {
+      // nested object
+      val h = holder.getOrElseUpdate(path.head, Holder(ObjectBuilder(p.get.valueType.rawType)))
+      h match {
+        case Holder(b) => b.set(path.tailPath, value)
+        case _ => throw new IllegalStateException("invalid path:%s".format(p))
+      }
+    }
+  }
+
+  def get(name:String) : Option[Any] = {
+    holder.get(name) map {
+      case Holder(h) => Some(h.build)
+      case Value(v) => TypeConverter.convert(v, getParameterTypeOf(name))
+      case ArrayHolder(h) => TypeConverter.convert(h, getParameterTypeOf(name))
+    }
+  }
+}
+
+class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with StandardBuilder[Parameter] with Logger {
+
+  private val schema = ObjectSchema(cl)
+
+  protected def findParameter(name: String) = schema.findParameter(name)
+  protected def defaultValues = {
     // collect default values of the object
     val schema = ObjectSchema(cl)
     val prop = Map.newBuilder[String, Any]
@@ -52,115 +156,13 @@ object ObjectBuilder extends Logger {
       trace("set parameter: %s", p)
       prop += p.name -> p.get(default)
     }
-
-    new ObjectBuilderFromString(cl, prop.result)
-  }
-
-  sealed trait BuilderElement
-  case object Empty extends BuilderElement
-  case class Holder(holder:ObjectBuilder[_]) extends BuilderElement
-  case class Value(value:Any) extends BuilderElement
-
-}
-
-trait GenericBuilder {
-
-  def set(path:String, value:Any): Unit = set(Path(path), value)
-  def set(path: Path, value:Any): Unit
-
-}
-
-/**
- * Generic object builder
- * @author leo
- */
-trait ObjectBuilder[A] extends GenericBuilder {
-
-  //def get(path: String) : Option[_] = get(Path(path))
-  //def get(path: Path): Option[_]
-  def build: A
-}
-
-class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) extends ObjectBuilder[A] with Logger {
-
-  import ObjectBuilder._
-
-  private val schema = ObjectSchema(cl)
-  private val holder = Map.empty[String, BuilderElement]
-
-  private var valueHolder : ValueHolder[Any] = ValueHolder.empty
-
-  import lens.TypeUtil._
-
-  // set default value of the object
-  defaultValue.foreach {
-    case (name, value) => {
-      val v =
-        schema.findParameter(name) match {
-          case Some(x) =>
-            if (canBuildFromBuffer(x.valueType.rawType)) {
-              trace("name:%s valueType:%s", name, x.valueType)
-              toBuffer(value, x.valueType)
-            }
-            else
-              value
-          case None => value
-        }
-      valueHolder += Path(name) -> v
-    }
-  }
-
-  def getBuilder(path:Path) : Map[String, BuilderElement] = {
-    if(path.isEmpty)
-      this.holder
-    else if(path.isLeaf) {
-
-    }
-    else {
-      holder.getOrElseUpdate(path.head, Empty) match {
-        case Empty =>
-      }
-    }
-
-
-
-  }
-
-  def get(path: Path) = valueHolder.get(path)
-
-  def set(path: Path, value: Any) {
-    if(path.isEmpty) {
-      // do nothing
-    }
-    else if(path.isLeaf) {
-      val name = path.name
-      val p = schema.getParameter(name)
-      val valueType = p.valueType
-      trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
-      if (canBuildFromBuffer(valueType.rawType)) {
-        val t = valueType.asInstanceOf[GenericType]
-        val gt = t.genericTypes(0).rawType
-        type E = gt.type
-        val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
-        TypeConverter.convert(value, gt) map { arr += _ }
-      }
-      else {
-        valueHolder(name) = value
-      }
-    }
-    else
-      set(path.tailPath
-
+    prop.result
   }
 
   def build: A = {
 
-    val cc = schema.constructor
-
-    var remainingParams = schema.parameters.map(_.name).toSet
-
     def getValue(p: Parameter): Option[_] = {
-      val v = valueHolder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
+      val v = holder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
       if (v != null) {
         val cv = TypeConverter.convert(v, p.valueType)
         trace("getValue:%s, v:%s => cv:%s", p, v, cv)
@@ -170,13 +172,17 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
         None
     }
 
-    // Prepare constructor args
-    val args = for (p <- cc.params) yield {
-      val v = getValue(p)
-      remainingParams -= p.name
-      v.get.asInstanceOf[AnyRef]
-    }
+    val cc = schema.constructor
 
+    // TODO Do we need to set fields not in the constructor arguments? 
+    var remainingParams = schema.parameters.map(_.name).toSet
+
+    // Prepare constructor args
+    val args = (for (p <- cc.params) yield {
+      val v = get(p.name)
+      remainingParams -= p.name
+      (v getOrElse null).asInstanceOf[AnyRef]
+    })
     trace("cc:%s, args:%s", cc, args.mkString(", "))
     val res = cc.newInstance(args).asInstanceOf[A]
 
@@ -195,5 +201,6 @@ class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) e
 
     res
   }
+
 }
 

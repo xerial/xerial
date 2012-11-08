@@ -30,12 +30,12 @@ import xerial.core.util.CommandLineTokenizer
  */
 object Launcher {
 
-  def of[A](implicit m:ClassManifest[A]) : Launcher[A] = {
+  def of[A <: AnyRef](implicit m:ClassManifest[A]) : Launcher[A] = {
     new Launcher[A](ClassOptionSchema(m.erasure))
   }
 
-  def execute[A](argLine:String)(implicit m:ClassManifest[A]) : A = execute(CommandLineTokenizer.tokenize(argLine))(m)
-  def execute[A](args:Array[String])(implicit m:ClassManifest[A]) : A = {
+  def execute[A <: AnyRef](argLine:String)(implicit m:ClassManifest[A]) : A = execute(CommandLineTokenizer.tokenize(argLine))(m)
+  def execute[A <: AnyRef](args:Array[String])(implicit m:ClassManifest[A]) : A = {
     Launcher.of[A].execute(args)
   }
 
@@ -46,14 +46,12 @@ object Launcher {
  *
  * @author leo
  */
-class Launcher[A](schema:OptionSchema)(implicit m:ClassManifest[A]) {
+class Launcher[A <: AnyRef](schema:OptionSchema)(implicit m:ClassManifest[A]) {
 
   def execute(argLine:String) : A = execute(CommandLineTokenizer.tokenize(argLine))
   def execute(args:Array[String]) : A = {
-    val schema = ClassOptionSchema(m.erasure)
-    val parser = new OptionParser(schema)
-    val r = parser.build(args)
-    r._1
+    val r = OptionParser.parse(args)(m)
+    r.buildObject(m)
   }
 
   //def addCommand[B](cl:Class[B]) : Launcher[A] = {

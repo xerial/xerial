@@ -168,7 +168,7 @@ object TypeUtil extends Logger {
   }
 
   def canBuildFromBuffer[T](cl: ClassManifest[T]) = isArray(cl.erasure) || isSeq(cl) || isMap(cl) || isSet(cl)
-
+  def canBuildFromString[T](cl: Class[T]) = isPrimitive(cl) || hasStringUnapplyConstructor(cl)
 
   def zero[A](cl: Class[A]): A = {
     if (isPrimitive(cl)) {

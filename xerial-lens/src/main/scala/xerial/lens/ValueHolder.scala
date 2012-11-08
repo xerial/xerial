@@ -80,8 +80,13 @@ trait ValueHolder[+A] {
    */
   def get(path:Path) : ValueHolder[A]
 
-
-
+  /**
+   * Depth first search iterator
+   * @return
+   */
+  def dfs : Iterator[(Path, A)]  = dfs(Path.current)
+  def dfs(path:Path) : Iterator[(Path, A)] 
+  
 }
 
 
@@ -103,6 +108,8 @@ object ValueHolder extends Logger {
     }
     def get(path:Path) = throw new NoSuchElementException(path.toString)
     def extract(path:Path) = Empty
+
+    def dfs(path:Path) = Iterator.empty
   }
 
   private case class Node[A](child:IMap[String, ValueHolder[A]]) extends ValueHolder[A] {
@@ -123,6 +130,8 @@ object ValueHolder extends Logger {
       else
         child.get(path.head) map { _.get(path.tailPath) } getOrElse Empty
     }
+    
+    def dfs(path:Path) = (for((name, h) <- child) yield h.dfs(path / name)).reduce(_ ++ _)
   }
 
   private case class Leaf[A](value:A) extends ValueHolder[A] {
@@ -137,6 +146,8 @@ object ValueHolder extends Logger {
       else
         Empty
     }
+
+    def dfs(path: Path) = Iterator.single(path -> value)
   }
 
   private case class SeqLeaf[A](elems:Seq[ValueHolder[A]]) extends ValueHolder[A] {
@@ -151,6 +162,8 @@ object ValueHolder extends Logger {
         this
       else
         Empty
+
+    def dfs(path: Path) = elems.map(e => e.dfs(path)).reduce(_ ++ _)
   }
 
 }

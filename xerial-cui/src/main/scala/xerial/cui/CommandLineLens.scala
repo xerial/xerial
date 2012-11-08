@@ -49,12 +49,12 @@ object OptionParser extends Logger {
     val cl = optionHolder.getClass
     new OptionParser(ClassOptionSchema(cl))
   }
-
-  def parse[A <: AnyRef](args: Array[String])(implicit m: ClassManifest[A]): A = {
-    of[A].build(args)._1
+  
+  def parse[A <: AnyRef](args: Array[String])(implicit m: ClassManifest[A]): OptionParserResult = {
+    of[A].parse(args)
   }
 
-  def parse[A <: AnyRef](argLine: String)(implicit m: ClassManifest[A]): A = {
+  def parse[A <: AnyRef](argLine: String)(implicit m: ClassManifest[A]): OptionParserResult = {
     parse(tokenize(argLine))
   }
 
@@ -62,6 +62,25 @@ object OptionParser extends Logger {
                                 |$DESCRIPTION$
                                 |$OPTION_LIST$""".stripMargin
 
+  /**
+   * Option -> value mapping result
+   */
+  sealed abstract class OptionMapping extends Iterable[(Path, String)]
+  case class OptSetFlag(opt: CLOption) extends OptionMapping{
+    def iterator = Iterator.single(opt.path -> "true")
+  }
+  case class OptMapping(opt: CLOption, value: String) extends OptionMapping{
+    def iterator = Iterator.single(opt.path -> value)
+  }
+  case class OptMappingMultiple(opt: CLOption, value: Array[String]) extends OptionMapping{
+    def iterator = value.map(opt.path -> _).iterator
+  }
+  case class ArgMapping(opt: CLArgument, value: String) extends OptionMapping{
+    def iterator = Iterator.single(opt.path -> value)
+  }
+  case class ArgMappingMultiple(opt: CLArgument, value: Array[String]) extends OptionMapping{
+    def iterator = value.map(opt.path -> _).iterator
+  }
 
 
 }
@@ -238,28 +257,23 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 }
 
 
-/**
- * Option -> value mapping result
- */
-sealed abstract class OptionMapping extends Iterable[(Path, String)]
-case class OptSetFlag(opt: CLOption) extends OptionMapping{
-  def iterator = Iterator.single(opt.path -> "true")
-}
-case class OptMapping(opt: CLOption, value: String) extends OptionMapping{
-  def iterator = Iterator.single(opt.path -> value)
-}
-case class OptMappingMultiple(opt: CLOption, value: Array[String]) extends OptionMapping{
-  def iterator = value.map(opt.path -> _).iterator
-}
-case class ArgMapping(opt: CLArgument, value: String) extends OptionMapping{
-  def iterator = Iterator.single(opt.path -> value)
-}
-case class ArgMappingMultiple(opt: CLArgument, value: Array[String]) extends OptionMapping{
-  def iterator = value.map(opt.path -> _).iterator
-}
 
-class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Array[String])
 
+
+case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Array[String]) {
+  
+  def buildObject[A](implicit m:ClassManifest[A]) : A = {
+    val b = ObjectBuilder(m.erasure)
+    build(b).build.asInstanceOf[A]
+  }
+  
+  def build[B <: GenericBuilder](builder:B) : B = {
+    for((path, value) <- parseTree.dfs)
+      builder.set(path, value)
+    builder
+  }
+  
+}
 
 /**
  * CommandTrait-line argument parser
@@ -269,30 +283,8 @@ class OptionParserResult(val mapping: Seq[OptionMapping], val unusedArgument: Ar
 class OptionParser(val schema: OptionSchema) extends Logger {
 
   def this(m: ObjectMethod) = this(new MethodOptionSchema(m))
-
+  
   import OptionParser._
-
-  /**
-   * Build an option holder object from command line arguments
-   * @param args
-   * @param m
-   * @tparam A
-   * @return
-   */
-  def build[A](args: Array[String])(implicit m: ClassManifest[A]): (A, OptionParserResult) = {
-
-    trace("schema: " + schema)
-    val result = parse(args)
-    var holder : ValueHolder[String] = ValueHolder(for (m <- result.mapping; (p, v) <- m) yield p -> v)
-
-    val b = ObjectBuilder(m.erasure)
-
-
-
-    (b.build.asInstanceOf[A], result)
-  }
-
-
 
   /**
    * Parse the command-line arguments
@@ -423,7 +415,9 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       }
       m.toSeq
     }
-    new OptionParserResult(mapping, unusedArguments.toArray)
+
+    val holder = ValueHolder(for (m <- mapping; (p, v) <- m) yield p -> v)
+    new OptionParserResult(holder, unusedArguments.toArray)
   }
 
   def printUsage = {
