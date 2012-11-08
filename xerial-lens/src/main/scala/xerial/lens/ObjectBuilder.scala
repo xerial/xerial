@@ -219,18 +219,18 @@ class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with Standar
     trace("cc:%s, args:%s", cc, args.mkString(", "))
     val res = cc.newInstance(args).asInstanceOf[A]
 
-    // Set the remaining parameters
-    trace("remaining params: %s", remainingParams.mkString(", "))
-    for (pname <- remainingParams) {
-      schema.getParameter(pname) match {
-        case f@FieldParameter(owner, ref, name, valueType) => {
-          getValue(f).map {
-            Reflect.setField(res, f.field, _)
-          }
-        }
-        case _ => // ignore constructor/method parameters
-      }
-    }
+//    // Set the remaining parameters
+//    trace("remaining params: %s", remainingParams.mkString(", "))
+//    for (pname <- remainingParams) {
+//      schema.getParameter(pname) match {
+//        case f@FieldParameter(owner, ref, name, valueType) => {
+//          getValue(f).map {
+//            Reflect.setField(res, f.field, _)
+//          }
+//        }
+//        case _ => // ignore constructor/method parameters
+//      }
+//    }
 
     res
   }

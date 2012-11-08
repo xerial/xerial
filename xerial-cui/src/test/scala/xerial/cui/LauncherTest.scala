@@ -57,6 +57,20 @@ class LauncherTest extends XerialSpec {
       l.g.started should be(true)
     }
 
+    "find commands" in {
+      val c = Launcher.execute[SimpleCommandSet]("hello")
+      c.helloIsExecuted should be (true)
+    }
+
+    "create command modules" in {
+      val c = Launcher.execute[CommandModule]("box hello")
+      c.executedModule should be ('defined)
+      c.executedModule map { m =>
+        m._1 should be ("box")
+        m._2.getClass should be (classOf[SimpleCommandSet])
+        m._2.asInstanceOf[SimpleCommandSet].helloIsExecuted should be (true)
+      }
+    }
 
   }
 }
@@ -77,6 +91,23 @@ object LauncherTest {
   class NestedOption(val g:GlobalOption) extends Logger {
     debug("started NestedOption command")
 
+  }
+
+  class SimpleCommandSet extends Logger {
+    var helloIsExecuted = false
+    @command
+    def hello = {
+      debug("hello")
+      helloIsExecuted = true
+    }
+    @command
+    def hello2(message:String) = debug("hello hello")
+  }
+
+  class CommandModule(val g:GlobalOption) extends Module with Logger {
+    def modules = Map("box" -> classOf[SimpleCommandSet])
+
+    debug("global option: %s", g)
   }
 
 }
