@@ -79,6 +79,8 @@ object Path extends Logger {
  * @author leo
  */
 trait Path extends Iterable[String] {
+  override def toString = fullPath
+
   /**
    * leaf name
    */

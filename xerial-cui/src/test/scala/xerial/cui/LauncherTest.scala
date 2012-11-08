@@ -37,7 +37,7 @@ class LauncherTest extends XerialSpec {
 
     import LauncherTest._
 
-    "populate arguments in constructor" in {
+    "populate arguments in constructor" taggedAs("test1") in {
       val l = Launcher.execute[GlobalOption]("-h -l debug")
       l.help should be(true)
       l.loglevel should be(Some(LogLevel.DEBUG))
@@ -50,7 +50,7 @@ class LauncherTest extends XerialSpec {
       l.loglevel should be(Some(LogLevel.DEBUG))
     }
 
-    "populate nested options" in {
+    "populate nested options" taggedAs("nested") in {
       val l = Launcher.execute[NestedOption]("-h -l debug")
       l.g.help should be(true)
       l.g.loglevel should be(Some(LogLevel.DEBUG))

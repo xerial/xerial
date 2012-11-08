@@ -2,7 +2,7 @@ package xerial.cui
 
 //--------------------------------------
 //
-// CommandLineLens.scala
+// OptionParser.scala
 // Since: 2012/07/06 4:05 PM
 //
 //--------------------------------------
@@ -14,19 +14,6 @@ import collection.mutable.ArrayBuffer
 import xerial.core.util.{CommandLineTokenizer, StringTemplate}
 import xerial.core.log.Logger
 
-/**
- *
- *
- * @author leo
- */
-object CommandLineLens {
-
-
-}
-
-class CommandLineLens(cl: Class[_]) {
-
-}
 
 /**
  * Creates option parsers
@@ -190,12 +177,13 @@ object ClassOptionSchema {
     val o = Array.newBuilder[CLOption]
     val a = Array.newBuilder[CLArgument]
     for (c <- schema.findConstructor; p <- c.params) {
+      val nextPath = path / p.name
       p.findAnnotationOf[option] match {
-        case Some(opt) => o += new CLOption(path, opt, p)
+        case Some(opt) => o += new CLOption(nextPath, opt, p)
         case None => p.findAnnotationOf[argument] match {
-          case Some(arg) => a += new CLArgument(path, arg, p)
+          case Some(arg) => a += new CLArgument(nextPath, arg, p)
           case None => // nested option
-            val nested = ClassOptionSchema(p.valueType.rawType, path / p.name)
+            val nested = ClassOptionSchema(p.valueType.rawType, nextPath)
             o ++= nested.options
             a ++= nested.args
         }
@@ -232,10 +220,10 @@ class ClassOptionSchema(val cl: Class[_], val options:Array[CLOption], val args:
 class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 
   val options =
-    for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(Path.current, opt, p)
+    for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(Path(p.name), opt, p)
 
   val args = {
-    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield new CLArgument(Path.current, arg, p)
+    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield new CLArgument(Path(p.name), arg, p)
     l.sortBy(x => x.arg.index())
   }
 
@@ -260,7 +248,7 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 
 
 
-case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Array[String]) {
+case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Array[String]) extends Logger {
   
   def buildObject[A](implicit m:ClassManifest[A]) : A = {
     val b = ObjectBuilder(m.erasure)
@@ -268,6 +256,7 @@ case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Ar
   }
   
   def build[B <: GenericBuilder](builder:B) : B = {
+    trace("build from parse tree: %s", parseTree)
     for((path, value) <- parseTree.dfs)
       builder.set(path, value)
     builder
@@ -416,7 +405,9 @@ class OptionParser(val schema: OptionSchema) extends Logger {
       m.toSeq
     }
 
+
     val holder = ValueHolder(for (m <- mapping; (p, v) <- m) yield p -> v)
+    debug("parse treer: %s", holder)
     new OptionParserResult(holder, unusedArguments.toArray)
   }
 

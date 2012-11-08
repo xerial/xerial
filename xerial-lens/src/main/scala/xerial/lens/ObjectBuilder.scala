@@ -76,7 +76,7 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
   protected val holder = collection.mutable.Map.empty[String, BuilderElement]
 
   protected def findParameter(name:String) : Option[ParamType]
-  protected def getParameterTypeOf(name:String) = findParameter(name).map{_.valueType.rawType} getOrElse(classOf[AnyRef])
+  protected def getParameterTypeOf(name:String) = findParameter(name).get.valueType
 
   protected def defaultValues : collection.immutable.Map[String, Any]
 
@@ -103,6 +103,18 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       return
     }
 
+    trace("set path %s : %s", path, value)
+
+    def canBuildFromStringValue(t:ObjectType) : Boolean = {
+      if(canBuildFromString(t.rawType))
+        true
+      else
+        t match {
+          case g:GenericType => t.isOption && (g.genericTypes.headOption.map{ t => canBuildFromString(t.rawType) }.getOrElse(false))
+          case _ => false
+        }
+    }
+
     if(path.isLeaf) {
       val valueType = p.get.valueType
       trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
@@ -114,8 +126,10 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
         val arr = holder.getOrElseUpdate(name, ArrayHolder[E](new ArrayBuffer[E])).asInstanceOf[ArrayHolder[E]]
         TypeConverter.convert(value, gt) map { arr += _.asInstanceOf[E] }
       }
-      else if(canBuildFromString(valueType.rawType)) {
-        holder += name -> Value(TypeConverter.convert(value, valueType.rawType))
+      else if(canBuildFromStringValue(valueType)) {
+        TypeConverter.convert(value, valueType).map { v =>
+          holder += name -> Value(v)
+        }
       }
       else {
         error("failed to set %s to path %s", value, path)
@@ -132,9 +146,9 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
   }
 
   def get(name:String) : Option[Any] = {
-    holder.get(name) map {
+    holder.get(name) flatMap {
       case Holder(h) => Some(h.build)
-      case Value(v) => TypeConverter.convert(v, getParameterTypeOf(name))
+      case Value(v) => Some(v)
       case ArrayHolder(h) => TypeConverter.convert(h, getParameterTypeOf(name))
     }
   }
@@ -142,21 +156,26 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
 
 class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with StandardBuilder[Parameter] with Logger {
 
-  private val schema = ObjectSchema(cl)
+  private lazy val schema = ObjectSchema(cl)
 
-  protected def findParameter(name: String) = schema.findParameter(name)
+  protected def findParameter(name: String) = {
+    assert(schema != null)
+    schema.findParameter(name)
+  }
   protected def defaultValues = {
     // collect default values of the object
     val schema = ObjectSchema(cl)
     val prop = Map.newBuilder[String, Any]
-    trace("class %s. values to set: %s", cl.getSimpleName, prop)
+
     // get the default values (including constructor parameters and fields)
     val default = TypeUtil.newInstance(cl)
     for (p <- schema.parameters) {
-      trace("set parameter: %s", p)
+      trace("set default parameter: %s", p)
       prop += p.name -> p.get(default)
     }
-    prop.result
+    val r = prop.result
+    trace("class %s. values to set: %s", cl.getSimpleName, r)
+    r
   }
 
   def build: A = {
@@ -171,6 +190,8 @@ class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with Standar
       else
         None
     }
+
+    trace("holder contents: %s", holder)
 
     val cc = schema.constructor
 
