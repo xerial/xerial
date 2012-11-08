@@ -407,7 +407,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
 
 
     val holder = ValueHolder(for (m <- mapping; (p, v) <- m) yield p -> v)
-    debug("parse treer: %s", holder)
+    trace("parse treer: %s", holder)
     new OptionParserResult(holder, unusedArguments.toArray)
   }
 

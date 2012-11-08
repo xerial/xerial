@@ -69,13 +69,13 @@ object LauncherTest {
                           val loglevel: Option[LogLevel] = None, var started: Boolean = false)
     extends Logger {
 
-    trace("started GlobalOption")
+    debug("started GlobalOption command")
     started = true
   }
 
 
   class NestedOption(val g:GlobalOption) extends Logger {
-
+    debug("started NestedOption command")
 
   }
 

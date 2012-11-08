@@ -274,7 +274,7 @@ object TypeUtil extends Logger {
       val paramArgs = defaultConstructorParameters(cl)
       val cc = cl.getConstructors()(0)
       val obj = cc.newInstance(paramArgs: _*)
-      debug("create an instance of %s, args:[%s]", cl, paramArgs.mkString(", "))
+      trace("create an instance of %s, args:[%s]", cl, paramArgs.mkString(", "))
       obj.asInstanceOf[A]
     }
 
