@@ -191,48 +191,14 @@ class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with Standar
   }
 
   def build: A = {
-
-    def getValue(p: Parameter): Option[_] = {
-      val v = holder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
-      if (v != null) {
-        val cv = TypeConverter.convert(v, p.valueType)
-        trace("getValue:%s, v:%s => cv:%s", p, v, cv)
-        cv
-      }
-      else
-        None
-    }
-
     trace("holder contents: %s", holder)
-
     val cc = schema.constructor
-
-    // TODO Do we need to set fields not in the constructor arguments? 
-    var remainingParams = schema.parameters.map(_.name).toSet
-
     // Prepare constructor args
     val args = (for (p <- cc.params) yield {
-      val v = get(p.name)
-      remainingParams -= p.name
-      (v getOrElse null).asInstanceOf[AnyRef]
+      (get(p.name) getOrElse null).asInstanceOf[AnyRef]
     })
     trace("cc:%s, args:%s", cc, args.mkString(", "))
-    val res = cc.newInstance(args).asInstanceOf[A]
-
-//    // Set the remaining parameters
-//    trace("remaining params: %s", remainingParams.mkString(", "))
-//    for (pname <- remainingParams) {
-//      schema.getParameter(pname) match {
-//        case f@FieldParameter(owner, ref, name, valueType) => {
-//          getValue(f).map {
-//            Reflect.setField(res, f.field, _)
-//          }
-//        }
-//        case _ => // ignore constructor/method parameters
-//      }
-//    }
-
-    res
+    cc.newInstance(args).asInstanceOf[A]
   }
 
 }
