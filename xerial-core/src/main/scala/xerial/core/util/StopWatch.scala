@@ -199,6 +199,15 @@ trait TimeReport extends Ordered[TimeReport] {
   def compare(that: TimeReport) =
     this.elapsedSeconds.compareTo(that.elapsedSeconds)
 
+  def min: Double =  minInterval
+  def max: Double =  maxInterval
+
+  def averageWithoutMinMax = {
+    if(executionCount > 2)
+      (s.getElapsedTime - min - max) / (_executionCount - 2)
+    else
+      average
+  }
 
   def average: Double = {
     s.getElapsedTime / _executionCount

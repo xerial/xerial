@@ -36,7 +36,11 @@ object Launcher {
 
   def execute[A <: AnyRef](argLine:String)(implicit m:ClassManifest[A]) : A = execute(CommandLineTokenizer.tokenize(argLine))(m)
   def execute[A <: AnyRef](args:Array[String])(implicit m:ClassManifest[A]) : A = {
-    Launcher.of[A].execute(args)
+    val l = Launcher.of[A]
+
+
+
+    l.execute(args)
   }
 
 }
