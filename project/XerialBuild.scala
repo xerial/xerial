@@ -49,9 +49,9 @@ object XerialBuild extends Build {
     organizationHomepage := Some(new URL("http://xerial.org/")),
     description := "Xerial: Data Management Utiilities",
     scalaVersion := SCALA_VERSION,
-    resolvers <++= version { (v) =>
-        Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases", releaseResolver(v))
-    },
+//    resolvers <++= version { (v) =>
+//        Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases", releaseResolver(v))
+//    },
     publishMavenStyle := true,
     publishArtifact in Test := false,
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
