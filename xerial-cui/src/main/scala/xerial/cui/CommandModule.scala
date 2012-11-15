@@ -165,12 +165,13 @@ class CommandLauncher[A <: CommandModule](cl:Class[A])(implicit m:ClassManifest[
   def execute(args: Array[String]): Option[_] = {
 
     val r = OptionParser.parse[A](args)
-    val module = r.buildObject[A](m)
-    if (module.beforeExecute(args)) {
-      Some(module.execute(r.unusedArgument))
-    }
-    else
-      None
+    None
+//    val module = r.buildObject[A](m.erasure)
+//    if (module.beforeExecute(args)) {
+//      Some(module.execute(r.unusedArgument))
+//    }
+//    else
+//      None
   }
 
 }

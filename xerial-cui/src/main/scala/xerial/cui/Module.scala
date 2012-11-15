@@ -57,3 +57,9 @@ trait Module {
   var executedModule : Option[(String, AnyRef)] = None
 
 }
+
+
+object Module {
+  def isModuleClass(cl:Class[_]) = classOf[Module].isAssignableFrom(cl)
+
+}

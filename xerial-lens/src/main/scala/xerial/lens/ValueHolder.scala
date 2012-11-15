@@ -26,8 +26,8 @@ package xerial.lens
 import xerial.core.log.Logger
 
 /**
- * Holder of structured data of named strings. ValueHolder is immutable, so
- * set operations return another ValueHolder and never modify the original ValueHolder.
+ * Holder of structured data consisting of named values. ValueHolder is immutable, so
+ * the set operations in this class return another ValueHolder and never modify the original ValueHolder.
  *
  * <pre>
  * A(a, B(b, c))
@@ -85,8 +85,11 @@ trait ValueHolder[+A] {
    * @return
    */
   def dfs : Iterator[(Path, A)]  = dfs(Path.current)
-  def dfs(path:Path) : Iterator[(Path, A)] 
-  
+  def dfs(path:Path) : Iterator[(Path, A)]
+  def dfs(path:String) : Iterator[(Path, A)] = dfs(Path(path))
+
+  def isEmpty = false
+
 }
 
 
@@ -97,7 +100,7 @@ object ValueHolder extends Logger {
 
   def apply[A](elems:Iterable[(Path, A)]) : ValueHolder[A] = Empty.++[A](elems)
 
-  def empty : ValueHolder[Nothing] = Empty
+  val empty : ValueHolder[Nothing] = Empty
 
   private case object Empty extends ValueHolder[Nothing] {
     def set[B >: Nothing](path: Path, value: B) = {
@@ -106,10 +109,11 @@ object ValueHolder extends Logger {
       else
         Node(IMap.empty[String, ValueHolder[B]]).set(path, value)
     }
-    def get(path:Path) = throw new NoSuchElementException(path.toString)
+    def get(path:Path) = Empty
     def extract(path:Path) = Empty
 
     def dfs(path:Path) = Iterator.empty
+    override def isEmpty = true
   }
 
   private case class Node[A](child:IMap[String, ValueHolder[A]]) extends ValueHolder[A] {
@@ -164,6 +168,8 @@ object ValueHolder extends Logger {
         Empty
 
     def dfs(path: Path) = elems.map(e => e.dfs(path)).reduce(_ ++ _)
+
+
   }
 
 }

@@ -16,7 +16,6 @@
 package xerial.lens
 
 import java.{lang => jl}
-import java.lang.{reflect => jr}
 import xerial.core.log.Logger
 
 //--------------------------------------
@@ -46,6 +45,7 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
 
   def get(obj: Any): Any
 }
+
 
 /**
  * Represents a constructor parameter
@@ -217,4 +217,10 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
     else
       cc.newInstance(args: _*)
   }
+}
+
+
+case class VirtualParameter(override val name:String, override val valueType:ObjectType) extends Parameter(name, valueType) {
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) : Option[T] = None
+  def get(obj: Any) = TypeUtil.zero(valueType.rawType)
 }

@@ -62,7 +62,7 @@ object OptionParser extends Logger {
   case class OptMappingMultiple(opt: CLOption, value: Array[String]) extends OptionMapping{
     def iterator = value.map(opt.path -> _).iterator
   }
-  case class ArgMapping(opt: CLArgument, value: String) extends OptionMapping{
+  case class ArgMapping(opt: CLArgItem, value: String) extends OptionMapping{
     def iterator = Iterator.single(opt.path -> value)
   }
   case class ArgMappingMultiple(opt: CLArgument, value: Array[String]) extends OptionMapping{
@@ -75,17 +75,24 @@ object OptionParser extends Logger {
 /**
  * command-line option
  */
-sealed abstract class CLOptionItem(val param: Parameter) {
-
+sealed trait CLOptionItem {
   def path : Path
-
   def takesArgument: Boolean = false
+  def takesMultipleArguments: Boolean = false
+}
 
-  def takesMultipleArguments: Boolean = {
+abstract class CLOptionItemBase(val param:Parameter) extends CLOptionItem {
+  override def takesMultipleArguments: Boolean = {
     import TypeUtil._
     val t: Class[_] = param.valueType.rawType
     isArray(t) || isSeq(t)
   }
+}
+
+trait CLArgItem extends CLOptionItem {
+  def path: Path
+  def name: String
+  def argIndex: Int
 }
 
 /**
@@ -93,7 +100,7 @@ sealed abstract class CLOptionItem(val param: Parameter) {
  * @param annot
  * @param param
  */
-case class CLOption(val path:Path, val annot: option, override val param: Parameter) extends CLOptionItem(param) {
+case class CLOption(val path:Path, val annot: option, override val param: Parameter) extends CLOptionItemBase(param) {
 
   // validate prefixes
   val prefixes : Seq[String] =
@@ -112,13 +119,19 @@ case class CLOption(val path:Path, val annot: option, override val param: Parame
  * @param arg
  * @param param
  */
-case class CLArgument(val path:Path, val arg: argument, override val param: Parameter) extends CLOptionItem(param) {
-  def name: String = {
-    var n = arg.name
-    if (n.isEmpty)
-      n = param.name
-    n
-  }
+case class CLArgument(val path:Path, arg: argument, override val param: Parameter) extends CLOptionItemBase(param) with CLArgItem {
+  def name: String =
+    if(arg.name.isEmpty)
+      param.name
+    else
+      arg.name
+
+  def argIndex = arg.index
+}
+
+case class CommandNameArgument(val path:Path) extends CLArgItem {
+  def argIndex = 0
+  def name = "commandName"
 }
 
 /**
@@ -127,7 +140,7 @@ case class CLArgument(val path:Path, val arg: argument, override val param: Para
 trait OptionSchema extends Logger {
 
   val options: Array[CLOption]
-  val args: Array[CLArgument] // must be sorted by arg.index in ascending order
+  val args: Array[CLArgItem] // must be sorted by arg.index in ascending order
 
   protected lazy val symbolTable = {
     var h = Map[String, CLOption]()
@@ -149,7 +162,7 @@ trait OptionSchema extends Logger {
     findOption(name) filter (_.takesArgument)
   }
 
-  def findArgumentItem(argIndex: Int): Option[CLArgument] = {
+  def findArgumentItem(argIndex: Int): Option[CLArgItem] = {
     if (args.isDefinedAt(argIndex)) Some(args(argIndex)) else None
   }
 
@@ -166,6 +179,8 @@ trait OptionSchema extends Logger {
   override def toString = "options:[%s], args:[%s]".format(options.mkString(", "), args.mkString(", "))
 }
 
+
+
 object ClassOptionSchema {
 
   /**
@@ -175,7 +190,7 @@ object ClassOptionSchema {
     val schema = ObjectSchema(cl)
 
     val o = Array.newBuilder[CLOption]
-    val a = Array.newBuilder[CLArgument]
+    val a = Array.newBuilder[CLArgItem]
     for (c <- schema.findConstructor; p <- c.params) {
       val nextPath = path / p.name
       p.findAnnotationOf[option] match {
@@ -189,15 +204,30 @@ object ClassOptionSchema {
         }
       }
     }
-    new ClassOptionSchema(cl, o.result, a.result().sortBy(x => x.arg.index))
+
+    // find command methods
+    val commandMethods = for(m <-schema.methods; c <- m.findAnnotationOf[command]) yield m
+    if(!commandMethods.isEmpty || Module.isModuleClass(cl)) {
+      if(!a.result().isEmpty)
+        sys.error("class %s with command methods cannot have @argument in constructor".format(cl))
+      else {
+        // Add command name argument
+        a += new CommandNameArgument(path / "__commandName")
+      }
+    }
+
+    new ClassOptionSchema(cl, o.result, a.result().sortBy(x => x.argIndex))
   }
+
+
+
 }
 
 /**
  * OptionSchema created from a class definition
  * @param cl
  */
-class ClassOptionSchema(val cl: Class[_], val options:Array[CLOption], val args:Array[CLArgument]) extends OptionSchema {
+class ClassOptionSchema(val cl: Class[_], val options:Array[CLOption], val args:Array[CLArgItem]) extends OptionSchema {
 
   def description = {
     cl.getDeclaredAnnotations.collectFirst {
@@ -223,8 +253,8 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
     for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(Path(p.name), opt, p)
 
   val args = {
-    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield new CLArgument(Path(p.name), arg, p)
-    l.sortBy(x => x.arg.index())
+    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield (new CLArgument(Path(p.name), arg, p)).asInstanceOf[CLArgItem]
+    l.sortBy(x => x.argIndex)
   }
 
   def description = {
@@ -248,13 +278,22 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
 
 
 
-case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Array[String]) extends Logger {
+case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Array[String], val showHelp:Boolean) extends Logger {
   
-  def buildObject[A](implicit m:ClassManifest[A]) : A = {
-    val b = ObjectBuilder(m.erasure)
+  def buildObject[A](cl:Class[A]) : A = {
+    val b = ObjectBuilder(cl)
     build(b).build.asInstanceOf[A]
   }
-  
+
+  def buildObjectWithFilter[A](cl:Class[A], filter: String => Boolean) : A = {
+    val b = ObjectBuilder(cl)
+    trace("build from parse tree: %s", parseTree)
+    for((path, value) <- parseTree.dfs if filter(path.last))
+      b.set(path, value)
+    b.build.asInstanceOf[A]
+  }
+
+
   def build[B <: GenericBuilder](builder:B) : B = {
     trace("build from parse tree: %s", parseTree)
     for((path, value) <- parseTree.dfs)
@@ -371,8 +410,10 @@ class OptionParser(val schema: OptionSchema) extends Logger {
           }
           case e :: rest => {
             setArgument(e)
-            if (exitAfterFirstArgument)
+            if (exitAfterFirstArgument) {
               continue = false
+              unusedArguments ++= rest
+            }
             rest
           }
           case Nil => List() // end of arguments
@@ -400,6 +441,8 @@ class OptionParser(val schema: OptionSchema) extends Logger {
               ArgMappingMultiple(a, values.toArray)
             else
               ArgMapping(a, values(0))
+          case cn: CommandNameArgument =>
+            ArgMapping(cn, values(0))
         }
       }
       m.toSeq
@@ -408,7 +451,8 @@ class OptionParser(val schema: OptionSchema) extends Logger {
 
     val holder = ValueHolder(for (m <- mapping; (p, v) <- m) yield p -> v)
     trace("parse treer: %s", holder)
-    new OptionParserResult(holder, unusedArguments.toArray)
+    val showHelp = mapping.collectFirst{ case c@OptSetFlag(o) if o.annot.isHelp => c }.isDefined
+    new OptionParserResult(holder, unusedArguments.toArray, showHelp)
   }
 
   def printUsage = {

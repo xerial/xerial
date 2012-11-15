@@ -23,39 +23,97 @@
 
 package xerial.cui
 
-import xerial.core.util.CommandLineTokenizer
+import xerial.core.util.{CName, CommandLineTokenizer}
+import xerial.lens.{MethodCallBuilder, ObjectMethod, ObjectSchema}
+import xerial.core.log.Logger
 
 /**
  * Command launcher
  */
-object Launcher {
+object Launcher extends Logger {
 
-  def of[A <: AnyRef](implicit m:ClassManifest[A]) : Launcher[A] = {
-    new Launcher[A](ClassOptionSchema(m.erasure))
+  def of[A <: AnyRef](implicit m:ClassManifest[A]) : Launcher = {
+    new Launcher(m.erasure)
   }
 
   def execute[A <: AnyRef](argLine:String)(implicit m:ClassManifest[A]) : A = execute(CommandLineTokenizer.tokenize(argLine))(m)
   def execute[A <: AnyRef](args:Array[String])(implicit m:ClassManifest[A]) : A = {
     val l = Launcher.of[A]
-
-
-
     l.execute(args)
   }
+
+  sealed trait Command {
+    def execute[A <: AnyRef](mainObj:A, args:Array[String]) : A
+  }
+
+
+  class CommandDef(val method: ObjectMethod, val command: command) extends Command {
+    val name = method.name
+    val description = command.description
+    def execute[A <: AnyRef](mainObj:A, args:Array[String]) : A = {
+      debug("execute method: %s", name)
+      val parser = new OptionParser(method)
+      val r_sub = parser.parse(args)
+      r_sub.build(new MethodCallBuilder(method, mainObj.asInstanceOf[AnyRef])).execute
+      mainObj
+    }
+  }
+
+  case class ModuleRef(moduleClass:Class[_], val name:String) extends Command {
+    def execute[A <: AnyRef](mainObj:A, args:Array[String]) : A = {
+      debug("module class: %s", moduleClass)
+      val result = new Launcher(moduleClass).execute[A](args)
+      mainObj.asInstanceOf[Module].executedModule = Some((name, result.asInstanceOf[AnyRef]))
+      mainObj
+    }
+  }
+
 
 }
 
 /**
- * Command launcuer
+ * Command launcher
  *
  * @author leo
  */
-class Launcher[A <: AnyRef](schema:OptionSchema)(implicit m:ClassManifest[A]) {
+class Launcher(cl:Class[_]) extends Logger {
+  import Launcher._
 
-  def execute(argLine:String) : A = execute(CommandLineTokenizer.tokenize(argLine))
-  def execute(args:Array[String]) : A = {
-    val r = OptionParser.parse(args)(m)
-    r.buildObject(m)
+  private val schema = ClassOptionSchema(cl)
+
+  def execute[A <: AnyRef](argLine:String) : A = execute(CommandLineTokenizer.tokenize(argLine))
+  def execute[A <: AnyRef](args:Array[String]) : A = {
+    val p = new OptionParser(schema)
+    val r = p.parse(args, exitAfterFirstArgument=true)
+    val mainObj : A = r.buildObjectWithFilter(cl, _ != "__commandName").asInstanceOf[A]
+    val cn : Option[String] = (for((path, value) <- r.parseTree.dfs("__commandName")) yield value).toSeq.headOption
+    cn.flatMap { commandName =>
+      val c : Option[Command] = findCommand(commandName) orElse findModule(commandName, mainObj)
+      c.map { _.execute(mainObj, r.unusedArgument) }
+    } getOrElse mainObj
+  }
+
+  private lazy val commandList: Seq[CommandDef] = {
+    trace("command class:" + cl.getName)
+    ObjectSchema(cl).methods.flatMap {
+      m => m.findAnnotationOf[command].map {
+        x => new CommandDef(m, x)
+      }
+    }
+  }
+
+
+  private def findCommand(name: String): Option[Command] = {
+    val cname = CName(name)
+    debug("trying to find command:%s", cname)
+    commandList.find(e => CName(e.name) == cname)
+  }
+
+  private def findModule[A <: AnyRef](name:String, mainObj:A) : Option[Command] = {
+    if(Module.isModuleClass(mainObj.getClass))
+      mainObj.asInstanceOf[Module].modules.get(name) map { cl => ModuleRef(cl, name) }
+    else
+      None
   }
 
   //def addCommand[B](cl:Class[B]) : Launcher[A] = {
