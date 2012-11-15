@@ -187,11 +187,11 @@ object ObjectSchema extends Logger {
 
   private def toAttribute(param: Seq[MethodSymbol], sig: ScalaSig, refCl: Class[_]): Seq[(String, ObjectType)] = {
     val paramRefs = param.map(p => (p.name, sig.parseEntry(p.symbolInfo.info)))
-    val paramSigs = paramRefs.map {
-      case (name: String, t: TypeRefType) => (name, t)
+    trace("method param refs: %s", paramRefs.mkString(", "))
+    paramRefs.map {
+      case (name: String, t: TypeRefType) => (name, resolveClass(t))
+      case (name: String, ExistentialType(tref:TypeRefType, symbols)) => (name, resolveClass(tref))
     }
-
-    for ((name, typeSignature) <- paramSigs) yield (name, resolveClass(typeSignature))
   }
 
   def isOwnedByTargetClass(m: MethodSymbol, cl: Class[_]): Boolean = {
@@ -330,7 +330,7 @@ object ObjectSchema extends Logger {
             catch {
               case e => {
                 warn("error occurred when accessing method %s : %s", s, e)
-                //e.printStackTrace()
+                e.printStackTrace()
                 None
               }
             }
@@ -355,8 +355,8 @@ object ObjectSchema extends Logger {
     }
   }
 
-  def resolveClass(typeSignature: TypeRefType): ObjectType = {
 
+  def resolveClass(typeSignature: TypeRefType): ObjectType = {
 
     val name = typeSignature.symbol.path
     val clazz: Class[_] = {
@@ -376,6 +376,7 @@ object ObjectSchema extends Logger {
         // Map and Set type names are defined in Scala.Predef
         case "scala.Predef.Map" => classOf[Map[_, _]]
         case "scala.Predef.Set" => classOf[Set[_]]
+        case "scala.Predef.Class" => classOf[Class[_]]
         case "scala.package.Seq" => classOf[Seq[_]]
         case "scala.package.List" => classOf[List[_]]
         case "scala.Any" => classOf[Any]
@@ -386,7 +387,7 @@ object ObjectSchema extends Logger {
           try loader.loadClass(name)
           catch {
             case _ => {
-              // When class is defined inside an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
+              // When the class is defined in an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
               val parent = typeSignature.symbol.parent
               val anotherClassName = "%s$%s".format(if (parent.isDefined) parent.get.path else "", typeSignature.symbol.name)
               loader.loadClass(anotherClassName)
@@ -401,7 +402,8 @@ object ObjectSchema extends Logger {
       }
       else {
         val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
-          case x: TypeRefType => resolveClass(x)
+          case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
+          case other => AnyRefType
         }
         new GenericType(clazz, typeArgs)
       }
