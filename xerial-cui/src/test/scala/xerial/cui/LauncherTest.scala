@@ -53,6 +53,14 @@ class LauncherTest extends XerialSpec {
       new String(out.toByteArray)
     }
 
+    def captureErr[U](body: => U) : String = {
+      val out = new ByteArrayOutputStream
+      Console.withErr(out) {
+        body
+      }
+      new String(out.toByteArray)
+    }
+
     "populate arguments in constructor" taggedAs("test1") in {
       capture {
         val l = Launcher.execute[GlobalOption]("-h -l debug")
@@ -73,7 +81,7 @@ class LauncherTest extends XerialSpec {
       val help = capture {
         Launcher.execute[GlobalOption]("-h -l debug")
       }
-      debug("help message:\n%s", help)
+      trace("help message:\n%s", help)
       help should (include ("-h"))
       help should (include ("--help"))
       help should (include ("-l"))
@@ -124,7 +132,7 @@ class LauncherTest extends XerialSpec {
       val help = capture {
         Launcher.of[SimpleCommandSet].printHelp
       }
-      debug("command list help:\n%s", help)
+      trace("command list help:\n%s", help)
       help should (include("hello"))
       help should (include("say hello"))
       help should (include("world"))
@@ -132,7 +140,7 @@ class LauncherTest extends XerialSpec {
     }
 
     "create command modules" in {
-      val c = Launcher.execute[CommandModule]("box hello")
+      val c = Launcher.execute[MyCommandModule]("box hello")
       c.executedModule should be ('defined)
       c.executedModule map { m =>
         m._1 should be ("box")
@@ -144,9 +152,9 @@ class LauncherTest extends XerialSpec {
 
     "display comand module help" in {
       val help = capture {
-        Launcher.execute[CommandModule]("-h")
+        Launcher.execute[MyCommandModule]("-h")
       }
-      debug(help)
+      trace(help)
       help should (include("-h"))
       help should (include("-l"))
       help should (include("box"))
@@ -155,21 +163,36 @@ class LauncherTest extends XerialSpec {
 
     "display individual command help" in {
       val help = capture {
-        val l = Launcher.execute[CommandModule]("box --help")
+        val l = Launcher.execute[MyCommandModule]("box --help")
         l.g.help should be (true)
       }
-      debug(help)
+      trace(help)
       help should (include("hello"))
       help should (include("world"))
     }
 
     "display subcommand help" in {
       val help = capture {
-        val l = Launcher.execute[CommandModule]("box world --help")
+        val l = Launcher.execute[MyCommandModule]("box world --help")
         l.g.help should be (true)
       }
-      debug("box world --help:\n%s", help)
+      trace("box world --help:\n%s", help)
       help should (include("message"))
+    }
+
+    "handle private parameters in constructors" in {
+      capture {
+        val l = Launcher.execute[CommandWithPrivateField]("-h")
+        l.started should be (true)
+      }
+    }
+
+    "run test command" in {
+      val message = capture {
+        Launcher.execute[MyCommand]("hello -r 3")  // hello x 3
+      }
+      debug(message)
+      message should (include ("hello!hello!hello!"))
     }
 
   }
@@ -178,9 +201,9 @@ class LauncherTest extends XerialSpec {
 object LauncherTest {
 
   case class GlobalOption(@option(prefix = "-h,--help", description = "display help messages", isHelp=true)
-                          val help: Boolean = false,
+                          help: Boolean = false,
                           @option(prefix = "-l,--loglevel", description = "log level")
-                          val loglevel: Option[LogLevel] = None, var started: Boolean = false)
+                          loglevel: Option[LogLevel] = None, var started: Boolean = false)
     extends Logger {
 
     trace("started GlobalOption command")
@@ -204,10 +227,28 @@ object LauncherTest {
     def world(@argument message:String) = debug("world world")
   }
 
-  class CommandModule(val g:GlobalOption) extends Module with Logger {
+  class MyCommandModule(val g:GlobalOption) extends CommandModule with Logger {
     def modules = Seq(ModuleDef("box", classOf[SimpleCommandSet], description="command set"))
 
     trace("global option: %s", g)
+  }
+
+  class CommandWithPrivateField
+  (@option(prefix="-h,--help", description="display help", isHelp=true)
+   help:Boolean, var started:Boolean = false) {
+    started = true
+  }
+
+
+  class MyCommand(@option(prefix="-h,--help", description="display help", isHelp=true)
+                  help:Boolean) {
+    @command(description="say hello")
+    def hello(@option(prefix="-r", description="repeat times")
+              repeat:Int=1,
+              @argument
+              message:String = "hello!") {
+      for(i <- 0 until repeat) print(message)
+    }
   }
 
 }

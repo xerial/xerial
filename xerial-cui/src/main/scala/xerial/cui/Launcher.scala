@@ -80,7 +80,7 @@ object Launcher extends Logger {
     def execute[A <: AnyRef](mainObj:A, args:Array[String], showHelp:Boolean) : A = {
       trace("execute module: %s", m.moduleClass)
       val result = new Launcher(m.moduleClass).execute[A](args, showHelp)
-      mainObj.asInstanceOf[Module].executedModule = Some((name, result.asInstanceOf[AnyRef]))
+      mainObj.asInstanceOf[CommandModule].executedModule = Some((name, result.asInstanceOf[AnyRef]))
       mainObj
     }
 
@@ -91,7 +91,29 @@ object Launcher extends Logger {
 }
 
 /**
- * Command launcher
+ * Command launcher.
+ *
+ * {{{
+ *
+ * class MyCommand(@option(prefix="-h,--help", description="display help", isHelp=true) help:Boolean) {
+ *
+ *   @command(description="Say hello")
+ *   def hello(@option(prefix="-r", description="repeat times")
+ *             repeat:Int=1,
+ *             @argument
+ *             message:String = "hello") {
+ *      for(i <- 0 until repeat) println(message)
+ *   }
+ * }
+ *
+ * Launcher.execute[MyCommand]("-r 3")  // hello x 3
+ *
+ *
+ *
+ * }}}
+ *
+ *
+ *
  *
  * @author leo
  */
@@ -140,8 +162,8 @@ class Launcher(cl:Class[_]) extends Logger {
   }
 
   def moduleList[A <: AnyRef](mainObj:A) : Seq[Command] = {
-    if(Module.isModuleClass(mainObj.getClass))
-      mainObj.asInstanceOf[Module].modules.map( ModuleRef(_) )
+    if(CommandModule.isModuleClass(mainObj.getClass))
+      mainObj.asInstanceOf[CommandModule].modules.map( ModuleRef(_) )
     else
       Seq.empty
   }

@@ -101,7 +101,7 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
   }
 
   private def canBuildFromStringValue(t:ObjectType) : Boolean = {
-    if(canBuildFromString(t.rawType))
+    if(TextType.isTextType(t.rawType) || canBuildFromString(t.rawType))
       true
     else
       t match {

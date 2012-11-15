@@ -16,7 +16,7 @@
 
 //--------------------------------------
 //
-// Module.scala
+// CommandModule.scala
 // Since: 2012/11/08 5:51 PM
 //
 //--------------------------------------
@@ -37,8 +37,8 @@ package xerial.cui
  *
  * // Integrate the above command set as a module with a given name.
  * // Command can be invoked as "sample hello" and "sample world".
- * class MyModule extends Module {
- *   def modules = Map("sample" -> classOf[MyCommandSet])
+ * class MyModule extends CommandModule {
+ *   def modules = Seq(ModuleDef("sample", classOf[MyCommandSet], description="my command set"))
  * }
  *
  * Launcher[MyModule].execute("sample hello") // prints hello
@@ -48,7 +48,7 @@ package xerial.cui
  *
  * @author leo
  */
-trait Module {
+trait CommandModule {
   def modules : Seq[ModuleDef]
 
   /**
@@ -61,7 +61,7 @@ trait Module {
 case class ModuleDef(name:String, moduleClass:Class[_], description:String = "")
 
 
-object Module {
-  def isModuleClass(cl:Class[_]) = classOf[Module].isAssignableFrom(cl)
+object CommandModule {
+  def isModuleClass(cl:Class[_]) = classOf[CommandModule].isAssignableFrom(cl)
 
 }

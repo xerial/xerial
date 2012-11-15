@@ -55,8 +55,13 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
  * @param name
  * @param valueType
  */
-case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
-  lazy val field = fieldOwner.getDeclaredField(name)
+case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
+  lazy val field : jl.reflect.Field =
+    if(fieldOwner.isDefined)
+      fieldOwner.get.getDeclaredField(name)
+    else
+      sys.error("no field owner is defined in %s".format(this))
+
   def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
     val cc = owner.getConstructors()(0)
     val annot: Array[jl.annotation.Annotation] = cc.getParameterAnnotations()(index)

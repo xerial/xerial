@@ -143,9 +143,10 @@ object ObjectSchema extends Logger {
         // resolve the actual field owner
         val fieldOwner = findFieldOwner(name, cl)
 
-        if (fieldOwner.isEmpty)
-          throw new IllegalStateException("No field owner is found: name:%s, base class:%s".format(name, cl.getSimpleName))
-        ConstructorParameter(cl, fieldOwner.get, index, name, vt)
+        // This error happens when a private val field is defined in the constructor, but never used in the class body
+        //if (fieldOwner.isEmpty)
+        //     throw new IllegalStateException("No field owner is found: name:%s, base class:%s".format(name, cl.getSimpleName))
+        ConstructorParameter(cl, fieldOwner, index, name, vt)
       }
       l.toArray
     }

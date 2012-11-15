@@ -192,6 +192,7 @@ object ClassOptionSchema {
     val o = Array.newBuilder[CLOption]
     val a = Array.newBuilder[CLArgItem]
     for (c <- schema.findConstructor; p <- c.params) {
+
       val nextPath = path / p.name
       p.findAnnotationOf[option] match {
         case Some(opt) => o += new CLOption(nextPath, opt, p)
@@ -211,7 +212,7 @@ object ClassOptionSchema {
 
     // find command methods
     val commandMethods = for(m <-schema.methods; c <- m.findAnnotationOf[command]) yield m
-    if(!commandMethods.isEmpty || Module.isModuleClass(cl)) {
+    if(!commandMethods.isEmpty || CommandModule.isModuleClass(cl)) {
       if(!a.result().isEmpty)
         sys.error("class %s with @command methods cannot have @argument in constructor".format(cl))
       else {
