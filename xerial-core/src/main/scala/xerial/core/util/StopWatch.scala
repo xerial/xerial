@@ -53,6 +53,40 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
  *
  * </pre>
  * </code>
+ *
+ * It is also possible to take an average of repetitive executions:
+ * <code>
+ * <pre>
+ * class Rep extends Timer {
+ *
+ *   // Repeat 10 times the evaluation of the whole block
+ *   val t = time("repetitive evaluation", repeat=10) {
+ *      // This part will be executed 1000 x 10 times
+ *      block("A", repeat=1000) {
+ *        // code A
+ *      }
+ *
+ *      // This part will be executed 1000 x 10 times
+ *      block("B", repeat=1000) {
+ *        // code B
+ *      }
+ *   }
+ *
+ *   println(t)
+ *
+ *   // Which code is faster?
+ *   if(t("A") <= t("B"))
+ *      println("A is faster")
+ *   else
+ *      println("B is faster")
+ * }
+ * </pre>
+ * </code>
+ *
+ * Taking the average execution times of code blocks is a preferred way to measure the code performance, because
+ * JVM has JIT compiler, which optimizes the code at runtime. And also the running state of the garbage collection (GC) of JVM affects
+ * the code performance.
+ *
  * @author leo
  */
 trait Timer {
@@ -165,6 +199,15 @@ trait TimeReport extends Ordered[TimeReport] {
   def compare(that: TimeReport) =
     this.elapsedSeconds.compareTo(that.elapsedSeconds)
 
+  def min: Double =  minInterval
+  def max: Double =  maxInterval
+
+  def averageWithoutMinMax = {
+    if(executionCount > 2)
+      (s.getElapsedTime - min - max) / (_executionCount - 2)
+    else
+      average
+  }
 
   def average: Double = {
     s.getElapsedTime / _executionCount

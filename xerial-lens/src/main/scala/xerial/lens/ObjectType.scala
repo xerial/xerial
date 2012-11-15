@@ -70,6 +70,8 @@ trait ValueObject extends ObjectType {
   override val name : String = this.getClass.getSimpleName.replaceAll("""\$""", "")
 }
 
+
+
 /**
  * Scala's primitive types. The classes in this category can create primitive type arrays.
  *
@@ -165,7 +167,7 @@ case class EitherType(cl: Class[_], leftType:ObjectType, rightType:ObjectType) e
 case class TupleType(cl: Class[_], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
 
 
-
+case object AnyRefType extends ObjectType(classOf[AnyRef])
 
 
 

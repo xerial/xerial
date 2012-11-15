@@ -33,21 +33,18 @@ import xerial.core.util.CName
  * Builds method call arguments
  * @author leo
  */
-class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends GenericBuilder with Logger {
+class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends StandardBuilder[MethodParameter] with Logger {
 
-  private val valueHolder = mutable.Map[String, Any]()
+  // Find the default arguments of the method
+  protected def defaultValues = (for(p <- m.params; v <- findDefaultValue(p.name)) yield p.name -> v).toMap
 
-  // Set the default value of the method
-  for(p <- m.params; v <- findDefaultValue(p.name))
-    valueHolder += p.name -> v
-
-  private def findParam(name:String) : Option[MethodParameter] = {
+  protected def findParameter(name:String) : Option[MethodParameter] = {
     val cname = CName(name)
     m.params.find(p => CName(p.name) == cname)
   }
-  
+
   private def findDefaultValue(name:String) : Option[Any] = {
-    findParam(name).flatMap{ p =>
+    findParameter(name).flatMap{ p =>
       try {
         val methodName = "%s$default$%d".format(m.name, p.index + 1)
         val dm = owner.getClass.getMethod(methodName)
@@ -59,31 +56,12 @@ class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends GenericBuilder wit
     }
   }
 
-  def set(name:String, value:Any) : Unit = {
-    findParam(name).foreach{ p =>
-      import TypeUtil._
-      if(canBuildFromBuffer(p.valueType.rawType)) {
-        val t = p.valueType.asInstanceOf[GenericType]
-        val gt = t.genericTypes(0).rawType
-        type E = gt.type
-        val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
-        arr += TypeConverter.convert(value, gt)
-      }
-      else {
-        valueHolder(name) = TypeConverter.convert(value, p.valueType)
-      }
-    }
-
-  }
 
   def execute : Any = {
     val args = for(p <- m.params) yield {
-      val v = valueHolder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
-      TypeConverter.convert(v, p.valueType).asInstanceOf[AnyRef]
+      (get(p.name) getOrElse TypeUtil.zero(p.rawType)).asInstanceOf[AnyRef]
     }
-
     trace { "args: " + args.mkString(", ") }
-
     if(args.isEmpty)
       m.jMethod.invoke(owner)
     else

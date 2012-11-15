@@ -22,12 +22,6 @@ public @interface argument {
     String name() default "";
 
     /**
-     * Argument index (0-origin) among the arguments without option prefix, "-"
-     * or "--". The default is 0.
-     */
-    int index() default 0;
-
-    /**
      * Description of this argument
      */
     String description() default "";
