@@ -49,7 +49,7 @@ package xerial.cui
  * @author leo
  */
 trait Module {
-  def modules : Map[String, Class[_]]
+  def modules : Seq[ModuleDef]
 
   /**
    * Place holder for the executed module
@@ -57,6 +57,8 @@ trait Module {
   var executedModule : Option[(String, AnyRef)] = None
 
 }
+
+case class ModuleDef(name:String, moduleClass:Class[_], description:String = "")
 
 
 object Module {

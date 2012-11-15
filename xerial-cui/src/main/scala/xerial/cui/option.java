@@ -28,7 +28,7 @@ public @interface option {
     String description() default "";
 
     /**
-     * If this option is used to display help messages of the commands, set this value to true.
+     * If this option is used as a switch to display help messages of commands, set this value to true.
      */
     boolean isHelp() default false;
 }

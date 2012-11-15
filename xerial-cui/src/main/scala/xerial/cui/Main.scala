@@ -15,20 +15,18 @@ import xerial.core.log.{LoggerFactory}
  */
 object Main {
   def main(args:Array[String]) : Unit = {
-    val opt = CommandLauncher.of[Main]
-    opt.execute(args)
+    Launcher.execute[Main](args)
   }
 }
 
-class Main extends CommandModule {
-  val moduleName = "xerial"
+class Main {
 
   @command(description = "Set the log level of the JVM. Use jps to lookup JVM process IDs.")
   def loglevel(@option(prefix="-l", description="logger name")
                loggerName:Option[String] = None,
-               @argument(index=0, description="JVM process id. (use jps to see PIDs)")
+               @argument(description="JVM process id. (use jps to see PIDs)")
                pid: Int,
-               @argument(index=1, description="log level (all|trace|debug|info|warn|error|fatal|off)")
+               @argument(description="log level (all|trace|debug|info|warn|error|fatal|off)")
                logLevel:String) = {
 
     loggerName match {

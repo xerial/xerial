@@ -25,6 +25,7 @@ package xerial.cui
 
 import xerial.core.XerialSpec
 import xerial.core.log.{Logger, LogLevel}
+import java.io.ByteArrayOutputStream
 
 /**
  * @author leo
@@ -37,11 +38,28 @@ class LauncherTest extends XerialSpec {
 
     import LauncherTest._
 
+
+    /**
+     * Captures the output stream and returns the printed messages as a String
+     * @param body
+     * @tparam U
+     * @return
+     */
+    def capture[U](body: => U) : String = {
+      val out = new ByteArrayOutputStream
+      Console.withOut(out) {
+        body
+      }
+      new String(out.toByteArray)
+    }
+
     "populate arguments in constructor" taggedAs("test1") in {
-      val l = Launcher.execute[GlobalOption]("-h -l debug")
-      l.help should be(true)
-      l.loglevel should be(Some(LogLevel.DEBUG))
-      l.started should be(true)
+      capture {
+        val l = Launcher.execute[GlobalOption]("-h -l debug")
+        l.help should be(true)
+        l.loglevel should be(Some(LogLevel.DEBUG))
+        l.started should be(true)
+      }
     }
 
     "populate arguments in constructor even when no parmeter is given" in {
@@ -51,17 +69,42 @@ class LauncherTest extends XerialSpec {
       l.started should be (true)
     }
 
+    "display help message" in {
+      val help = capture {
+        Launcher.execute[GlobalOption]("-h -l debug")
+      }
+      debug("help message:\n%s", help)
+      help should (include ("-h"))
+      help should (include ("--help"))
+      help should (include ("-l"))
+      help should (include ("--loglevel"))
+    }
+
     "parse double hyphen options" in {
-      val l = Launcher.execute[GlobalOption]("--help --loglevel debug")
-      l.help should be(true)
-      l.loglevel should be(Some(LogLevel.DEBUG))
+      capture {
+        val l = Launcher.execute[GlobalOption]("--help --loglevel debug")
+        l.help should be(true)
+        l.loglevel should be(Some(LogLevel.DEBUG))
+      }
     }
 
     "populate nested options" taggedAs("nested") in {
-      val l = Launcher.execute[NestedOption]("-h -l debug")
-      l.g.help should be(true)
-      l.g.loglevel should be(Some(LogLevel.DEBUG))
-      l.g.started should be(true)
+      capture {
+        val l = Launcher.execute[NestedOption]("-h -l debug")
+        l.g.help should be(true)
+        l.g.loglevel should be(Some(LogLevel.DEBUG))
+        l.g.started should be(true)
+      }
+    }
+
+    "display help message of nested option" in {
+      val help = capture {
+        Launcher.execute[NestedOption]("-h -l debug")
+      }
+      help should (include ("-h"))
+      help should (include ("--help"))
+      help should (include ("-l"))
+      help should (include ("--loglevel"))
     }
 
     "populate nested options even when no paramter is given"  taggedAs("nested2") in {
@@ -77,6 +120,17 @@ class LauncherTest extends XerialSpec {
       c.helloIsExecuted should be (true)
     }
 
+    "display command list" in {
+      val help = capture {
+        Launcher.of[SimpleCommandSet].printHelp
+      }
+      debug("command list help:\n%s", help)
+      help should (include("hello"))
+      help should (include("say hello"))
+      help should (include("world"))
+      help should (include("say world"))
+    }
+
     "create command modules" in {
       val c = Launcher.execute[CommandModule]("box hello")
       c.executedModule should be ('defined)
@@ -86,6 +140,36 @@ class LauncherTest extends XerialSpec {
         m._2.asInstanceOf[SimpleCommandSet].helloIsExecuted should be (true)
       }
       c.g should not be (null)
+    }
+
+    "display comand module help" in {
+      val help = capture {
+        Launcher.execute[CommandModule]("-h")
+      }
+      debug(help)
+      help should (include("-h"))
+      help should (include("-l"))
+      help should (include("box"))
+      help should (include("command set"))
+    }
+
+    "display individual command help" in {
+      val help = capture {
+        val l = Launcher.execute[CommandModule]("box --help")
+        l.g.help should be (true)
+      }
+      debug(help)
+      help should (include("hello"))
+      help should (include("world"))
+    }
+
+    "display subcommand help" in {
+      val help = capture {
+        val l = Launcher.execute[CommandModule]("box world --help")
+        l.g.help should be (true)
+      }
+      debug("box world --help:\n%s", help)
+      help should (include("message"))
     }
 
   }
@@ -99,31 +183,31 @@ object LauncherTest {
                           val loglevel: Option[LogLevel] = None, var started: Boolean = false)
     extends Logger {
 
-    debug("started GlobalOption command")
+    trace("started GlobalOption command")
     started = true
   }
 
 
   class NestedOption(val g:GlobalOption) extends Logger {
-    debug("started NestedOption command")
+    trace("started NestedOption command")
 
   }
 
   class SimpleCommandSet extends Logger {
     var helloIsExecuted = false
-    @command
+    @command(description = "say hello")
     def hello = {
-      debug("hello")
+      trace("hello")
       helloIsExecuted = true
     }
-    @command
-    def hello2(message:String) = debug("hello hello")
+    @command(description = "say world")
+    def world(@argument message:String) = debug("world world")
   }
 
   class CommandModule(val g:GlobalOption) extends Module with Logger {
-    def modules = Map("box" -> classOf[SimpleCommandSet])
+    def modules = Seq(ModuleDef("box", classOf[SimpleCommandSet], description="command set"))
 
-    debug("global option: %s", g)
+    trace("global option: %s", g)
   }
 
 }

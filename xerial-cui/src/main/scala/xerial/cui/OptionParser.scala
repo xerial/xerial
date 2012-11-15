@@ -46,7 +46,7 @@ object OptionParser extends Logger {
   }
 
   val defaultUsageTemplate = """|usage:$COMMAND$ $ARGUMENT_LIST$
-                                |$DESCRIPTION$
+                                |  $DESCRIPTION$
                                 |$OPTION_LIST$""".stripMargin
 
   /**
@@ -100,7 +100,7 @@ trait CLArgItem extends CLOptionItem {
  * @param annot
  * @param param
  */
-case class CLOption(val path:Path, val annot: option, override val param: Parameter) extends CLOptionItemBase(param) {
+case class CLOption(path:Path, annot: option, override val param: Parameter) extends CLOptionItemBase(param) {
 
   // validate prefixes
   val prefixes : Seq[String] =
@@ -119,19 +119,18 @@ case class CLOption(val path:Path, val annot: option, override val param: Parame
  * @param arg
  * @param param
  */
-case class CLArgument(val path:Path, arg: argument, override val param: Parameter) extends CLOptionItemBase(param) with CLArgItem {
+case class CLArgument(path:Path, arg: argument, argIndex:Int, override val param: Parameter) extends CLOptionItemBase(param) with CLArgItem {
   def name: String =
     if(arg.name.isEmpty)
       param.name
     else
       arg.name
 
-  def argIndex = arg.index
 }
 
-case class CommandNameArgument(val path:Path) extends CLArgItem {
+case class CommandNameArgument(path:Path) extends CLArgItem {
   def argIndex = 0
-  def name = "commandName"
+  def name = Launcher.commandNameParam
 }
 
 /**
@@ -186,9 +185,10 @@ object ClassOptionSchema {
   /**
    * Create an option schema from a given class definition
    */
-  def apply(cl:Class[_], path:Path = Path.current) : ClassOptionSchema = {
+  def apply(cl:Class[_], path:Path = Path.current, argIndexOffset:Int=0) : ClassOptionSchema = {
     val schema = ObjectSchema(cl)
 
+    var argCount = 0
     val o = Array.newBuilder[CLOption]
     val a = Array.newBuilder[CLArgItem]
     for (c <- schema.findConstructor; p <- c.params) {
@@ -196,11 +196,15 @@ object ClassOptionSchema {
       p.findAnnotationOf[option] match {
         case Some(opt) => o += new CLOption(nextPath, opt, p)
         case None => p.findAnnotationOf[argument] match {
-          case Some(arg) => a += new CLArgument(nextPath, arg, p)
+          case Some(arg) => {
+            a += new CLArgument(nextPath, arg, argIndexOffset + argCount,  p)
+            argCount += 1
+          }
           case None => // nested option
-            val nested = ClassOptionSchema(p.valueType.rawType, nextPath)
+            val nested = ClassOptionSchema(p.valueType.rawType, nextPath, argCount)
             o ++= nested.options
             a ++= nested.args
+            argCount += nested.args.length
         }
       }
     }
@@ -209,10 +213,10 @@ object ClassOptionSchema {
     val commandMethods = for(m <-schema.methods; c <- m.findAnnotationOf[command]) yield m
     if(!commandMethods.isEmpty || Module.isModuleClass(cl)) {
       if(!a.result().isEmpty)
-        sys.error("class %s with command methods cannot have @argument in constructor".format(cl))
+        sys.error("class %s with @command methods cannot have @argument in constructor".format(cl))
       else {
         // Add command name argument
-        a += new CommandNameArgument(path / "__commandName")
+        a += new CommandNameArgument(path / Launcher.commandNameParam)
       }
     }
 
@@ -253,7 +257,8 @@ class MethodOptionSchema(method: ObjectMethod) extends OptionSchema {
     for (p <- method.params; opt <- p.findAnnotationOf[option]) yield new CLOption(Path(p.name), opt, p)
 
   val args = {
-    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield (new CLArgument(Path(p.name), arg, p)).asInstanceOf[CLArgItem]
+    var argCount = -1
+    val l = for (p <- method.params; arg <- p.findAnnotationOf[argument]) yield (new CLArgument(Path(p.name), arg, {argCount += 1; argCount}, p)).asInstanceOf[CLArgItem]
     l.sortBy(x => x.argIndex)
   }
 
@@ -317,10 +322,9 @@ class OptionParser(val schema: OptionSchema) extends Logger {
   /**
    * Parse the command-line arguments
    * @param args
-   * @param exitAfterFirstArgument
    * @return parse result
    */
-  def parse(args: Array[String], exitAfterFirstArgument: Boolean = false): OptionParserResult = {
+  def parse(args: Array[String]): OptionParserResult = {
 
     def findMatch[T](p: Regex, s: String) : Option[Match] = p.findFirstMatchIn(s) 
 
@@ -384,17 +388,6 @@ class OptionParser(val schema: OptionSchema) extends Logger {
         holder += value
       }
 
-      def setArgument(arg: String): Unit = {
-        schema.findArgumentItem(argIndex) match {
-          case Some(ai) => {
-            appendOptionValue(ai, arg)
-            if (!ai.takesMultipleArguments)
-              argIndex += 1
-          }
-          case None => unusedArguments += arg
-        }
-      }
-
       // Process command line arguments
       var continue = true
       var remaining = l
@@ -409,10 +402,14 @@ class OptionParser(val schema: OptionSchema) extends Logger {
             m.remaining
           }
           case e :: rest => {
-            setArgument(e)
-            if (exitAfterFirstArgument) {
-              continue = false
-              unusedArguments ++= rest
+            schema.findArgumentItem(argIndex) match {
+              case Some(ai) => {
+                appendOptionValue(ai, e)
+                if (!ai.takesMultipleArguments)
+                  argIndex += 1
+              }
+              case None =>
+                unusedArguments += e
             }
             rest
           }
