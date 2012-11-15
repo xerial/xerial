@@ -21,7 +21,7 @@
 //
 //--------------------------------------
 
-package xerial.cui
+package xerial.lens.cui
 
 import xerial.core.XerialSpec
 import xerial.core.log.{Logger, LogLevel}

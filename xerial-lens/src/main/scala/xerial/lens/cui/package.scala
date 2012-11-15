@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package xerial
+package xerial.lens
 
 /**
  * Provides command line parser.

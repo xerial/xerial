@@ -37,7 +37,7 @@ class ShellTest extends XerialSpec {
 
     "find javaw.exe" in {
       if (OS.isWindows) {
-        when("OS is windows")
+        When("OS is windows")
         val cmd = Shell.findJavaCommand("javaw").get
         cmd must not be (null)
         cmd must include("javaw")
@@ -87,7 +87,7 @@ class ShellTest extends XerialSpec {
 
     "launch process" in {
       if (OS.isWindows) {
-        when("OS is windows")
+        When("OS is windows")
         Shell.launchCmdExe("echo hello cmd.exe")
       }
     }

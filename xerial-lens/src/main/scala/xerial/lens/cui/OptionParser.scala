@@ -1,4 +1,4 @@
-package xerial.cui
+package xerial.lens.cui
 
 //--------------------------------------
 //
@@ -7,12 +7,13 @@ package xerial.cui
 //
 //--------------------------------------
 
-import xerial.lens._
 import util.matching.Regex
 import util.matching.Regex.Match
 import collection.mutable.ArrayBuffer
 import xerial.core.util.{CommandLineTokenizer, StringTemplate}
 import xerial.core.log.Logger
+import xerial.lens._
+import scala.Some
 
 
 /**
@@ -83,7 +84,7 @@ sealed trait CLOptionItem {
 
 abstract class CLOptionItemBase(val param:Parameter) extends CLOptionItem {
   override def takesMultipleArguments: Boolean = {
-    import TypeUtil._
+    import xerial.lens.TypeUtil._
     val t: Class[_] = param.valueType.rawType
     isArray(t) || isSeq(t)
   }

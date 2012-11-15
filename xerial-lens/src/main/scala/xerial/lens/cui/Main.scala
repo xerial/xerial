@@ -5,7 +5,7 @@
 //
 //--------------------------------------
 
-package xerial.cui
+package xerial.lens.cui
 
 import xerial.core.log.{LoggerFactory}
 
