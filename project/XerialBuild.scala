@@ -119,7 +119,7 @@ object XerialBuild extends Build {
     id = "xerial-lens",
     base = file("xerial-lens"),
     settings = buildSettings ++ Seq(
-      description := "Utilities for retrieving object type information",
+      description := "Object mapping utiltiles",
       libraryDependencies ++= testLib ++ lensLib
     )
   ) dependsOn (core % dependentScope)
@@ -127,7 +127,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.0.M1" % "test"
+      "org.scalatest" %% "scalatest" % "2.0.M5" % "test"
     )
 
     val bootLib = Seq(
