@@ -51,7 +51,7 @@ object Launcher extends Logger {
     val name = method.name
     val description = command.description
     def execute[A <: AnyRef](mainObj:A, args:Array[String]) : A = {
-      debug("execute method: %s", name)
+      trace("execute method: %s", name)
       val parser = new OptionParser(method)
       val r_sub = parser.parse(args)
       r_sub.build(new MethodCallBuilder(method, mainObj.asInstanceOf[AnyRef])).execute
@@ -61,14 +61,12 @@ object Launcher extends Logger {
 
   case class ModuleRef(moduleClass:Class[_], val name:String) extends Command {
     def execute[A <: AnyRef](mainObj:A, args:Array[String]) : A = {
-      debug("module class: %s", moduleClass)
+      trace("execute module: %s", moduleClass)
       val result = new Launcher(moduleClass).execute[A](args)
       mainObj.asInstanceOf[Module].executedModule = Some((name, result.asInstanceOf[AnyRef]))
       mainObj
     }
   }
-
-
 }
 
 /**
@@ -105,7 +103,7 @@ class Launcher(cl:Class[_]) extends Logger {
 
   private def findCommand(name: String): Option[Command] = {
     val cname = CName(name)
-    debug("trying to find command:%s", cname)
+    trace("trying to find command:%s", cname)
     commandList.find(e => CName(e.name) == cname)
   }
 
@@ -115,11 +113,6 @@ class Launcher(cl:Class[_]) extends Logger {
     else
       None
   }
-
-  //def addCommand[B](cl:Class[B]) : Launcher[A] = {
-//
-//  }
-
 
 }
 

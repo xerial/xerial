@@ -44,6 +44,13 @@ class LauncherTest extends XerialSpec {
       l.started should be(true)
     }
 
+    "populate arguments in constructor even when no parmeter is given" in {
+      val l = Launcher.execute[GlobalOption]("")
+      l.help should be (false)
+      l.loglevel should be (None)
+      l.started should be (true)
+    }
+
     "parse double hyphen options" in {
       val l = Launcher.execute[GlobalOption]("--help --loglevel debug")
       l.help should be(true)
@@ -54,6 +61,14 @@ class LauncherTest extends XerialSpec {
       val l = Launcher.execute[NestedOption]("-h -l debug")
       l.g.help should be(true)
       l.g.loglevel should be(Some(LogLevel.DEBUG))
+      l.g.started should be(true)
+    }
+
+    "populate nested options even when no paramter is given"  taggedAs("nested2") in {
+      val l = Launcher.execute[NestedOption]("")
+      l.g should not be (null)
+      l.g.help should be(false)
+      l.g.loglevel should be(None)
       l.g.started should be(true)
     }
 
@@ -70,6 +85,7 @@ class LauncherTest extends XerialSpec {
         m._2.getClass should be (classOf[SimpleCommandSet])
         m._2.asInstanceOf[SimpleCommandSet].helloIsExecuted should be (true)
       }
+      c.g should not be (null)
     }
 
   }
