@@ -17,7 +17,6 @@ package xerial.lens
  */
 
 import collection.mutable.{ArrayBuffer}
-import xerial.lens
 import xerial.core.log.Logger
 
 
