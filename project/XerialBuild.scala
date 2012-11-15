@@ -124,7 +124,6 @@ object XerialBuild extends Build {
     )
   ) dependsOn (core % dependentScope)
 
-
   object Dependencies {
     val testLib = Seq(
       "org.scalatest" %% "scalatest" % "2.0.M5" % "test"

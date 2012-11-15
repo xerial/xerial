@@ -194,11 +194,15 @@ object Shell extends Logger {
 
 
 
-  private def prepareProcessBuilder(cmdLine:String): ProcessBuilder = {
-    val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), escape(cmdLine))
-    val ct = CommandLineTokenizer.tokenize(c).map(unescape(_))
-    val pb = new ProcessBuilder(ct:_*)
-    pb.inheritIO()
+  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean=true): ProcessBuilder = {
+    def quote(s:String) : String = {
+      s.replaceAll("""\"""", """\\"""")
+    }
+
+    val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), quote(cmdLine))
+    val pb = new ProcessBuilder(CommandLineTokenizer.tokenize(c):_*)
+    if(inheritIO)
+      pb.inheritIO()
     var env = getEnv
     if(OS.isWindows)
       env += ("CYGWIN" -> "notty")
