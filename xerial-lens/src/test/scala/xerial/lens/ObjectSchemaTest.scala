@@ -98,7 +98,7 @@ class ObjectSchemaTest extends XerialSpec {
 
         for (((name, t), i) <- params.zipWithIndex) {
           p(i).name must be(name)
-          when("type is " + t)
+          When("type is " + t)
           p(i).rawType.isAssignableFrom(t)
         }
       }
@@ -113,7 +113,7 @@ class ObjectSchemaTest extends XerialSpec {
 
         for (((name, t), i) <- params.zipWithIndex) {
           p(i).name must be(name)
-          when("type is " + t)
+          When("type is " + t)
           p(i).rawType.isAssignableFrom(t)
         }
       }
