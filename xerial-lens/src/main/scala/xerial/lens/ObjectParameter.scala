@@ -16,7 +16,6 @@
 package xerial.lens
 
 import java.{lang => jl}
-import java.lang.{reflect => jr}
 import xerial.core.log.Logger
 
 //--------------------------------------
@@ -47,6 +46,7 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
   def get(obj: Any): Any
 }
 
+
 /**
  * Represents a constructor parameter
  * @param owner
@@ -55,12 +55,37 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
  * @param name
  * @param valueType
  */
-case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
-  lazy val field = fieldOwner.getDeclaredField(name)
+case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
+  lazy val field : jl.reflect.Field =
+    if(fieldOwner.isDefined)
+      fieldOwner.get.getDeclaredField(name)
+    else
+      sys.error("no field owner is defined in %s".format(this))
+
   def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
     val cc = owner.getConstructors()(0)
     val annot: Array[jl.annotation.Annotation] = cc.getParameterAnnotations()(index)
     findAnnotationOf[T](annot)
+  }
+
+  /**
+   * Get the default value of this parameter or
+   * @return
+   */
+  def getDefaultValue : Option[Any] = {
+    TypeUtil.companionObject(owner).flatMap { companion =>
+      val methodName = "init$default$%d".format(index + 1)
+      try {
+        val m = TypeUtil.cls(companion).getDeclaredMethod(methodName)
+        Some(m.invoke(companion))
+      }
+      catch {
+        // When no method for the initial value is found, use 'zero' value of the type
+        case e => {
+          None
+        }
+      }
+    }
   }
 
   def get(obj: Any) = {
@@ -197,4 +222,10 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
     else
       cc.newInstance(args: _*)
   }
+}
+
+
+case class VirtualParameter(override val name:String, override val valueType:ObjectType) extends Parameter(name, valueType) {
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) : Option[T] = None
+  def get(obj: Any) = TypeUtil.zero(valueType.rawType)
 }

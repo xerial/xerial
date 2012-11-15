@@ -1,4 +1,4 @@
-package xerial.cui;
+package xerial.lens.cui;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -26,4 +26,6 @@ public @interface command {
      * @return
      */
     String usage() default "";
+
+    String detailedHelp() default "";
 }

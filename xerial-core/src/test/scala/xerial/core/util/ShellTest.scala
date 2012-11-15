@@ -37,7 +37,7 @@ class ShellTest extends XerialSpec {
 
     "find javaw.exe" in {
       if (OS.isWindows) {
-        when("OS is windows")
+        When("OS is windows")
         val cmd = Shell.findJavaCommand("javaw").get
         cmd must not be (null)
         cmd must include("javaw")
@@ -51,6 +51,12 @@ class ShellTest extends XerialSpec {
       if(!OS.isWindows) {
         pid should be > (0)
       }
+    }
+
+    "detect current JVM process ID" in {
+      val pid = Shell.getProcessIDOfCurrentJVM
+      debug("JVM process ID:%d", pid)
+      pid should not be (-1)
     }
 
     "be able to launch Java" in {
@@ -81,9 +87,13 @@ class ShellTest extends XerialSpec {
 
     "launch process" in {
       if (OS.isWindows) {
-        when("OS is windows")
+        When("OS is windows")
         Shell.launchCmdExe("echo hello cmd.exe")
       }
+    }
+
+    "launch a remote process as a daemon" in {
+      Shell.launchRemoteDaemon("localhost", "sleep 5")
     }
   }
 

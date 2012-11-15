@@ -24,6 +24,8 @@ import xerial.core.util
 import java.lang.reflect.Field
 import collection.JavaConversions._
 import io.Source
+import management.ManagementFactory
+import java.util.regex.Pattern
 
 //--------------------------------------
 //
@@ -91,6 +93,56 @@ object Shell extends Logger {
     exec("kill -CONT %d".format(pid))
   }
 
+
+  def escape(s:String) : String = {
+    val r = """([^\\])(\")""".r
+    val b = new StringBuilder
+    var cursor = 0
+    for(m <- r.findAllIn(s).matchData) {
+      b append s.substring(cursor, m.start)
+      b append m.group(2)
+      cursor = m.end
+    }
+    b append s.substring(cursor)
+    b.result
+  }
+
+  def unescape(s:String) : String = {
+    val r = """(\\)([\\/\\"bfnrt])""".r
+    val b = new StringBuilder
+    var cursor = 0
+    for(m <- r.findAllIn(s).matchData) {
+      b append s.substring(cursor, m.start)
+      b append m.group(2)
+      cursor = m.end
+    }
+    b append s.substring(cursor)
+    b.result
+  }
+
+  /**
+   * launch a command in the remote host. The target host needs to be accessed
+   * via ssh command without password.
+   * @param host
+   * @param cmdLine
+   */
+  def launchRemoteDaemon(host:String, cmdLine:String)  {
+    val cmd = """ssh %s \"%s < /dev/null > /dev/null &\""""".format(host, cmdLine)
+    exec(cmd)
+  }
+
+  /**
+   * Return the process ID of the current JVM.
+   *
+   * @return process id or -1 when process ID is not found.
+   */
+  def getProcessIDOfCurrentJVM : Int = {
+    val r = ManagementFactory.getRuntimeMXBean
+    // This value is ought to be (process id)@(host name)
+    val n = r.getName
+    n.split("@").headOption.map{ _.toInt } getOrElse { -1 }
+  }
+
   /**
    * Returns process id
    * @param p
@@ -143,7 +195,6 @@ object Shell extends Logger {
 
 
   def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean=true): ProcessBuilder = {
-
     def quote(s:String) : String = {
       s.replaceAll("""\"""", """\\"""")
     }

@@ -30,6 +30,30 @@ object TypeUtil extends Logger {
     cl.isArray || cl.getSimpleName == "Array"
   }
 
+  /**
+   * If the class has unapply(s:String) : T method in the companion object for instantiating class T, returns true.
+   * @param cl
+   * @tparam T
+   * @return
+   */
+  def hasStringUnapplyConstructor[T](cl:Class[T]) : Boolean = {
+    companionObject(cl) map { co =>
+      cls(co).getDeclaredMethods.find{ p =>
+        def acceptString = {
+          val t = p.getParameterTypes
+          t.length == 1 && t(0) == classOf[String]
+        }
+        def returnOptionOfT = {
+          val rt = p.getGenericReturnType
+          val t = Reflect.getTypeParameters(rt)
+          isOption(p.getReturnType) && t.length == 1 && t(0) == cl
+        }
+
+        p.getName == "unapply" && acceptString && returnOptionOfT
+      } isDefined
+    } getOrElse (false)
+  }
+
   def isOption[T](cl: ClassManifest[T]): Boolean = {
     val name = cl.erasure.getSimpleName
     // Option None is an object ($)
@@ -111,7 +135,8 @@ object TypeUtil extends Logger {
     }
     catch {
       case e => {
-        warn("no companion object is found for %s: %s", cl, e)
+        //warn("no companion object is found for %s: %s", cl, e)
+        //e.printStackTrace()
         None
       }
     }
@@ -125,22 +150,29 @@ object TypeUtil extends Logger {
     if (isPrimitive(cl) || hasDefaultConstructor(cl))
       return true
 
-    val fields = cl.getDeclaredFields
-    val c = cl.getConstructors().find {
-      x =>
-        val p = x.getParameterTypes
-        if (p.length != fields.length)
-          return false
-
-        fields.zip(p).forall(e =>
-          e._1.getType == e._2)
-    }
-
-    c.isDefined
+    ObjectSchema(cl).findConstructor.map { cc =>
+      cc.params.map(_.valueType.rawType).forall{ t =>
+        t != cl && canInstantiate(t)
+      }
+    } getOrElse(false)
+//
+//    val fields = cl.getDeclaredFields
+//    debug("fields of %s: %s", cl, fields.mkString(", "))
+//    val c = cl.getConstructors().find {
+//      x =>
+//        val p = x.getParameterTypes
+//        debug("parameter types: %s", p.mkString(", "))
+//        if (p.length != fields.length)
+//          false
+//        else
+//          fields.zip(p).forall(e => e._1.getType == e._2)
+//    }
+//
+//    c.isDefined
   }
 
   def canBuildFromBuffer[T](cl: ClassManifest[T]) = isArray(cl.erasure) || isSeq(cl) || isMap(cl) || isSet(cl)
-
+  def canBuildFromString[T](cl: Class[T]) = isPrimitive(cl) || hasStringUnapplyConstructor(cl)
 
   def zero[A](cl: Class[A]): A = {
     if (isPrimitive(cl)) {
@@ -179,6 +211,9 @@ object TypeUtil extends Logger {
     else if (isOption(cl)) {
       None.asInstanceOf[A]
     }
+    else if (canInstantiate(cl)) {
+      newInstance(cl).asInstanceOf[A]
+    }
     else if (isTuple(cl)) {
       val c = cl.getDeclaredConstructors()(0)
       val elementType = cl.getTypeParameters
@@ -188,9 +223,6 @@ object TypeUtil extends Logger {
         zero(m.getReturnType).asInstanceOf[AnyRef]
       }
       newInstance(cl, args.toSeq)
-    }
-    else if (canInstantiate(cl)) {
-      newInstance(cl).asInstanceOf[A]
     }
     else
       null.asInstanceOf[A]
@@ -235,12 +267,14 @@ object TypeUtil extends Logger {
 
   def newInstance[A](cl: Class[A]): A = {
     def createDefaultInstance: A = {
-      val hasOuter = cl.getDeclaredFields.find(x => x.getName == "$outer").isDefined
+      trace("Creating a default instance of %s", cl)
+      val hasOuter = cl.getDeclaredFields.exists(x => x.getName == "$outer")
       if (hasOuter)
         throw new IllegalArgumentException("Cannot instantiate the inner class %s. Use classes defined globally or in companion objects".format(cl.getName))
       val paramArgs = defaultConstructorParameters(cl)
       val cc = cl.getConstructors()(0)
       val obj = cc.newInstance(paramArgs: _*)
+      trace("create an instance of %s, args:[%s]", cl, paramArgs.mkString(", "))
       obj.asInstanceOf[A]
     }
 

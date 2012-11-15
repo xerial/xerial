@@ -49,13 +49,13 @@ class CNameTest extends XerialSpec {
       
 
       for((naturalName, varName) <- naturalNameAndVarNameSets) {
-        when("translating '%s' into '%s'".format(varName, naturalName))
+        When("translating '%s' into '%s'".format(varName, naturalName))
         toNaturalName(varName) should be (naturalName)
       }
     }
 
     "find prefix XML" in {
-      when("input is XMLParser")
+      When("input is XMLParser")
       val c1 = CName("XMLParser")
       c1.naturalName should be ("XML parser")
     }
