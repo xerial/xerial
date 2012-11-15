@@ -21,7 +21,7 @@
 //
 //--------------------------------------
 
-package xerial.cui
+package xerial.lens.cui
 
 /**
  *

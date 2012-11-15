@@ -21,7 +21,7 @@
 //
 //--------------------------------------
 
-package xerial.cui
+package xerial.lens.cui
 
 import xerial.core.util.{CName, CommandLineTokenizer}
 import xerial.lens.{TypeUtil, MethodCallBuilder, ObjectMethod, ObjectSchema}
