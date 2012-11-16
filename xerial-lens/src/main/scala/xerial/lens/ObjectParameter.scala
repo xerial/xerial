@@ -225,7 +225,3 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
 }
 
 
-case class VirtualParameter(override val name:String, override val valueType:ObjectType) extends Parameter(name, valueType) {
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) : Option[T] = None
-  def get(obj: Any) = TypeUtil.zero(valueType.rawType)
-}

@@ -91,11 +91,19 @@ object Launcher extends Logger {
 }
 
 /**
+ * Implement this trait to supply a default command invoked when no command name is specified.
+ */
+trait DefaultCommand {
+  def default : Unit
+}
+
+/**
  * Command launcher.
  *
  * {{{
  *
  * class MyCommand(@option(prefix="-h,--help", description="display help", isHelp=true) help:Boolean) {
+ *
  *
  *   @command(description="Say hello")
  *   def hello(@option(prefix="-r", description="repeat times")
@@ -106,7 +114,7 @@ object Launcher extends Logger {
  *   }
  * }
  *
- * Launcher.execute[MyCommand]("-r 3")  // hello x 3
+ * Launcher.execute[MyCommand]("hello -r 3")  // hello x 3
  *
  *
  *
@@ -130,8 +138,15 @@ class Launcher(cl:Class[_]) extends Logger {
     val cn : Option[String] = (for((path, value) <- r.parseTree.dfs(commandNameParam)) yield value).toSeq.headOption
     val helpIsOn = r.showHelp || showHelp
     val result = for(commandName <- cn; c <- findCommand(commandName, mainObj)) yield c.execute(mainObj, r.unusedArgument, helpIsOn)
-    if(helpIsOn && result.isEmpty)
-      printHelp(p, mainObj)
+
+    if(result.isEmpty) {
+      if(helpIsOn)
+        printHelp(p, mainObj)
+      else if(classOf[DefaultCommand].isAssignableFrom(cl)) {
+        // has a default command
+        mainObj.asInstanceOf[DefaultCommand].default
+      }
+    }
     result getOrElse mainObj
   }
 
@@ -160,6 +175,8 @@ class Launcher(cl:Class[_]) extends Logger {
     val lst = for(m <- ObjectSchema(cl).methods; c <- m.findAnnotationOf[command]) yield new CommandDef(m, c)
     lst
   }
+
+
 
   def moduleList[A <: AnyRef](mainObj:A) : Seq[Command] = {
     if(CommandModule.isModuleClass(mainObj.getClass))

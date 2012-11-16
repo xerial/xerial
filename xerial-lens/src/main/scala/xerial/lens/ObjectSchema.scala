@@ -123,9 +123,9 @@ object ObjectSchema extends Logger {
 
     def isTargetClass(t: scalasig.Type): Boolean = {
       t match {
-        case TypeRefType(_, ClassSymbol(sinfo, _), _) => {
-          //debug("className = %s, found name = %s", className, sinfo.name)
-          sinfo.name == cl.getSimpleName
+        case TypeRefType(_, c@ClassSymbol(sinfo, _), _) => {
+          // when ClassSymbol contains isModule flag, it is a constructor of the companion object
+          sinfo.name == cl.getSimpleName && !c.isModule
         }
         case _ => false
       }

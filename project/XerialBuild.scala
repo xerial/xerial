@@ -27,18 +27,21 @@ object XerialBuild extends Build {
 
   val SCALA_VERSION = "2.9.2"
 
-  def releaseResolver(v: String): Resolver = {
-    val profile = System.getProperty("xerial.profile", "default")
+  private def profile = System.getProperty("xerial.profile", "default")
+  private def isWindows = System.getProperty("os.name").contains("Windows")
+
+  def releaseResolver(v: String): Option[Resolver] = {
     profile match {
       case "default" => {
         val nexus = "https://oss.sonatype.org/"
         if (v.trim.endsWith("SNAPSHOT"))
-          "snapshots" at nexus + "content/repositories/snapshots"
+          Some("snapshots" at nexus + "content/repositories/snapshots")
         else
-          "releases" at nexus + "service/local/staging/deploy/maven2"
+          Some("releases" at nexus + "service/local/staging/deploy/maven2")
       }
       case p => {
-        sys.error("unknown xerial.profile:%s".format(p))
+        scala.Console.err.println("unknown xerial.profile:%s".format(p))
+        None
       }
     }
   }
@@ -54,7 +57,7 @@ object XerialBuild extends Build {
 //    },
     publishMavenStyle := true,
     publishArtifact in Test := false,
-    publishTo <<= version { (v) => Some(releaseResolver(v)) },
+    publishTo <<= version { (v) => releaseResolver(v) },
     pomIncludeRepository := {
       _ => false
     },
@@ -88,7 +91,7 @@ object XerialBuild extends Build {
           </developer>
         </developers>
     },
-    useGpg := true,
+    useGpg := !isWindows,
     useGpgAgent := false
   )
 

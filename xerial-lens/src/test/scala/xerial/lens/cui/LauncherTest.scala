@@ -79,7 +79,8 @@ class LauncherTest extends XerialSpec {
 
     "display help message" in {
       val help = capture {
-        Launcher.execute[GlobalOption]("-h -l debug")
+        val l = Launcher.execute[GlobalOption]("-h -l debug")
+        l.started should be (true)
       }
       trace("help message:\n%s", help)
       help should (include ("-h"))
@@ -139,6 +140,15 @@ class LauncherTest extends XerialSpec {
       help should (include("say world"))
     }
 
+    "run default command" in {
+      val help = capture {
+        Launcher.execute[SimpleCommandSet]("")
+      }
+      debug("default command message:\n%s", help)
+      help should (include(DEFAULT_MESSAGE))
+    }
+
+
     "create command modules" in {
       val c = Launcher.execute[MyCommandModule]("box hello")
       c.executedModule should be ('defined)
@@ -149,6 +159,7 @@ class LauncherTest extends XerialSpec {
       }
       c.g should not be (null)
     }
+
 
     "display comand module help" in {
       val help = capture {
@@ -179,6 +190,7 @@ class LauncherTest extends XerialSpec {
       trace("box world --help:\n%s", help)
       help should (include("message"))
     }
+
 
     "handle private parameters in constructors" in {
       capture {
@@ -216,7 +228,14 @@ object LauncherTest {
 
   }
 
-  class SimpleCommandSet extends Logger {
+  val DEFAULT_MESSAGE = "Type --help to display the list of commands"
+
+  class SimpleCommandSet extends DefaultCommand with Logger {
+
+    def default {
+      println(DEFAULT_MESSAGE)
+    }
+
     var helloIsExecuted = false
     @command(description = "say hello")
     def hello = {
