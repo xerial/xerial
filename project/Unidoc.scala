@@ -29,7 +29,7 @@ object Unidoc {
   val unidoc = TaskKey[File]("unidoc", "Create unified scaladoc for all aggregates")
 
   lazy val settings = Seq(
-    unidocDirectory <<= crossTarget / "unidoc",
+    unidocDirectory <<= (crossTarget, version) { (c, v) => c / ("unidoc/" + v) },
     unidocExclude := Seq.empty,
     unidocAllSources <<= (thisProjectRef, buildStructure, unidocExclude)
     flatMap allSources,
