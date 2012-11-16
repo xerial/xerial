@@ -46,6 +46,9 @@ object XerialBuild extends Build {
     }
   }
 
+
+  lazy val defaultScalacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5")
+
   lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
@@ -63,7 +66,10 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5"),
+    scalacOptions in Compile := defaultScalacOptions,
+    scalacOptions in doc <++= (baseDirectory in LocalProject("xerial"), version) map { (bd, v) =>
+      val tree = if(v.endsWith("-SNAPSHOT")) "develop" else "master"
+      defaultScalacOptions ++ Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/xerial/xerial/blob/" + tree + "€{FILE_PATH}.scala") },
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
