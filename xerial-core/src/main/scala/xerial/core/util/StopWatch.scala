@@ -29,34 +29,32 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
 //--------------------------------------
 
 /**
- * Timer trait for measuring the performance of code blocks
+ * Timer trait measures the performance of code blocks.
+ * Extend this trait and wrap the code to measure with `time(code_name){ ... }`:
  *
- * <code>
- * <pre>
- *
- *   class A extends Timer {
- *
- *     val t : TimeReport = time("performance test") {
- *       // write any code here
- *       block("A") {
- *        // code A
- *       }
- *       block("B") {
- *        // code B
- *       }
+ * {{{
+ * class A extends Timer {
+ *   val t : TimeReport = time("performance test") {
+ *     // write any code here
+ *     block("A") {
+ *       // code A
  *     }
- *
- *     // report elapsed time of A, B and the total time
- *     println(t)
- *
+ *     block("B") {
+ *      // code B
+ *     }
  *   }
+ *   // report elapsed time of A, B and the total running time
+ *   println(t)
  *
- * </pre>
- * </code>
+ *   t("A").average // the average of running time of code block "A" (min and max are also available)
+ * }
  *
- * It is also possible to take an average of repetitive executions:
- * <code>
- * <pre>
+ * }}}
+ *
+ *
+ * Timer can take the average of repetitive executions:
+ *
+ * {{{
  * class Rep extends Timer {
  *
  *   // Repeat 10 times the evaluation of the whole block
@@ -80,12 +78,15 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
  *   else
  *      println("B is faster")
  * }
- * </pre>
- * </code>
+ * }}}
  *
- * Taking the average execution times of code blocks is a preferred way to measure the code performance, because
- * JVM has JIT compiler, which optimizes the code at runtime. And also the running state of the garbage collection (GC) of JVM affects
- * the code performance.
+ * When measuring Scala (Java) code performances, you should take the average of execution times and reorder
+ * the code block execution orders, because JVM has JIT compiler, which optimizes the code at runtime.
+ * And also cache usage and the running state of the garbage collection (GC) affects
+ * the code performance. By repeating the executions of the entire or individual blocks with the `repeat` option,
+ * you can avoid such pitfalls of benchmarking.
+ *
+ *
  *
  * @author leo
  */

@@ -69,7 +69,13 @@ object XerialBuild extends Build {
     scalacOptions in Compile := defaultScalacOptions,
     scalacOptions in doc <++= (baseDirectory in LocalProject("xerial"), version) map { (bd, v) =>
       val tree = if(v.endsWith("-SNAPSHOT")) "develop" else "master"
-      defaultScalacOptions ++ Seq("-sourcepath", bd.getAbsolutePath, "-doc-source-url", "http://github.com/xerial/xerial/blob/" + tree + "€{FILE_PATH}.scala") },
+      defaultScalacOptions ++ Seq(
+        "-sourcepath", bd.getAbsolutePath,
+        "-doc-source-url", "http://github.com/xerial/xerial/blob/" + tree + "€{FILE_PATH}.scala",
+        "-doc-title", "Xerial",
+        "-doc-version", v
+      )
+    },
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
