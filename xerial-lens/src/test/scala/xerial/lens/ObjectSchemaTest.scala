@@ -182,11 +182,11 @@ class ObjectSchemaTest extends XerialSpec {
       s.name must be("String[]")
     }
 
-    "be safe when Seq[A] is passed" in {
+    "be safe when Seq[A] is passed" taggedAs("opt-seq") in {
       val s = ObjectSchema.of[Seq[String]]
       debug("schema:%s", s)
       s.name must be("Seq")
-      s.parameters.isEmpty must be (true)
+      //s.parameters.isEmpty must be (true)
       debug {
         val sigLines = Source.fromString(s.findSignature.map(_.toString).get).getLines()
         val hashVar = sigLines.filter(line => line.contains("hash"))

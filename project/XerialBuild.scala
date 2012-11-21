@@ -16,12 +16,10 @@
 
 package xerial
 
-import java.io.File
 import sbt._
 import Keys._
 
 import sbtrelease.ReleasePlugin._
-import com.jsuereth.pgp.sbtplugin.PgpPlugin._
 
 object XerialBuild extends Build {
 
@@ -46,6 +44,10 @@ object XerialBuild extends Build {
     }
   }
 
+
+  lazy val defaultJavacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-source", "1.5", "-target", "1.5")
+  lazy val defaultScalacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5")
+
   lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
@@ -63,7 +65,17 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5"),
+    javacOptions := defaultJavacOptions,
+    scalacOptions in Compile := defaultScalacOptions,
+    scalacOptions in doc <++= (baseDirectory in LocalProject("xerial"), version) map { (bd, v) =>
+      val tree = if(v.endsWith("-SNAPSHOT")) "develop" else "master"
+      defaultScalacOptions ++ Seq(
+        "-sourcepath", bd.getAbsolutePath,
+        "-doc-source-url", "http://github.com/xerial/xerial/blob/" + tree + "€{FILE_PATH}.scala",
+        "-doc-title", "Xerial",
+        "-doc-version", v
+      )
+    },
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
@@ -90,9 +102,7 @@ object XerialBuild extends Build {
             <url>http://xerial.org/leo</url>
           </developer>
         </developers>
-    },
-    useGpg := !isWindows,
-    useGpgAgent := false
+    }
   )
 
 
@@ -105,8 +115,11 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
-      Seq(libraryDependencies ++= bootLib)
+    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++ Seq(
+      publish := {},
+      publishLocal := {},
+      libraryDependencies ++= bootLib
+    )
   ) aggregate(core, lens)
 
   lazy val core = Project(
