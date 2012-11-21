@@ -172,11 +172,11 @@ object ObjectSchema extends Logger {
   }
 
   def getParentsByReflection(cl: Class[_]) = {
-    trace("get parents of %s by reflecton", cl.getSimpleName)
     val i = if (cl.getInterfaces != null) cl.getInterfaces else Array.empty[Class[_]]
     val p = Seq(cl.getSuperclass) ++ i
     val filtered = p.filterNot(c => isSystemClass(c))
-    trace("parents of %s: %s ", cl.getSimpleName, filtered.map(_.getName).mkString(", "))
+    if(!filtered.isEmpty)
+      trace("parents of %s: %s ", cl.getSimpleName, filtered.map(_.getName).mkString(", "))
     filtered
   }
 
@@ -190,7 +190,11 @@ object ObjectSchema extends Logger {
     val paramRefs = param.map(p => (p.name, sig.parseEntry(p.symbolInfo.info)))
     trace("method param refs: %s", paramRefs.mkString(", "))
     paramRefs.map {
-      case (name: String, t: TypeRefType) => (name, resolveClass(t))
+      case (name: String, t: TypeRefType) =>
+        if(t.symbol.isParam)
+          (name, AnyRefType)
+        else
+          (name, resolveClass(t))
       case (name: String, ExistentialType(tref:TypeRefType, symbols)) => (name, resolveClass(tref))
     }
   }
@@ -217,7 +221,8 @@ object ObjectSchema extends Logger {
 
         val parents = findParentSchemas(cl)
         val logger = getLogger("parameter")
-        logger.trace("parents: %s", parents.mkString(", "))
+        if(!parents.isEmpty)
+          logger.trace("parents: %s", parents.mkString(", "))
         val parentParams = parents.flatMap {
           p => p.parameters
         }.collect {
@@ -457,10 +462,10 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
   def findConstructor : Option[Constructor] = ObjectSchema.findConstructor(cl)
 
   override def toString = {
-    if (parameters.isEmpty)
+    if (findConstructor.map(_.params.isEmpty) getOrElse true)
       name
     else
-      "%s(%s)".format(name, parameters.mkString(", "))
+      "%s(%s)".format(name, constructor.params.mkString(", "))
   }
 }
 
