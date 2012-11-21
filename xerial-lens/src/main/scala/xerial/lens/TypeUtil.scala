@@ -68,6 +68,11 @@ object TypeUtil extends Logger {
     cl <:< classOf[Seq[_]] || isArray(cl.erasure)
   }
 
+  def isIndexedSeq[T](cl: ClassManifest[T]) = {
+    cl <:< classOf[IndexedSeq[_]] || isArray(cl.erasure)
+  }
+
+
   def isMap[T](cl: ClassManifest[T]) = {
     cl <:< classOf[Map[_, _]]
   }
@@ -78,6 +83,10 @@ object TypeUtil extends Logger {
 
   def isTuple[T](cl: ClassManifest[T]) = {
     cl <:< classOf[Product]
+  }
+
+  def isList[T](cl:ClassManifest[T]) ={
+    cl <:< classOf[List[_]]
   }
 
 

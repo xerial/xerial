@@ -39,6 +39,7 @@ object TypeConverter extends Logger {
       if (t.isAssignableFrom(s))
         Some(value)
       else if (TypeUtil.isBuffer(s)) {
+        debug("convert buffer %s into %s", value, targetType)
         val buf = value.asInstanceOf[mutable.Buffer[_]]
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
         val e = gt(0).rawType
@@ -47,6 +48,12 @@ object TypeConverter extends Logger {
           val arr = e.newArray(buf.length).asInstanceOf[Array[Any]]
           buf.copyToArray(arr)
           Some(arr)
+        }
+        else if(isList(t)) {
+          Some(buf.toList)
+        }
+        else if (isIndexedSeq(t)) {
+          Some(buf.toIndexedSeq)
         }
         else if (isSeq(t)) {
           Some(buf.toSeq)

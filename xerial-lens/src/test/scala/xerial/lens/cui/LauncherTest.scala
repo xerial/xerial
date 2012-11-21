@@ -207,6 +207,16 @@ class LauncherTest extends XerialSpec {
       message should (include ("hello!hello!hello!"))
     }
 
+    "accept array type arguments" taggedAs("array") in {
+      val f = Launcher.execute[ArrayOpt]("file1 file2 file3")
+      f.files should be (Array("file1", "file2", "file3"))
+    }
+
+    "accept list type arguments" taggedAs("list") in {
+      val f = Launcher.execute[ListOpt]("-f file1 -f file2 -f file3")
+      f.files should be (List("file1", "file2", "file3"))
+    }
+
   }
 }
 
@@ -270,4 +280,8 @@ object LauncherTest {
     }
   }
 
+  class ArrayOpt(@argument val files:Array[String])
+
+
+  class ListOpt(@option(prefix="-f") val files:List[String])
 }

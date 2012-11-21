@@ -85,7 +85,18 @@ trait ValueHolder[+A] {
    * @return
    */
   def dfs : Iterator[(Path, A)]  = dfs(Path.current)
+
+  /**
+   * Depth first search iterator under the specified path
+   * @param path
+   * @return
+   */
   def dfs(path:Path) : Iterator[(Path, A)]
+  /**
+   * Depth first search iterator under the specified path
+   * @param path
+   * @return
+   */
   def dfs(path:String) : Iterator[(Path, A)] = dfs(Path(path))
 
   def isEmpty = false

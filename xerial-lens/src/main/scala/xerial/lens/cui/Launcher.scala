@@ -134,8 +134,9 @@ class Launcher(cl:Class[_]) extends Logger {
   def execute[A <: AnyRef](args:Array[String], showHelp:Boolean=false) : A = {
     val p = new OptionParser(schema)
     val r = p.parse(args)
+    trace("parse tree: %s", r.parseTree)
     val mainObj : A = r.buildObjectWithFilter(cl, _ != commandNameParam).asInstanceOf[A]
-    val cn : Option[String] = (for((path, value) <- r.parseTree.dfs(commandNameParam)) yield value).toSeq.headOption
+    val cn : Option[String] = (for((path, value) <- r.parseTree.dfs if path.fullPath == commandNameParam) yield value).toSeq.headOption
     val helpIsOn = r.showHelp || showHelp
     val result = for(commandName <- cn; c <- findCommand(commandName, mainObj)) yield c.execute(mainObj, r.unusedArgument, helpIsOn)
 
