@@ -115,8 +115,11 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
-      Seq(libraryDependencies ++= bootLib)
+    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++ Seq(
+      publish := {},
+      publishLocal := {},
+      libraryDependencies ++= bootLib
+    )
   ) aggregate(core, lens)
 
   lazy val core = Project(
