@@ -18,6 +18,7 @@ package xerial.lens
 
 import collection.mutable.{ArrayBuffer}
 import xerial.core.log.Logger
+import collection.mutable
 
 
 //--------------------------------------
@@ -42,9 +43,8 @@ object ObjectBuilder extends Logger {
   sealed trait BuilderElement
   case class Holder(holder:ObjectBuilder[_]) extends BuilderElement
   case class Value(value:Any) extends BuilderElement
-  case class ArrayHolder[E : ClassManifest](holder:ArrayBuffer[E]) extends BuilderElement {
-    def +=(elem:E) = holder += elem
-  }
+  case class ArrayHolder(holder:mutable.ArrayBuffer[Any]) extends BuilderElement
+
 
 }
 
@@ -129,11 +129,9 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
       if (canBuildFromBuffer(valueType.rawType)) {
         val t = valueType.asInstanceOf[GenericType]
-        val gt = t.genericTypes(0).rawType
-        type E = gt.type
-
-        val arr = holder.getOrElseUpdate(name, ArrayHolder[E](new ArrayBuffer[E])).asInstanceOf[ArrayHolder[E]]
-        TypeConverter.convert(value, gt) map { arr += _.asInstanceOf[E] }
+        val gt = t.genericTypes(0)
+        val arr = holder.getOrElseUpdate(name, ArrayHolder(new ArrayBuffer[Any])).asInstanceOf[ArrayHolder]
+        TypeConverter.convert(value, gt) map { arr.holder += _ }
       }
       else if(canBuildFromStringValue(valueType)) {
         TypeConverter.convert(value, valueType).map { v =>
@@ -161,7 +159,11 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
     holder.get(name) flatMap {
       case Holder(h) => Some(h.build)
       case Value(v) => Some(v)
-      case ArrayHolder(h) => TypeConverter.convert(h, getParameterTypeOf(name))
+      case ArrayHolder(h) => {
+        val p = getParameterTypeOf(name)
+        debug("convert array holder:%s into %s", h, p)
+        TypeConverter.convert(h, p)
+      }
     }
   }
 }

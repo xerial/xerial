@@ -23,6 +23,7 @@
 
 package xerial.lens
 import java.{lang => jl}
+import collection.mutable.ArrayBuffer
 
 object ObjectType {
 
@@ -64,6 +65,7 @@ abstract class ObjectType(val rawType: Class[_]) extends Type {
   def isBooleanType = false
   def isGenericType = false
   def isPrimitive : Boolean = false
+
 }
 
 trait ValueObject extends ObjectType {
