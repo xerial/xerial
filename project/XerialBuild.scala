@@ -16,12 +16,10 @@
 
 package xerial
 
-import java.io.File
 import sbt._
 import Keys._
 
 import sbtrelease.ReleasePlugin._
-import com.jsuereth.pgp.sbtplugin.PgpPlugin._
 
 object XerialBuild extends Build {
 
@@ -47,6 +45,7 @@ object XerialBuild extends Build {
   }
 
 
+  lazy val defaultJavacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-source", "1.5", "-target", "1.5")
   lazy val defaultScalacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5")
 
   lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
@@ -66,6 +65,7 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
+    javacOptions := defaultJavacOptions,
     scalacOptions in Compile := defaultScalacOptions,
     scalacOptions in doc <++= (baseDirectory in LocalProject("xerial"), version) map { (bd, v) =>
       val tree = if(v.endsWith("-SNAPSHOT")) "develop" else "master"
@@ -102,9 +102,7 @@ object XerialBuild extends Build {
             <url>http://xerial.org/leo</url>
           </developer>
         </developers>
-    },
-    useGpg := !isWindows,
-    useGpgAgent := false
+    }
   )
 
 
