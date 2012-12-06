@@ -14,68 +14,49 @@
  * limitations under the License.
  */
 
-package xerial
-
+import java.io.File
 import sbt._
-import Keys._
-
+import sbt.Keys._
 import sbtrelease.ReleasePlugin._
+import scala._
+import scala.Some
+import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
   val SCALA_VERSION = "2.9.2"
 
-  private def profile = System.getProperty("xerial.profile", "default")
-  private def isWindows = System.getProperty("os.name").contains("Windows")
-
-  def releaseResolver(v: String): Option[Resolver] = {
+  def releaseResolver(v: String): Resolver = {
+    val profile = System.getProperty("xerial.profile", "default")
     profile match {
       case "default" => {
         val nexus = "https://oss.sonatype.org/"
         if (v.trim.endsWith("SNAPSHOT"))
-          Some("snapshots" at nexus + "content/repositories/snapshots")
+          "snapshots" at nexus + "content/repositories/snapshots"
         else
-          Some("releases" at nexus + "service/local/staging/deploy/maven2")
+          "releases" at nexus + "service/local/staging/deploy/maven2"
       }
       case p => {
-        scala.Console.err.println("unknown xerial.profile:%s".format(p))
-        None
+        sys.error("unknown xerial.profile:%s".format(p))
       }
     }
   }
 
-
-  lazy val defaultJavacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-source", "1.5", "-target", "1.5")
-  lazy val defaultScalacOptions = Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5")
-
-  lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.defaultSettings ++ packSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
     description := "Xerial: Data Management Utiilities",
     scalaVersion := SCALA_VERSION,
-//    resolvers <++= version { (v) =>
-//        Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases", releaseResolver(v))
-//    },
     publishMavenStyle := true,
     publishArtifact in Test := false,
-    publishTo <<= version { (v) => releaseResolver(v) },
+    publishTo <<= version { (v) => Some(releaseResolver(v)) },
     pomIncludeRepository := {
       _ => false
     },
     parallelExecution := true,
     crossPaths := false,
-    javacOptions := defaultJavacOptions,
-    scalacOptions in Compile := defaultScalacOptions,
-    scalacOptions in doc <++= (baseDirectory in LocalProject("xerial"), version) map { (bd, v) =>
-      val tree = if(v.endsWith("-SNAPSHOT")) "develop" else "master"
-      defaultScalacOptions ++ Seq(
-        "-sourcepath", bd.getAbsolutePath,
-        "-doc-source-url", "http://github.com/xerial/xerial/blob/" + tree + "€{FILE_PATH}.scala",
-        "-doc-title", "Xerial",
-        "-doc-version", v
-      )
-    },
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5"),
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
@@ -106,7 +87,6 @@ object XerialBuild extends Build {
   )
 
 
-  import Dist._
   import Dependencies._
 
   private val dependentScope = "test->test;compile->compile"
@@ -115,12 +95,14 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++ Seq(
+    settings = buildSettings ++ Seq(
+      libraryDependencies ++= bootLib,
+      packExclude := Seq("root"),
+      packMain := Map("xerial" -> "xerial.lens.cui.Main"),
       publish := {},
-      publishLocal := {},
-      libraryDependencies ++= bootLib
+      publishLocal := {}
     )
-  ) aggregate(core, lens)
+  ) aggregate(core, lens, compress)
 
   lazy val core = Project(
     id = "xerial-core",
@@ -139,6 +121,16 @@ object XerialBuild extends Build {
       libraryDependencies ++= testLib ++ lensLib
     )
   ) dependsOn (core % dependentScope)
+
+  lazy val compress = Project(
+    id = "xerial-compress",
+    base = file("xerial-compress"),
+    settings = buildSettings ++ Seq(
+      description := "Compression libraries",
+      libraryDependencies ++= testLib
+    )
+  ) dependsOn (core % dependentScope)
+
 
   object Dependencies {
     val testLib = Seq(
