@@ -35,7 +35,7 @@ class FPCTest extends XerialSpec {
     "compress Double arrays" in {
 
       // Create a sin curve data
-      val N = 10 // num data
+      val N = 1024 // num data
       val input = (for(i <- 0 until N) yield {
          //(i % 1024).toDouble
          math.sin(math.toRadians(i % 90))
@@ -61,8 +61,11 @@ class FPCTest extends XerialSpec {
       val decompressed = FPC.decompress(compressed)
 
       debug("decompressed size: %,d", decompressed.length)
-      val equal = input.zipAll(decompressed, 0.0, 0.0).forall(x => x._1 == x._2)
-      equal should be (true)
+      val z = input.zipAll(decompressed, 0.0, 0.0)
+      val mismatch = z.zipWithIndex.find{case (x, i) => x._1 != x._2}
+      mismatch map { m =>
+        fail("doesn't match at %d: %s".format(m._2, m._1))
+      }
     }
 
 
