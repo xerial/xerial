@@ -39,16 +39,9 @@ import xerial.core.log.Logger
  */
 object FPC extends Logger {
 
-  private val unsafe = {
-    val f = classOf[sun.misc.Unsafe].getDeclaredField("theUnsafe")
-    f.setAccessible(true)
-    f.get(null).asInstanceOf[sun.misc.Unsafe]
-  }
+  def compress(input:Array[Double], tableSize:Int = 8 * 1024) : Array[Byte] = {
 
-
-  def compress(input:Array[Double], tableSize:Int = 1024 * 1024) : Array[Byte] = {
-
-    val hashTableSizeInLog2 = (32 - Integer.numberOfLeadingZeros(tableSize))  // truncate to 2^i value
+    val hashTableSizeInLog2 = math.max(4, (32 - Integer.numberOfLeadingZeros(tableSize)))  // truncate to 2^i value
     val hashTableSize = 1 << hashTableSizeInLog2
 
     trace("hash table size: %,d", hashTableSize)
@@ -76,7 +69,8 @@ object FPC extends Logger {
     var hash1 = 0
     var hash2 = 0
     while(c < N) {
-      val v = unsafe.getLong(input, (c.toLong << 2)) // Read Double value as Long
+      // Read Double value as Long
+      val v = java.lang.Double.doubleToRawLongBits(input(c))
       // FCM
       @inline def predWithFCM : Long = {
         val xor = v ^ pred1 // Take XOR with the prediction
@@ -113,7 +107,7 @@ object FPC extends Logger {
       val xor1 = predWithFCM
       val xor2 = predWithDFCM
 
-      var code = 0
+      var code : Int = 0
       var xor : Long = xor1
       if(xor1 > xor2) {
         code = 0x80
@@ -122,10 +116,10 @@ object FPC extends Logger {
       // bcode encodes the residual block size.
       val bcode = calcBCode(xor)
       code |= bcode << 4
-      val pos = 6 + (c >> 1)
+      val pos = 6 + (c >> 4)
       buf(pos) = (buf(pos) | (code << ((1 - (c & 1)) << 2))).toByte
       val residualSize = bcode + (bcode >> 2) // The last term is a compensation for missing 4 bytes code
-      debug("residual size: %d, v:%d, pred1:%d, pred2:%d, nlz:%d".format(residualSize, v, pred1, pred2, java.lang.Long.numberOfLeadingZeros(xor)))
+      //debug("residual size: %d, v:%d, pred1:%d, pred2:%d, nlz:%d".format(residualSize, v, pred1, pred2, java.lang.Long.numberOfLeadingZeros(xor)))
       var i = 0
       while(i < residualSize) {
         buf(residualOffset + i) = (xor >>> ((residualSize - i - 1) << 3)).toByte

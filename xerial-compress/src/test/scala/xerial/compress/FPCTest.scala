@@ -24,6 +24,8 @@
 package xerial.compress
 
 import xerial.core.XerialSpec
+import util.Random
+import org.xerial.snappy.Snappy
 
 /**
  * @author Taro L. Saito
@@ -33,17 +35,30 @@ class FPCTest extends XerialSpec {
     "compress Double arrays" in {
 
       // Create a sin curve data
-      val N = 1024 // data size
+      val N = 1024 * 1024 * 8 // num data
       val input = (for(i <- 0 until N) yield {
-        //(i % 3).toDouble
-        math.sin(i * 0.1)
+         //(i % 1024).toDouble
+         math.sin(math.toRadians(i % 45)) / 1000.0
       }).toArray[Double]
 
-      val compressed = FPC.compress(input)
+      var compressed : Array[Byte] = null
+      var snappyCompressed : Array[Byte] = null
+
+      time("compress", repeat=5) {
+        block("FPC") {
+          compressed = FPC.compress(input)
+        }
+
+        block("snappy") {
+          snappyCompressed = Snappy.compress(input)
+        }
+      }
+
       debug("compressed size: %,d => %,d", input.length * 8, compressed.length)
+      debug("snappy compressed size: %,d => %,d", input.length * 8, snappyCompressed.length)
+
 
       val decompressed = FPC.decompress(compressed)
-
 
       val equal = input.zipAll(decompressed, 0.0, 0.0).forall(x => x._1 == x._2)
       equal should be (true)
