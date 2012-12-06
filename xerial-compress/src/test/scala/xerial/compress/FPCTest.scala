@@ -37,8 +37,8 @@ class FPCTest extends XerialSpec {
       // Create a sin curve data
       val N = 1024 * 1024 // num data
       val input = (for(i <- 0 until N) yield {
-         (i % 1024).toDouble
-         //math.sin(math.toRadians(i % 90))
+         //(i % 1024).toDouble
+         math.sin(math.toRadians(i)).abs
       }).toArray[Double]
 
       var compressed : Array[Byte] = null
