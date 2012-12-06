@@ -71,6 +71,6 @@ Add the following settings to your sbt build file (e.g., `build.sbt`)
 
 (Unidoc of API will be prepared)
 
-* [xerial-core 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.1/xerial-core-3.0-javadoc.jar/!/index.html)
-* [xerial-lens 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.1/xerial-lens-3.0-javadoc.jar/!/index.html)
+* [xerial-core 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.0/xerial-core-3.0-javadoc.jar/!/index.html)
+* [xerial-lens 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.0/xerial-lens-3.0-javadoc.jar/!/index.html)
 
