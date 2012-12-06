@@ -57,7 +57,6 @@ class FPCTest extends XerialSpec {
       debug("compressed size: %,d => %,d", input.length * 8, compressed.length)
       debug("snappy compressed size: %,d => %,d", input.length * 8, snappyCompressed.length)
 
-
       val decompressed = FPC.decompress(compressed)
 
       debug("decompressed size: %,d", decompressed.length)

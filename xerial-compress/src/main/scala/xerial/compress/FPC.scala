@@ -69,41 +69,21 @@ object FPC extends Logger {
     while(c < N) {
       // Read Double value as Long
       val v = java.lang.Double.doubleToLongBits(input(c))
+
       // FCM
-      @inline def predWithFCM : Long = {
-        val xor = v ^ pred1 // Take XOR with the prediction
-        fcm(hash1) = v       // Update the hash table with the current value
-        // Predict the next value
-        hash1 = ((hash1 << 6) ^ (v >>> 48L).toInt) & tableMask
-        pred1 = fcm(hash1)
-        xor
-      }
+      val xor1 = v ^ pred1 // Take XOR with the prediction
+      fcm(hash1) = v       // Update the hash table with the current value
+      // Predict the next value
+      hash1 = ((hash1 << 6) ^ (v >>> 48L).toInt) & tableMask
+      pred1 = fcm(hash1)
+
       // dFCM
-      @inline def predWithDFCM : Long = {
-        val diff = v - last
-        val xor = v ^ (last + pred2) // Take XOR with the prediction
-        dfcm(hash2) = diff   // Update the hash table
-        // Predict the next value
-        hash2 = ((hash2 << 2) ^ (diff >>> 40L).toInt) & tableMask
-        pred2 = dfcm(hash2)
-        xor
-      }
-
-      @inline def calcBCode(xor:Long) : Int = {
-        // We give up using 4 bytes as a block size since its frequency is quite low
-        var bcode = 7 // 8 bytes
-        if((xor >> 56) == 0) bcode = 6  // 7 bytes
-        if((xor >> 48) == 0) bcode = 5 // 6 bytes
-        if((xor >> 40) == 0) bcode = 4 // 5 bytes
-        if((xor >> 24) == 0) bcode = 3 // 3 bytes
-        if((xor >> 16) == 0) bcode = 2 // 2 bytes
-        if((xor >> 8) == 0) bcode = 1 // 1 byte
-        if(xor == 0) bcode = 0 // 0 byte
-        bcode
-      }
-
-      val xor1 = predWithFCM
-      val xor2 = predWithDFCM
+      val diff = v - last
+      val xor2 = v ^ (last + pred2) // Take XOR with the prediction
+      dfcm(hash2) = diff   // Update the hash table
+      // Predict the next value
+      hash2 = ((hash2 << 2) ^ (diff >>> 40L).toInt) & tableMask
+      pred2 = dfcm(hash2)
 
       var code : Int = 0
       var xor : Long = xor1
@@ -112,7 +92,16 @@ object FPC extends Logger {
         xor = xor2
       }
       // bcode encodes the residual block size.
-      val bcode = calcBCode(xor)
+      // We give up using 4 bytes as a block size since its frequency is quite low
+      var bcode = 7 // 8 bytes
+      if((xor >> 56) == 0) bcode = 6  // 7 bytes
+      if((xor >> 48) == 0) bcode = 5 // 6 bytes
+      if((xor >> 40) == 0) bcode = 4 // 5 bytes
+      if((xor >> 24) == 0) bcode = 3 // 3 bytes
+      if((xor >> 16) == 0) bcode = 2 // 2 bytes
+      if((xor >> 8) == 0) bcode = 1 // 1 byte
+      if(xor == 0) bcode = 0 // 0 byte
+
       code |= bcode
       val pos = 6 + (c >> 1)
       buf(pos) = (buf(pos) | (code << ((1 - (c & 1)) << 2))).toByte
