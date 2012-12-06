@@ -68,7 +68,7 @@ object FPC extends Logger {
     var hash2 = 0
     while(c < N) {
       // Read Double value as Long
-      val v = java.lang.Double.doubleToRawLongBits(input(c))
+      val v = java.lang.Double.doubleToLongBits(input(c))
       // FCM
       @inline def predWithFCM : Long = {
         val xor = v ^ pred1 // Take XOR with the prediction
@@ -81,8 +81,8 @@ object FPC extends Logger {
       // dFCM
       @inline def predWithDFCM : Long = {
         val diff = v - last
-        dfcm(hash2) = diff   // Update the hash table
         val xor = v ^ (last + pred2) // Take XOR with the prediction
+        dfcm(hash2) = diff   // Update the hash table
         // Predict the next value
         hash2 = ((hash2 << 2) ^ (diff >>> 40L).toInt) & tableMask
         pred2 = dfcm(hash2)
@@ -156,7 +156,7 @@ object FPC extends Logger {
     var hash2 = 0
     while(c < N) {
       val pos = 6 + (c >> 1)
-      val code = compressed(pos) >>> ((1 - (c & 1)) << 2) & 0x0F
+      val code = (compressed(pos) >>> ((1 - (c & 1)) << 2)) & 0x0F
       val bcode = code & 0x7
       val residualSize = bcode + (bcode >> 2)
 
@@ -168,7 +168,7 @@ object FPC extends Logger {
         xor |= vi
         r += 1
       }
-      val pred = if((code & 0x7) == 0) pred1 else pred2
+      val pred = if((code & 0x8) == 0) pred1 else pred2
       val v = xor ^ pred
 
       fcm(hash1) = v

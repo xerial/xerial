@@ -35,16 +35,16 @@ class FPCTest extends XerialSpec {
     "compress Double arrays" in {
 
       // Create a sin curve data
-      val N = 1024 // num data
+      val N = 1024 * 1024 // num data
       val input = (for(i <- 0 until N) yield {
-         //(i % 1024).toDouble
-         math.sin(math.toRadians(i % 90))
+         (i % 1024).toDouble
+         //math.sin(math.toRadians(i % 90))
       }).toArray[Double]
 
       var compressed : Array[Byte] = null
       var snappyCompressed : Array[Byte] = null
 
-      time("compress", repeat=1) {
+      time("compress", repeat=2) {
         block("FPC") {
           compressed = FPC.compress(input)
         }
