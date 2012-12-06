@@ -23,11 +23,9 @@
 
 package xerial.compress
 
-import collection.mutable.ArrayBuffer
-import collection.mutable
+
 import java.nio.ByteBuffer
 import xerial.core.log.Logger
-
 
 /**
  * An implementation of the FPC 64-bit floating point value compression algorithm:
@@ -61,7 +59,7 @@ object FPC extends Logger {
     // write element size (4 bytes)
     bufOut.putInt(N)
 
-    var residualOffset = 6 + (N + 1)/ 2
+    var residualOffset = 6 + ((N + 1)/ 2)
     var pred1 = 0L
     var pred2 = 0L
     var c  = 0
@@ -76,7 +74,7 @@ object FPC extends Logger {
         val xor = v ^ pred1 // Take XOR with the prediction
         fcm(hash1) = v       // Update the hash table with the current value
         // Predict the next value
-        hash1 = ((hash1 << 6) ^ (v >> 48L).toInt) & tableMask
+        hash1 = ((hash1 << 6) ^ (v >>> 48L).toInt) & tableMask
         pred1 = fcm(hash1)
         xor
       }
@@ -86,7 +84,7 @@ object FPC extends Logger {
         dfcm(hash2) = diff   // Update the hash table
         val xor = v ^ (last + pred2) // Take XOR with the prediction
         // Predict the next value
-        hash2 = ((hash2 << 2) ^ (diff >> 40L).toInt) & tableMask
+        hash2 = ((hash2 << 2) ^ (diff >>> 40L).toInt) & tableMask
         pred2 = dfcm(hash2)
         xor
       }
@@ -110,19 +108,24 @@ object FPC extends Logger {
       var code : Int = 0
       var xor : Long = xor1
       if(xor1 > xor2) {
-        code = 0x80
+        code = 0x8
         xor = xor2
       }
       // bcode encodes the residual block size.
       val bcode = calcBCode(xor)
-      code |= bcode << 4
-      val pos = 6 + (c >> 4)
+      code |= bcode
+      val pos = 6 + (c >> 1)
       buf(pos) = (buf(pos) | (code << ((1 - (c & 1)) << 2))).toByte
+      //debug("write code:%d at %d buf(%d) = %d", code, pos, pos, buf(pos))
       val residualSize = bcode + (bcode >> 2) // The last term is a compensation for missing 4 bytes code
+      //debug("rsize: %d", residualSize)
       //debug("residual size: %d, v:%d, pred1:%d, pred2:%d, nlz:%d".format(residualSize, v, pred1, pred2, java.lang.Long.numberOfLeadingZeros(xor)))
+      debug("write xor:%s, bcode:%d, r:%d", java.lang.Long.toHexString(xor), bcode, residualSize)
       var i = 0
       while(i < residualSize) {
-        buf(residualOffset + i) = (xor >>> ((residualSize - i - 1) << 3)).toByte
+        val vi = ((xor >>> ((residualSize - i - 1) << 3)) & 0xFF).toByte
+        buf(residualOffset + i) = vi
+        //debug("write(%d): %s", residualOffset + i, java.lang.Long.toHexString(vi))
         i += 1
       }
       residualOffset += residualSize
@@ -135,10 +138,75 @@ object FPC extends Logger {
     compressed
   }
 
+  private val bcodeMask = Array(
+    0L,   // 0 byte
+    ~0L >>> 56L,  // 1 byte
+    ~0L >>> 48L, // 2 bytes
+    ~0L >>> 40L, // 3 bytes
+    ~0L >>> 24L, // 5 bytes
+    ~0L >> 16L, // 6 bytes
+    ~0L >> 8L, // 7 bytes
+    ~0L // 8 bytes
+  )
+
   def decompress(compressed:Array[Byte]) : Array[Double] = {
 
-    // TODO impl
-    Array.empty[Double]
+    val in = ByteBuffer.wrap(compressed)
+    val hashTableSizeInLog2 = in.get()
+    val N = in.getInt
+    val hashTableSize = 1 << hashTableSizeInLog2
+    val tableMask = hashTableSize - 1
+    val fcm = new Array[Long](hashTableSize)
+    val dfcm = new Array[Long](hashTableSize)
+
+    val decompressed = new Array[Double](N)
+
+    var c = 0
+    var residualOffset = 6 + ((N +1) / 2)
+    var pred1 = 0L
+    var pred2 = 0L
+    var last = 0L
+    var hash1 = 0
+    var hash2 = 0
+    while(c < N) {
+      val pos = 6 + (c >> 1)
+      val code = compressed(pos) >>> ((1 - (c & 1)) << 2) & 0x0F
+      val bcode = code & 0x7
+      //debug("read code: %d at %d buf(%d) = %d" , code, pos, pos, compressed(pos))
+      val residualSize = bcode + (bcode >> 2)
+
+      //in.position(residualOffset)
+      //var v = in.getLong >>> ((8 - residualSize) * 8)
+      var xor = 0L
+      var r = 0
+      while(r < residualSize) {
+        xor <<= 8L
+        val vi : Long = compressed(residualOffset + r) & 0xFF
+        xor |= vi
+        //debug("read(%d): %s, v:%s", residualOffset + r, java.lang.Long.toHexString(vi), java.lang.Long.toHexString(v))
+        r += 1
+      }
+      val pred = if((code & 0x7) == 0) pred1 else pred2
+      debug("read xor:%s, bcode:%d, r:%d", java.lang.Long.toHexString(xor), bcode, residualSize)
+      val v = xor ^ pred
+
+      fcm(hash1) = v
+      hash1 = ((hash1 << 6) ^ (v >>> 48L).toInt) & tableMask
+      pred1 = fcm(hash1)
+
+      val diff = v - last
+      dfcm(hash2) = diff
+      hash2 = ((hash2 << 2) ^ (diff >>> 40L).toInt) & tableMask
+      pred2 = v + dfcm(hash2)
+
+      decompressed(c) = java.lang.Double.longBitsToDouble(v)
+
+      last = v
+      residualOffset += residualSize
+      c += 1
+    }
+
+    decompressed
   }
 
 }
