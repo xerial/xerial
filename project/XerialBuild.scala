@@ -128,7 +128,7 @@ object XerialBuild extends Build {
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
       libraryDependencies ++= testLib ++ Seq(
-        "org.xerial.snappy" % "snappy-java" % "1.0.5-M3" % "test"
+        "org.xerial.snappy" % "snappy-java" % "1.0.5-M3"
       )
     )
   ) dependsOn (core % dependentScope)
