@@ -48,7 +48,7 @@ object QuantizedFloatCompress extends Logger {
     while(c < N) {
       val v : Float = in(c)
       if(v.abs > 1.0) {
-        throw new IllegalArgumentException("the data contains illegal value v = %.2f > 1 at %d".format(v, c))
+        throw new IllegalArgumentException("the data contains illegal value |v| = |%.2f| > 1 at %d".format(v, c))
       }
 
       val vi = (v * Int.MaxValue).toInt
@@ -63,11 +63,11 @@ object QuantizedFloatCompress extends Logger {
 
   def decompress(in:Array[Byte]) : Array[Float] = {
 
-    val isBigEndian = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN
     val ia : Array[Byte] = Snappy.uncompress(in)
     val out = new Array[Float](ia.length / 4)
     var c = 0
     val N = ia.length
+    val isBigEndian = ByteOrder.nativeOrder() eq ByteOrder.BIG_ENDIAN
     while(c < N) {
       val vi = if(isBigEndian) {
         ((ia(c) & 0xFF) << 24) |
@@ -87,5 +87,47 @@ object QuantizedFloatCompress extends Logger {
     }
     out
   }
+
+  /**
+   * Compress float values within [-1, 1] by quantizing them as Byte values [-128, 127]
+   * @param in
+   * @return
+   */
+  def compressAsByte(in:Array[Float]) : Array[Byte] = {
+    val N = in.length
+    var c = 0
+    val out = new Array[Byte](N)
+    while(c < N) {
+      val v : Float = in(c)
+      if(v.abs > 1.0) {
+        throw new IllegalArgumentException("the data contains illegal value |v| = |%.2f| > 1 at %d".format(v, c))
+      }
+
+      val vi = (v * Byte.MaxValue).toByte
+      // write byte
+      out(c) = vi
+      c += 1
+    }
+
+    // Use snappy compression
+    Snappy.compress(out)
+  }
+
+
+  def decompressAsByte(in:Array[Byte]) : Array[Float] = {
+    val ia : Array[Byte] = Snappy.uncompress(in)
+    var c = 0
+    val N = ia.length
+    val out : Array[Float] = new Array[Float](N)
+    while(c < N) {
+      val vi = ia(c)
+      val v = vi.toFloat / Byte.MaxValue
+      out(c) = v
+      c += 1
+    }
+    out
+  }
+
+
 
 }

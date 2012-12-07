@@ -46,7 +46,7 @@ class QuantizedFloatCompressTest extends XerialSpec {
       var fc : Array[Byte] = null
       var sc : Array[Byte] = null
 
-      time("float compression", repeat=10) {
+      time("Float -> Int compression", repeat=10) {
         block("quantized") {
           fc = QuantizedFloatCompress.compress(in)
         }
@@ -61,7 +61,7 @@ class QuantizedFloatCompressTest extends XerialSpec {
       var fcDecompressed : Array[Float] = null
       var scDecompressed : Array[Float] = null
 
-      time("float decompression", repeat=10) {
+      time("Int -> Float decompression", repeat=10) {
         block("quantized") {
           fcDecompressed = QuantizedFloatCompress.decompress(fc)
         }
@@ -82,11 +82,67 @@ class QuantizedFloatCompressTest extends XerialSpec {
 
     }
 
-    "compress extream values" in {
+    "compress extream values in Float -> Int" in {
       val ans : Array[Float] = Array(0.0f, 1.0f, -1.0f, 0.5f, -0.5f, 0.1f, 0.2f, -0.1f, 0.2f)
       val compressed = QuantizedFloatCompress.compress(ans)
       val decompressed : Array[Float] = QuantizedFloatCompress.decompress(compressed)
       ans should be (decompressed)
+    }
+
+    "compress extream values in Float -> Byte" in {
+      val ans : Array[Float] = Array(0.0f, 1.0f, -1.0f, 0.5f, -0.5f, 0.1f, 0.2f, -0.1f, 0.2f)
+      val compressed = QuantizedFloatCompress.compressAsByte(ans)
+      val decompressed : Array[Float] = QuantizedFloatCompress.decompressAsByte(compressed)
+      val error = ans.zip(decompressed).find{case (a, b) => (a - b).abs > 0.01 }
+      error map { e =>
+        fail("has distinct values more than 0.001 after decompression: %s".format(e))
+      }
+    }
+
+    "compress [-1, 1] values by quantizing to Byte" in {
+      val N = 100000
+      def sample = {
+        (for(i <- 0 until N) yield {
+          Random.nextFloat / Float.MaxValue
+          //math.sin(math.toRadians(i)).toFloat
+        }).toArray[Float]
+      }
+
+      val in = sample
+      var fc : Array[Byte] = null
+      var sc : Array[Byte] = null
+
+      time("Float -> Byte compression", repeat=10) {
+        block("quantized") {
+          fc = QuantizedFloatCompress.compressAsByte(in)
+        }
+        block("snappy") {
+          sc = Snappy.compress(in)
+        }
+      }
+
+      debug("quantized: compressed size: %,d => %,d", in.length*8, fc.length)
+      debug("snappy   : compressed size: %,d => %,d", in.length*8, sc.length)
+
+      var fcDecompressed : Array[Float] = null
+      var scDecompressed : Array[Float] = null
+
+      time("Byte -> Float decompression", repeat=10) {
+        block("quantized") {
+          fcDecompressed = QuantizedFloatCompress.decompressAsByte(fc)
+        }
+
+        block("snappy") {
+          val a : Array[Byte] = Snappy.uncompress(sc)
+          scDecompressed = new Array[Float](a.length / 4)
+          Snappy.arrayCopy(a, 0, a.length, scDecompressed, 0)
+        }
+      }
+      val error = in.zip(fcDecompressed).find{case (a, b) => (a - b).abs > 0.01 }
+      error map { e =>
+        fail("has distinct values more than 0.001 after decompression: %s".format(e))
+      }
+
     }
   }
 }
