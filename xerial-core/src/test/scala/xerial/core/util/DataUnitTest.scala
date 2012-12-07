@@ -16,41 +16,38 @@
 
 //--------------------------------------
 //
-// DataUnit.scala
-// Since: 2012/12/07 1:38 PM
+// DataUnitTest.scala
+// Since: 2012/12/07 1:51 PM
 //
 //--------------------------------------
 
 package xerial.core.util
 
+import xerial.core.XerialSpec
+
 /**
- * Translators of data sizes
- *
  * @author Taro L. Saito
  */
-object DataUnit {
+class DataUnitTest extends XerialSpec {
+  "DataUnit" should {
+    "translate data size" in {
+      var unit = 1L
 
-  /**
-   * Convert the given byte size into human readable format like 1024 -> 1K
-   * @param byteSize
-   * @return string representation of the byte size
-   */
-  def toHumanReadableFormat(byteSize:Long) : String = {
-    // kilo, mega, giga, tera, peta, exa, zetta, yotta
-    val unitName = Seq("", "K", "M", "G", "T", "P", "E", "Z", "Y")
+      DataUnit.toHumanReadableFormat(unit) should be ("1")
+      unit *= 1024L
+      DataUnit.toHumanReadableFormat(unit) should be ("1K")
+      unit *= 1024L
+      DataUnit.toHumanReadableFormat(unit) should be ("1M")
+      unit *= 1024L
+      DataUnit.toHumanReadableFormat(unit) should be ("1G")
+      unit *= 1024L
+      DataUnit.toHumanReadableFormat(unit) should be ("1T")
+      unit *= 1024L
+      DataUnit.toHumanReadableFormat(unit) should be ("1P")
+      unit *= 1024L
+      DataUnit.toHumanReadableFormat(unit) should be ("1E")
 
-    def loop(index:Int, v:Long) : (Long, String) = {
-      if(index >= unitName.length)
-        (byteSize, "")
-      val next = v >> 10L
-      if(next == 0L)
-        (v, unitName(index))
-      else
-        loop(index+1, next)
+
     }
-
-    val f = loop(0, byteSize)
-    "%d%s".format(f._1, f._2)
   }
-
 }
