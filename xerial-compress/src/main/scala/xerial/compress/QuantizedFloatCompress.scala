@@ -88,7 +88,7 @@ object QuantizedFloatCompress extends Logger {
   def compress(in:Array[Float]) : Array[Byte] = Snappy.compress(quantizeToInt(in))
 
   /**
-   * Decompress float values compressed with [[xerial.compress.QuantizedFloatCompress#compressAsByte]]
+   * Decompress float values compressed with [[xerial.compress.QuantizedFloatCompress#compress]]
    * @param in
    * @return decompressed float array
    */
