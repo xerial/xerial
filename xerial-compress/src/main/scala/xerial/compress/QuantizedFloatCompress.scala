@@ -16,17 +16,16 @@
 
 //--------------------------------------
 //
-// QuantizedFloatCompresstCompress.scala
+// QuantizedFloatCompress.scala
 // Since: 2012/12/07 10:21 AM
 //
 //--------------------------------------
 
 package xerial.compress
 
-import org.xerial.snappy.{SnappyOutputStream, Snappy}
 import xerial.core.log.Logger
-import java.nio.{ByteOrder, ByteBuffer}
-import java.io.{DataOutputStream, ByteArrayOutputStream}
+import java.nio.ByteOrder
+import org.xerial.snappy.Snappy
 
 
 /**
@@ -37,11 +36,11 @@ import java.io.{DataOutputStream, ByteArrayOutputStream}
 object QuantizedFloatCompress extends Logger {
 
   /**
-   * Compress [-1, 1] floating point values by quantizing them into Int values within [Int.MinValue, Int.Maxvalue]
-   @param in
-   * @return
+   * Translate [-1, 1] floating point values into Int values within [Int.MinValue, Int.Maxvalue] range
+   * @param in input data
+   * @return quantized data
    */
-  def compress(in:Array[Float]) : Array[Byte] = {
+  def quantizeToInt(in:Array[Float]) : Array[Int] = {
     val N = in.length
     var c = 0
     val out = new Array[Int](N)
@@ -50,19 +49,50 @@ object QuantizedFloatCompress extends Logger {
       if(v.abs > 1.0) {
         throw new IllegalArgumentException("the data contains illegal value |v| = |%.2f| > 1 at %d".format(v, c))
       }
-
       val vi = (v * Int.MaxValue).toInt
-      // write Int in little endian
+      // write Int using the native endian
       out(c) = vi
       c += 1
     }
-
-    // Use snappy compression
-    Snappy.compress(out)
+    out
   }
 
-  def decompress(in:Array[Byte]) : Array[Float] = {
+  /**
+   * Translate [-1, 1] floating point values into Byte values within [Byte.MinValue, Byte.Maxvalue] range
+   * @param in input data
+   * @return quantized data
+   */
+  def quantizeToByte(in:Array[Float]) : Array[Byte] = {
+    val N = in.length
+    var c = 0
+    val out = new Array[Byte](N)
+    while(c < N) {
+      val v : Float = in(c)
+      if(v.abs > 1.0) {
+        throw new IllegalArgumentException("the data contains illegal value |v| = |%.2f| > 1 at %d".format(v, c))
+      }
 
+      val vi = (v * Byte.MaxValue).toByte
+      // write byte
+      out(c) = vi
+      c += 1
+    }
+    out
+  }
+
+  /**
+   * Compress [-1, 1] floating point values by quantizing them into Int values within [Int.MinValue, Int.Maxvalue]
+   * @param in input data
+   * @return compressed data
+   */
+  def compress(in:Array[Float]) : Array[Byte] = Snappy.compress(quantizeToInt(in))
+
+  /**
+   * Decompress float values compressed with [[xerial.compress.QuantizedFloatCompress#compressAsByte]]
+   * @param in
+   * @return decompressed float array
+   */
+  def decompress(in:Array[Byte]) : Array[Float] = {
     val ia : Array[Byte] = Snappy.uncompress(in)
     val out = new Array[Float](ia.length / 4)
     var c = 0
@@ -93,27 +123,14 @@ object QuantizedFloatCompress extends Logger {
    * @param in
    * @return
    */
-  def compressAsByte(in:Array[Float]) : Array[Byte] = {
-    val N = in.length
-    var c = 0
-    val out = new Array[Byte](N)
-    while(c < N) {
-      val v : Float = in(c)
-      if(v.abs > 1.0) {
-        throw new IllegalArgumentException("the data contains illegal value |v| = |%.2f| > 1 at %d".format(v, c))
-      }
-
-      val vi = (v * Byte.MaxValue).toByte
-      // write byte
-      out(c) = vi
-      c += 1
-    }
-
-    // Use snappy compression
-    Snappy.compress(out)
-  }
+  def compressAsByte(in:Array[Float]) : Array[Byte] = Snappy.compress(quantizeToByte(in))
 
 
+  /**
+   * Decompress float values compressed with [[xerial.compress.QuantizedFloatCompress#compressAsByte]]
+   * @param in
+   * @return
+   */
   def decompressAsByte(in:Array[Byte]) : Array[Float] = {
     val ia : Array[Byte] = Snappy.uncompress(in)
     var c = 0
