@@ -82,7 +82,7 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
  *
  * When measuring Scala (Java) code performances, you should take the average of execution times and reorder
  * the code block execution orders, because JVM has JIT compiler, which optimizes the code at runtime.
- * And also cache usage and the running state of the garbage collection (GC) affects
+ * And also cache usage and the running state of the garbage core (GC) affects
  * the code performance. By repeating the executions of the entire or individual blocks with the `repeat` option,
  * you can avoid such pitfalls of benchmarking.
  *

@@ -50,7 +50,7 @@ trait PagedInput[T] extends RichInput[T] with Iterable[Array[T]] with Logger {
 
   override def toArray[B >: Array[T] : ClassManifest]: Array[B] = {
     /*
-     Overriding this method is necessary since [[scala.collection.TraversableOnce.toArray]]
+     Overriding this method is necessary since [[scala.core.TraversableOnce.toArray]]
       wrongly set isTraversableAgain = true but page reader cannot be traverse more than once
       */
     iterator.toArray
