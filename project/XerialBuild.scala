@@ -42,7 +42,7 @@ object XerialBuild extends Build {
     }
   }
 
-  lazy val buildSettings = Defaults.defaultSettings ++ packSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
@@ -95,7 +95,7 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ Seq(
+    settings = buildSettings ++ packSettings ++ Seq(
       libraryDependencies ++= bootLib,
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
