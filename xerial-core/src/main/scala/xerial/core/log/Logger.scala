@@ -354,6 +354,12 @@ object LoggerFactory {
     }
   }
 
+  def setDefaultLogLevel(logLevel:LogLevel) {
+    System.setProperty("loglevel", logLevel.name)
+    LoggerFactory.defaultLogLevel = logLevel
+    LoggerFactory.rootLogger.info("Set the default log level to %s", logLevel)
+  }
+
 }
 
 import javax.management.MXBean
@@ -382,8 +388,7 @@ class LoggerConfigImpl extends LoggerConfig {
 
   def setDefaultLogLevel(logLevel:String) {
     val level = LogLevel(logLevel)
-    System.setProperty("loglevel", level.toString)
-    LoggerFactory.rootLogger.info("Set the default log level to %s", level)
+    LoggerFactory.setDefaultLogLevel(level)
   }
 }
 
