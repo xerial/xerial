@@ -72,7 +72,7 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
  */
 trait Logger {
 
-  private[this] val logger = new DynamicVariable[LogWriter](LoggerFactory(this.getClass))
+  @transient private[this] val logger = new DynamicVariable[LogWriter](LoggerFactory(this.getClass))
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.value.isEnabled(logLevel))
