@@ -310,12 +310,12 @@ object LoggerFactory {
   def setLogLevelJMX(server:MBeanServerConnection, loggerName:String, logLevel:String) {
     val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
     lc.setLogLevel(loggerName, logLevel)
-    rootLogger.info("Set the loglevel of %s to %s", loggerName, logLevel)
+    rootLogger.debug("Set the loglevel of %s to %s", loggerName, logLevel)
   }
   def setDefaultLogLevelJMX(server:MBeanServerConnection, logLevel:String) {
     val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
     lc.setDefaultLogLevel(logLevel)
-    rootLogger.info("Set the default loglevel to %s", logLevel)
+    rootLogger.debug("Set the default loglevel to %s", logLevel)
   }
 
 
@@ -357,7 +357,7 @@ object LoggerFactory {
   def setDefaultLogLevel(logLevel:LogLevel) {
     System.setProperty("loglevel", logLevel.name)
     LoggerFactory.defaultLogLevel = logLevel
-    LoggerFactory.rootLogger.info("Set the default log level to %s", logLevel)
+    LoggerFactory.rootLogger.debug("Set the default log level to %s", logLevel)
   }
 
 }
