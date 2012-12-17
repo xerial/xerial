@@ -177,8 +177,8 @@ object Shell extends Logger {
    * @param cmdLine
    * @return
    */
-  def exec(cmdLine:String) : Int = {
-    val pb = prepareProcessBuilder(cmdLine)
+  def exec(cmdLine:String, applyQuotation:Boolean = true) : Int = {
+    val pb = prepareProcessBuilder(cmdLine, applyQuotation=applyQuotation)
     val exitCode = Process(pb).!
     debug("exec command %s with exitCode:%d", cmdLine, exitCode)
     exitCode
@@ -194,13 +194,20 @@ object Shell extends Logger {
 
 
 
-  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean=true): ProcessBuilder = {
+  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean=true, applyQuotation:Boolean = true): ProcessBuilder = {
     def quote(s:String) : String = {
       s.replaceAll("""\"""", """\\"""")
     }
 
-    val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), quote(cmdLine))
-    val pb = new ProcessBuilder(CommandLineTokenizer.tokenize(c):_*)
+    val c = if(OS.isWindows) {
+      """%s -c \"%s\"""".format(Shell.getCommand("sh"), if(applyQuotation) quote(cmdLine) else cmdLine)
+    }
+    else {
+      cmdLine
+    }
+    val tokens = CommandLineTokenizer.tokenize(c)
+    trace("comman line tokens: %s", tokens.mkString(", "))
+    val pb = new ProcessBuilder(tokens:_*)
     if(inheritIO)
       pb.inheritIO()
     var env = getEnv
