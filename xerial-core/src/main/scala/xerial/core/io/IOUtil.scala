@@ -42,7 +42,12 @@ object IOUtil {
 
   def randomPort : Int = {
     val s = new ServerSocket(0)
-    s.getLocalPort
+    try {
+      s.getLocalPort
+    }
+    finally {
+      s.close
+    }
   }
 
 }
