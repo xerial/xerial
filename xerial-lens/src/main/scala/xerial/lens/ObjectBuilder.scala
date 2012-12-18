@@ -79,10 +79,10 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
 
   protected def defaultValues : collection.immutable.Map[String, Any]
 
-  // set default value of the object
+  // set the default values of the object
   for((name, value) <- defaultValues) {
     val v : BuilderElement = findParameter(name).map {
-      case p if TypeUtil.canBuildFromBuffer(p.rawType) => Value(toBuffer(value, p.valueType))
+      case p if TypeUtil.canBuildFromBuffer(p.rawType) => Value(value)
       case p if canBuildFromStringValue(p.valueType) => Value(value)
       case p => {
         // nested object
@@ -130,6 +130,10 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       if (canBuildFromBuffer(valueType.rawType)) {
         val t = valueType.asInstanceOf[GenericType]
         val gt = t.genericTypes(0)
+        if(holder.contains(name) && !holder.get(name).isInstanceOf[ArrayHolder]) {
+          // remove the default value
+          holder.remove(name)
+        }
         val arr = holder.getOrElseUpdate(name, ArrayHolder(new ArrayBuffer[Any])).asInstanceOf[ArrayHolder]
         TypeConverter.convert(value, gt) map { arr.holder += _ }
       }
@@ -149,7 +153,6 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
         case Holder(b) => b.set(path.tailPath, value)
         case other =>
           // overwrite the existing holder
-
           throw new IllegalStateException("invalid path:%s, value:%s, holder:%s".format(path, value, other))
       }
     }
