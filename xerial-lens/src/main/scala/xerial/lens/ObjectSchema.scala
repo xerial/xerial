@@ -383,6 +383,7 @@ object ObjectSchema extends Logger {
         case "scala.Predef.Map" => classOf[Map[_, _]]
         case "scala.Predef.Set" => classOf[Set[_]]
         case "scala.Predef.Class" => classOf[Class[_]]
+        case "scala.package.IndexedSeq" => classOf[IndexedSeq[_]]
         case "scala.package.Seq" => classOf[Seq[_]]
         case "scala.package.List" => classOf[List[_]]
         case "scala.Any" => classOf[Any]
@@ -411,7 +412,7 @@ object ObjectSchema extends Logger {
           case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
           case other => AnyRefType
         }
-        new GenericType(clazz, typeArgs)
+        GenericType(clazz, typeArgs)
       }
     }
 

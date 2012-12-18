@@ -183,6 +183,13 @@ object TypeUtil extends Logger {
   def canBuildFromBuffer[T](cl: ClassManifest[T]) = isArray(cl.erasure) || isSeq(cl) || isMap(cl) || isSet(cl)
   def canBuildFromString[T](cl: Class[T]) = isPrimitive(cl) || hasStringUnapplyConstructor(cl)
 
+  def zero[A](cl:Class[A], param: ObjectType) : A = {
+    param match {
+      case ArrayType(cl, elemType) => elemType.rawType.newArray(0).asInstanceOf[A]
+      case _ => zero[A](cl)
+    }
+  }
+
   def zero[A](cl: Class[A]): A = {
     if (isPrimitive(cl)) {
       val v: Any = Primitive(cl) match {

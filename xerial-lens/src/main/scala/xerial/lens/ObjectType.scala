@@ -153,6 +153,17 @@ object TextType {
 case class StandardType(override val rawType:Class[_]) extends ObjectType(rawType)
 
 
+object GenericType {
+
+  def apply(cl:Class[_], typeArgs:Seq[ObjectType]) : GenericType = {
+    if(TypeUtil.isArray(cl) && typeArgs.length == 1) {
+      ArrayType(cl, typeArgs(0))
+    }
+    else
+      new GenericType(cl, typeArgs)
+  }
+}
+
 class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectType]) extends ObjectType(rawType) {
   override def toString = "%s[%s]".format(rawType.getSimpleName, genericTypes.map(_.name).mkString(", "))
 
