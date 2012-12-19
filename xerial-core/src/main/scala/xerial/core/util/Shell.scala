@@ -18,7 +18,7 @@ package xerial.core.util
 
 import collection.mutable.WeakHashMap
 import java.io.File
-import sys.process.Process
+import sys.process.{ProcessLogger, Process}
 import xerial.core.log.Logger
 import xerial.core.util
 import java.lang.reflect.Field
@@ -179,7 +179,9 @@ object Shell extends Logger {
    */
   def exec(cmdLine:String, applyQuotation:Boolean = true) : Int = {
     val pb = prepareProcessBuilder(cmdLine, applyQuotation=applyQuotation)
-    val exitCode = Process(pb).!
+    val exitCode = Process(pb).!(ProcessLogger{
+      out:String => info(out)
+    })
     debug("exec command %s with exitCode:%d", cmdLine, exitCode)
     exitCode
   }
