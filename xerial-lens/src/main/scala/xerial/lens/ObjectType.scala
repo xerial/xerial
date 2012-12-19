@@ -155,8 +155,6 @@ case class StandardType(override val rawType:Class[_]) extends ObjectType(rawTyp
 
 object GenericType {
 
-
-
   def apply(cl:Class[_], typeArgs:Seq[ObjectType]) : GenericType = {
     import TypeUtil._
     if(TypeUtil.isArray(cl) && typeArgs.length == 1) {
