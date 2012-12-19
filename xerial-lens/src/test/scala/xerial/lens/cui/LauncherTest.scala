@@ -212,6 +212,15 @@ class LauncherTest extends XerialSpec {
       f.files should be (Array("file1", "file2", "file3"))
     }
 
+    "accept array type arguments with default values" taggedAs("array-default") in {
+      val f = Launcher.execute[ArrayOptWithDefault]("")
+      f.files should be (Array("sample"))
+
+      val f2 = Launcher.execute[ArrayOptWithDefault]("sampleA sampleB")
+      f2.files should be (Array("sampleA", "sampleB"))
+    }
+
+
     "accept list type arguments" taggedAs("list") in {
       val f = Launcher.execute[ListOpt]("-f file1 -f file2 -f file3")
       f.files should be (List("file1", "file2", "file3"))
@@ -296,4 +305,7 @@ object LauncherTest {
 
 
   class OptArg(@argument val arg:Option[String]= None)
+
+  class ArrayOptWithDefault(@argument val files:Array[String] = Array("sample"))
+
 }

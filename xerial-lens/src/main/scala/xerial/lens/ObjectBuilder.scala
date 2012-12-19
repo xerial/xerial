@@ -130,9 +130,12 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       if (canBuildFromBuffer(valueType.rawType)) {
         val t = valueType.asInstanceOf[GenericType]
         val gt = t.genericTypes(0)
-        if(holder.contains(name) && !holder.get(name).isInstanceOf[ArrayHolder]) {
-          // remove the default value
-          holder.remove(name)
+
+        holder.get(name) match {
+          case Some(Value(v)) =>
+            // remove the default value
+            holder.remove(name)
+          case _ => // do nothing
         }
         val arr = holder.getOrElseUpdate(name, ArrayHolder(new ArrayBuffer[Any])).asInstanceOf[ArrayHolder]
         TypeConverter.convert(value, gt) map { arr.holder += _ }
