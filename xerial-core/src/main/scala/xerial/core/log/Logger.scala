@@ -429,7 +429,7 @@ trait StringLogWriter extends LogWriter {
         val pout = new PrintStream(buf)
         e.printStackTrace(pout)
         pout.close
-        pout.toString
+        buf.toString
       }
       case _ => message.toString
     }
