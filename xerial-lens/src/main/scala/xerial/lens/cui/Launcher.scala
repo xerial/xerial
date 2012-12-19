@@ -198,7 +198,10 @@ class Launcher(cl:Class[_]) extends Logger {
       moduleList(mainObj).find(_.name == name)
 
 
-    find(name) orElse findModule(name, mainObj)
+    find(name) orElse findModule(name, mainObj) orElse {
+      warn("Unknown command: %s", name)
+      None
+    }
   }
 }
 
