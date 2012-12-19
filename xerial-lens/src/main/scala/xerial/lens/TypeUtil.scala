@@ -89,6 +89,10 @@ object TypeUtil extends Logger {
     cl <:< classOf[List[_]]
   }
 
+  def isEither[T](cl: ClassManifest[T]) = {
+    cl <:< classOf[Either[_, _]]
+  }
+
 
   def isTraversable[T](cl: ClassManifest[T]) = cl <:< classOf[Traversable[_]]
 

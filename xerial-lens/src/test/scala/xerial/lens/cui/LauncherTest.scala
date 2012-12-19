@@ -217,6 +217,15 @@ class LauncherTest extends XerialSpec {
       f.files should be (List("file1", "file2", "file3"))
     }
 
+    "accept Option arguments" taggedAs("optarg") in {
+      val f = Launcher.execute[OptArg]("")
+      f.arg should be (None)
+
+      val f2 = Launcher.execute[OptArg]("hello")
+      f2.arg should be ('defined)
+      f2.arg.get should be ("hello")
+    }
+
   }
 }
 
@@ -284,4 +293,7 @@ object LauncherTest {
 
 
   class ListOpt(@option(prefix="-f") val files:List[String])
+
+
+  class OptArg(@argument val arg:Option[String]= None)
 }

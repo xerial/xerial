@@ -16,7 +16,7 @@
 
 //--------------------------------------
 //
-// LogWriter.scalaala
+// Logger.scala
 // Since: 2012/07/19 4:23 PM
 //
 //--------------------------------------
@@ -28,6 +28,7 @@ import javax.management.{MBeanServerConnection, JMX, ObjectName}
 import management.ManagementFactory
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import util.DynamicVariable
+
 
 /**
  * log level definitions

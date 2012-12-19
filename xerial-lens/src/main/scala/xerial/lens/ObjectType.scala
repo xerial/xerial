@@ -155,9 +155,30 @@ case class StandardType(override val rawType:Class[_]) extends ObjectType(rawTyp
 
 object GenericType {
 
+
+
   def apply(cl:Class[_], typeArgs:Seq[ObjectType]) : GenericType = {
+    import TypeUtil._
     if(TypeUtil.isArray(cl) && typeArgs.length == 1) {
       ArrayType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isOption(cl) && typeArgs.length == 1) {
+      OptionType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isMap(cl) && typeArgs.length == 2) {
+      MapType(cl, typeArgs(0), typeArgs(1))
+    }
+    else if(TypeUtil.isSet(cl) && typeArgs.length == 1) {
+      SetType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isTuple(cl)) {
+      TupleType(cl, typeArgs)
+    }
+    else if(TypeUtil.isSeq(cl) && typeArgs.length == 1) {
+      SeqType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isEither(cl) && typeArgs.length == 2) {
+      EitherType(cl, typeArgs(0), typeArgs(1))
     }
     else
       new GenericType(cl, typeArgs)
@@ -173,6 +194,7 @@ class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectTy
 }
 
 case class MapType(cl: Class[_], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
+case class SetType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class SeqType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class ArrayType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class OptionType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))

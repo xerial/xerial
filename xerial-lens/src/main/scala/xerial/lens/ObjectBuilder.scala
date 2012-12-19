@@ -104,7 +104,7 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       true
     else
       t match {
-        case g:GenericType => t.isOption && (g.genericTypes.headOption.map{ t => canBuildFromString(t.rawType) }.getOrElse(false))
+        case o:OptionType => canBuildFromStringValue(o.elementType)
         case _ => false
       }
   }
