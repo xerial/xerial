@@ -28,6 +28,7 @@ import javax.management.{MBeanServerConnection, JMX, ObjectName}
 import management.ManagementFactory
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import util.DynamicVariable
+import java.io.{PrintStream, ByteArrayOutputStream}
 
 
 /**
@@ -423,6 +424,13 @@ trait StringLogWriter extends LogWriter {
 
     val m = message match {
       case null => ""
+      case e:Exception => {
+        val buf = new ByteArrayOutputStream()
+        val pout = new PrintStream(buf)
+        e.printStackTrace(pout)
+        pout.close
+        pout.toString
+      }
       case _ => message.toString
     }
     if (isMultiLine(m))
