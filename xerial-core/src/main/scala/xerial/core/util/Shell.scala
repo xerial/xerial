@@ -200,13 +200,8 @@ object Shell extends Logger {
     def quote(s:String) : String = {
       s.replaceAll("""\"""", """\\"""")
     }
-
     trace("cmdLine: %s", cmdLine)
-    val tokens =
-      if(OS.isWindows)
-        Array(Shell.getCommand("sh"), "-c", quote(cmdLine))
-      else
-        CommandLineTokenizer.tokenize(cmdLine)
+    val tokens = Array(Shell.getCommand("sh"), "-c", quote(cmdLine))
     trace("comman line tokens: %s", tokens.mkString(", "))
     val pb = new ProcessBuilder(tokens:_*)
     if(inheritIO)
