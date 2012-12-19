@@ -200,11 +200,12 @@ object Shell extends Logger {
     }
 
     val c = if(OS.isWindows) {
-      """%s -c \"%s\"""".format(Shell.getCommand("sh"), if(applyQuotation) quote(cmdLine) else cmdLine)
+      """%s -c "%s"""".format(Shell.getCommand("sh"), quote(cmdLine))
     }
     else {
       cmdLine
     }
+    trace("command line: %s", c)
     val tokens = CommandLineTokenizer.tokenize(c)
     trace("comman line tokens: %s", tokens.mkString(", "))
     val pb = new ProcessBuilder(tokens:_*)
