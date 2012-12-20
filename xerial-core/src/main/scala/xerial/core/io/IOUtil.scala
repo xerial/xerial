@@ -25,6 +25,7 @@ package xerial.core.io
 
 import io.Source
 import java.net.ServerSocket
+import java.io.InputStream
 
 /**
  * @author leo
@@ -47,6 +48,16 @@ object IOUtil {
     }
     finally {
       s.close
+    }
+  }
+
+  def withResource[U](in:InputStream)(f: InputStream => U) : U = {
+    try {
+      f(in)
+    }
+    finally {
+      if(in != null)
+        in.close
     }
   }
 

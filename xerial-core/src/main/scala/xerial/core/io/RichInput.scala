@@ -63,9 +63,11 @@ abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassManifest
 
 class RichInputStream(in: InputStream) extends RichInput[Byte] {
   def read(b: Array[Byte], off: Int, len: Int) = in.read(b, off, len)
+  def close { in.close }
 }
 
 class RichReader(in: Reader) extends RichInput[Char] {
   def read(b: Array[Char], off: Int, len: Int) = in.read(b, off, len)
+  def close { in.close }
 }
 
