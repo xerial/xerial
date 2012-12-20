@@ -25,7 +25,7 @@ package xerial.core.io
 
 import io.Source
 import java.net.ServerSocket
-import java.io.InputStream
+import java.io.{ByteArrayOutputStream, InputStream}
 
 /**
  * @author leo
@@ -59,6 +59,21 @@ object IOUtil {
       if(in != null)
         in.close
     }
+  }
+
+  def readFully[U](in:InputStream)(f:Array[Byte] => U) : U = {
+
+    val byteArray = withResource(new ByteArrayOutputStream) { b =>
+      val buf = new Array[Byte](8192)
+      withResource(in){ src =>
+        var readBytes = 0
+        while({readBytes = src.read(buf); readBytes != -1}) {
+          b.write(buf, 0, readBytes)
+        }
+      }
+      b.toByteArray
+    }
+    f(byteArray)
   }
 
 }
