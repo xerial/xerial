@@ -51,7 +51,7 @@ object IOUtil {
     }
   }
 
-  def withResource[U](in:InputStream)(f: InputStream => U) : U = {
+  def withResource[U, In <: java.io.Closeable](in:In)(f: In => U) : U = {
     try {
       f(in)
     }

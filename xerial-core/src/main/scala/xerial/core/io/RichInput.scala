@@ -16,8 +16,7 @@
 
 package xerial.core.io
 
-import java.io.InputStream
-import java.io.Reader
+import java.io.{Closeable, InputStream, Reader}
 import xerial.core.log.Logger
 
 //--------------------------------------
@@ -61,12 +60,12 @@ abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassManifest
 
 }
 
-class RichInputStream(in: InputStream) extends RichInput[Byte] {
+class RichInputStream(in: InputStream) extends RichInput[Byte] with Closeable {
   def read(b: Array[Byte], off: Int, len: Int) = in.read(b, off, len)
   def close { in.close }
 }
 
-class RichReader(in: Reader) extends RichInput[Char] {
+class RichReader(in: Reader) extends RichInput[Char] with Closeable {
   def read(b: Array[Char], off: Int, len: Int) = in.read(b, off, len)
   def close { in.close }
 }
