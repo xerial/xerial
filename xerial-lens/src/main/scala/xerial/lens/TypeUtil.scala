@@ -208,6 +208,9 @@ object TypeUtil extends Logger {
       }
       v.asInstanceOf[A]
     }
+    else if (cl == classOf[Nothing] || cl == classOf[AnyRef] || cl == classOf[Any]) {
+      null.asInstanceOf[A]
+    }
     else if (TextType.isTextType(cl)) {
       val v: Any = TextType(cl) match {
         case TextType.String => ""

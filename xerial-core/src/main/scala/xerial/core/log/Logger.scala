@@ -38,14 +38,14 @@ import java.io.{PrintStream, ByteArrayOutputStream}
  */
 object LogLevel extends xerial.core.collection.Enum[LogLevel] {
 
-  object OFF extends LogLevel(0, "off")
-  object FATAL extends LogLevel(1, "fatal")
-  object ERROR extends LogLevel(2, "error")
-  object WARN extends LogLevel(3, "warn")
-  object INFO extends LogLevel(4, "info")
-  object DEBUG extends LogLevel(5, "debug")
-  object TRACE extends LogLevel(6, "trace")
-  object ALL extends LogLevel(7, "all")
+  case object OFF extends LogLevel(0, "off")
+  case object FATAL extends LogLevel(1, "fatal")
+  case object ERROR extends LogLevel(2, "error")
+  case object WARN extends LogLevel(3, "warn")
+  case object INFO extends LogLevel(4, "info")
+  case object DEBUG extends LogLevel(5, "debug")
+  case object TRACE extends LogLevel(6, "trace")
+  case object ALL extends LogLevel(7, "all")
 
   val values = IndexedSeq(OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL)
   private lazy val index = values.map { l => l.name.toLowerCase -> l } toMap
@@ -64,7 +64,7 @@ object LogLevel extends xerial.core.collection.Enum[LogLevel] {
   def unapply(name:String) : Option[LogLevel] = index.get(name.toLowerCase)
 }
 
-sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered[LogLevel] {
+sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered[LogLevel] with Serializable {
   def compare(other: LogLevel) = this.order - other.order
   override def toString = name
 }
@@ -72,22 +72,13 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
 /**
  * Trait for adding logging functions (trace, debug, info, warn, error and fatal) to your class.
  */
-trait Logger {
+trait Logger extends Serializable {
 
-  @transient private[this] val logger = new DynamicVariable[LogWriter](LoggerFactory(this.getClass))
+  @transient private[this] val logger : LogWriter = LoggerFactory(this.getClass)
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
-    if (logger.value.isEnabled(logLevel))
-      logger.value.log(logLevel, message)
-  }
-
-  protected def withLogger[U](tag:String)(body: => U) : U = {
-    if(logger.value.tag == tag)
-      body
-    else
-      logger.withValue(LoggerFactory(logger.value.prefix + ":" + tag)) {
-        body
-      }
+    if (logger.isEnabled(logLevel))
+      logger.log(logLevel, message)
   }
 
   /**
@@ -95,7 +86,7 @@ trait Logger {
    * @param tag
    * @return
    */
-  protected def getLogger(tag: Symbol): LogWriter = LoggerFactory(logger.value, tag)
+  protected def getLogger(tag: Symbol): LogWriter = LoggerFactory(logger, tag)
 
   /**
    * Create a sub logger with a given tag name
@@ -193,7 +184,7 @@ trait LogHelper {
  * Interface of log writers
  * @author leo
  */
-trait LogWriter extends LogHelper {
+trait LogWriter extends LogHelper with Serializable {
 
   val name: String
   val shortName = LoggerFactory.leafName(name)
