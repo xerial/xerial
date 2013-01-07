@@ -76,5 +76,11 @@ object IOUtil {
     f(byteArray)
   }
 
+  def ensureParentPath(f:File) {
+    val parent = f.getParentFile
+    if(parent != null && !parent.exists) {
+      parent.mkdirs
+    }
+  }
 
 }
