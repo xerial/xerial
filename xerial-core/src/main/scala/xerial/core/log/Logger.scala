@@ -413,15 +413,18 @@ trait StringLogWriter extends LogWriter {
     s.append(shortName)
     s.append("] ")
 
+    def errorString(e:Throwable) = {
+      val buf = new ByteArrayOutputStream()
+      val pout = new PrintStream(buf)
+      e.printStackTrace(pout)
+      pout.close
+      buf.toString
+    }
+
     val m = message match {
       case null => ""
-      case e:Exception => {
-        val buf = new ByteArrayOutputStream()
-        val pout = new PrintStream(buf)
-        e.printStackTrace(pout)
-        pout.close
-        buf.toString
-      }
+      case e:Error => errorString(e)
+      case e:Exception => errorString(e)
       case _ => message.toString
     }
     if (isMultiLine(m))
