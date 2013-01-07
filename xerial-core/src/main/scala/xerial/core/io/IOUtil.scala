@@ -25,7 +25,7 @@ package xerial.core.io
 
 import io.Source
 import java.net.ServerSocket
-import java.io.{ByteArrayOutputStream, InputStream}
+import java.io.{File, ByteArrayOutputStream, InputStream}
 
 /**
  * @author leo
@@ -75,5 +75,6 @@ object IOUtil {
     }
     f(byteArray)
   }
+
 
 }
