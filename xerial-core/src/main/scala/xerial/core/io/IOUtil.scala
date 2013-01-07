@@ -27,11 +27,12 @@ import io.Source
 import java.net.ServerSocket
 import java.io.{File, ByteArrayOutputStream, InputStream}
 
+
 /**
  * @author leo
  */
 object IOUtil {
-  def readFile[U](fileName:String)(f: Source => U) : U = {
+  def readFile[U](fileName: String)(f: Source => U): U = {
     val source = Source.fromFile(fileName)
     try {
       f(source)
@@ -41,7 +42,7 @@ object IOUtil {
     }
   }
 
-  def randomPort : Int = {
+  def randomPort: Int = {
     val s = new ServerSocket(0)
     try {
       s.getLocalPort
@@ -51,36 +52,52 @@ object IOUtil {
     }
   }
 
-  def withResource[U, In <: java.io.Closeable](in:In)(f: In => U) : U = {
+  def withResource[U, In <: java.io.Closeable](in: In)(f: In => U): U = {
     try {
       f(in)
     }
     finally {
-      if(in != null)
+      if (in != null)
         in.close
     }
   }
 
-  def readFully[U](in:InputStream)(f:Array[Byte] => U) : U = {
+  def readFully[U](in: InputStream)(f: Array[Byte] => U): U = {
 
-    val byteArray = withResource(new ByteArrayOutputStream) { b =>
-      val buf = new Array[Byte](8192)
-      withResource(in){ src =>
-        var readBytes = 0
-        while({readBytes = src.read(buf); readBytes != -1}) {
-          b.write(buf, 0, readBytes)
+    val byteArray = withResource(new ByteArrayOutputStream) {
+      b =>
+        val buf = new Array[Byte](8192)
+        withResource(in) {
+          src =>
+            var readBytes = 0
+            while ( {
+              readBytes = src.read(buf); readBytes != -1
+            }) {
+              b.write(buf, 0, readBytes)
+            }
         }
-      }
-      b.toByteArray
+        b.toByteArray
     }
     f(byteArray)
   }
 
-  def ensureParentPath(f:File) {
+  def ensureParentPath(f: File) {
     val parent = f.getParentFile
-    if(parent != null && !parent.exists) {
+    if (parent != null && !parent.exists) {
       parent.mkdirs
     }
+  }
+
+  def createTempDir(dir: File, prefix: String): File = {
+    def newDirName = new File(dir, prefix + System.currentTimeMillis())
+    def loop : File = {
+      val d = newDirName
+      if(!d.exists() && d.mkdirs)
+        d
+      else
+        loop
+    }
+    loop
   }
 
 }
