@@ -80,7 +80,7 @@ object Shell extends Logger {
     exec("kill -STOP %d".format(pid))
 
     // retrieve child processes
-    val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid))
+    val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid), inheritIO=true)
     for(line <- Process(pb).lines_!) {
       val childPID = line.trim.toInt
       killTree(childPID, signal)
@@ -178,7 +178,7 @@ object Shell extends Logger {
    * @return
    */
   def exec(cmdLine:String) : Int = {
-    val pb = prepareProcessBuilder(cmdLine)
+    val pb = prepareProcessBuilder(cmdLine, inheritIO=true)
     val exitCode = Process(pb).!(ProcessLogger{
       out:String => info(out)
     })
@@ -188,20 +188,33 @@ object Shell extends Logger {
 
 
   def launchProcess(cmdLine: String) = {
-    val pb = prepareProcessBuilder(cmdLine)
+    val pb = prepareProcessBuilder(cmdLine, inheritIO=true)
     val p = pb.start
     debug("exec command [pid:%d] %s", getProcessID(p), pb.command.mkString(" "))
     p
   }
 
+  def execRemote(hostname:String, cmdLine:String) : Int = {
+    val pb = prepareProcessBuilderFromSeq(Seq("ssh", hostname, quote(cmdLine)), inheritIO=true)
+    val exitCode = Process(pb).!(ProcessLogger{
+      out:String => info(out)
+    })
+    debug("exec command %s with exitCode:%d", cmdLine, exitCode)
+    exitCode
+  }
+
+  private def quote(s:String) : String = {
+    s.replaceAll("""\"""", """\\"""")
+  }
 
 
-  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean=true): ProcessBuilder = {
-    def quote(s:String) : String = {
-      s.replaceAll("""\"""", """\\"""")
-    }
+  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean): ProcessBuilder = {
     trace("cmdLine: %s", cmdLine)
     val tokens = Array(Shell.getCommand("sh"), "-c", if(OS.isWindows) quote(cmdLine) else cmdLine)
+    prepareProcessBuilderFromSeq(tokens, inheritIO)
+  }
+
+  def prepareProcessBuilderFromSeq(tokens:Seq[String], inheritIO:Boolean) : ProcessBuilder = {
     trace("command line tokens: %s", tokens.mkString(", "))
     val pb = new ProcessBuilder(tokens:_*)
     if(inheritIO)
@@ -213,7 +226,6 @@ object Shell extends Logger {
     env.foreach(e => envMap.put(e._1, e._2))
     pb
   }
-
 
   def getEnv : Map[String, String] = {
     import collection.JavaConversions._
