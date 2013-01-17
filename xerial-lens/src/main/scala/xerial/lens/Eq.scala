@@ -138,6 +138,7 @@ object EqGen extends Logger {
         case Primitive.Long => splitDouble
         case Primitive.Float => Seq("(int) (v.%s() & ~0)".format(n))
         case Primitive.Double => splitDouble
+        // TODO support collection types (e.g., Array, Seq, etc.)
         case _ => Seq("(v.%s() != null) ? v.%s().hashCode() : 0".format(n, n))
       }
     }
