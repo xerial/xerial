@@ -32,6 +32,9 @@ object ObjectType {
       Primitive(cl)
     else if (TextType.isTextType(cl))
       TextType(cl)
+    else if (cl.getSimpleName == "$colon$colon") {
+      SeqType(cl, AnyRefType)
+    }
     else
       StandardType(cl)
   }

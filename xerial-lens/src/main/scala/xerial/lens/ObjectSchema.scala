@@ -46,7 +46,11 @@ object ObjectSchema extends Logger {
    * Get the object schema of the specified ObjectType. This method caches previously created ObjectSchema instances, and
    * second call for the same ObjectType object return the cached entry.
    */
-  def apply(cl: Class[_]): ObjectSchema = schemaTable.getOrElseUpdate(cl, new ObjectSchema(cl))
+  def apply(cl: Class[_]): ObjectSchema = schemaTable.getOrElseUpdate(cl, createSchema(cl))
+
+  private def createSchema(cl:Class[_]) : ObjectSchema = {
+    new ObjectSchema(cl)
+  }
 
   def of[A](implicit m: ClassManifest[A]): ObjectSchema = apply(m.erasure)
 
@@ -131,6 +135,7 @@ object ObjectSchema extends Logger {
       }
     }
     def findConstructorParameters(mt: MethodType): Array[ConstructorParameter] = {
+      trace("constructor method type: %s", mt)
       val paramSymbols: Seq[MethodSymbol] = mt match {
         case MethodType(_, param: Seq[_]) => param.collect {
           case m: MethodSymbol => m
@@ -153,13 +158,22 @@ object ObjectSchema extends Logger {
 
     val entries = (0 until sig.table.length).map(sig.parseEntry(_))
     entries.collectFirst {
-      case m: MethodType if isTargetClass(m.resultType) =>
-        Constructor(cl, findConstructorParameters(m))
+      case m: MethodType if isTargetClass(m.resultType) => {
+        val params = findConstructorParameters(m)
+        Constructor(cl, params)
+      }
     }
   }
 
-  private def findConstructor(cl: Class[_]): Option[Constructor] =
-    for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
+  private def findConstructor(cl: Class[_]): Option[Constructor] = {
+    try
+      for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
+    catch {
+      case e =>
+        error(e)
+        None
+    }
+  }
 
 
   private def isSystemClass(cl: Class[_]) = {
@@ -366,6 +380,7 @@ object ObjectSchema extends Logger {
 
     val name = typeSignature.symbol.path
     val clazz: Class[_] = {
+      trace("resolve class: %s", name)
       name match {
         // Resolve classes of primitive types.
         // This special treatment is necessary because classes of primitive types, classOf[scala.Int] etc. are converted by
@@ -409,7 +424,7 @@ object ObjectSchema extends Logger {
       }
       else {
         val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
-          case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
+          case x: TypeRefType if !(x.symbol.name.startsWith("_$")) && !x.symbol.isParam => resolveClass(x)
           case other => AnyRefType
         }
         GenericType(clazz, typeArgs)
@@ -463,10 +478,12 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
   def findConstructor : Option[Constructor] = ObjectSchema.findConstructor(cl)
 
   override def toString = {
-    if (findConstructor.map(_.params.isEmpty) getOrElse true)
-      name
-    else
-      "%s(%s)".format(name, constructor.params.mkString(", "))
+    findConstructor.map { cc =>
+      if(cc.params.isEmpty)
+        name
+      else
+        "%s(%s)".format(name, cc.params.mkString(", "))
+    } getOrElse name
   }
 }
 
