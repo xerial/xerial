@@ -153,7 +153,9 @@ object TextType {
   def isTextType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
-case class StandardType(override val rawType:Class[_]) extends ObjectType(rawType)
+case class StandardType(override val rawType:Class[_]) extends ObjectType(rawType) {
+  override val name = rawType.getSimpleName
+}
 
 
 object GenericType {

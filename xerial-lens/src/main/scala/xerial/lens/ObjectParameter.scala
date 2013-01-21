@@ -215,6 +215,8 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
   val name = cl.getSimpleName
   override def toString = "Constructor(%s, [%s])".format(cl.getSimpleName, params.mkString(", "))
 
+  def findParameter(name:String) = params.find(_.name == name)
+
   def newInstance(args: Array[AnyRef]): Any = {
     val cc = cl.getConstructors()(0)
     if (args.isEmpty)

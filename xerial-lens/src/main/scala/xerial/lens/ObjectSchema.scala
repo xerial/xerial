@@ -202,14 +202,14 @@ object ObjectSchema extends Logger {
 
   private def toAttribute(param: Seq[MethodSymbol], sig: ScalaSig, refCl: Class[_]): Seq[(String, ObjectType)] = {
     val paramRefs = param.map(p => (p.name, sig.parseEntry(p.symbolInfo.info)))
-    trace("method param refs: %s", paramRefs.mkString(", "))
+    trace("method param refs:\n%s", paramRefs.mkString("\n"))
     paramRefs.map {
+//      case (name: String, t @ TypeRefType(prefix, symbol, Seq(tp : TypeRefType))) =>
+//        (name, resolveClass(tp))
       case (name: String, t: TypeRefType) =>
-        if(t.symbol.isParam)
-          (name, AnyRefType)
-        else
-          (name, resolveClass(t))
-      case (name: String, ExistentialType(tref:TypeRefType, symbols)) => (name, resolveClass(tref))
+        (name, resolveClass(t))
+      case (name: String, ExistentialType(tref:TypeRefType, symbols)) =>
+        (name, resolveClass(tref))
     }
   }
 
@@ -380,7 +380,7 @@ object ObjectSchema extends Logger {
 
     val name = typeSignature.symbol.path
     val clazz: Class[_] = {
-      trace("resolve class: %s", name)
+      trace("resolve class: %s %s", name, typeSignature)
       name match {
         // Resolve classes of primitive types.
         // This special treatment is necessary because classes of primitive types, classOf[scala.Int] etc. are converted by
@@ -403,6 +403,7 @@ object ObjectSchema extends Logger {
         case "scala.package.List" => classOf[List[_]]
         case "scala.Any" => classOf[Any]
         case "scala.AnyRef" => classOf[AnyRef]
+        case _ if typeSignature.symbol.isDeferred => classOf[AnyRef]
         case _ =>
           // Find the class using the context class loader
           val loader = Thread.currentThread().getContextClassLoader
@@ -418,16 +419,17 @@ object ObjectSchema extends Logger {
       }
     }
 
+
     def toObjectType(cl:Class[_]) : ObjectType = {
-      if (typeSignature.typeArgs.isEmpty) {
-        ObjectType(clazz)
-      }
-      else {
-        val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
-          case x: TypeRefType if !(x.symbol.name.startsWith("_$")) && !x.symbol.isParam => resolveClass(x)
-          case other => AnyRefType
-        }
-        GenericType(clazz, typeArgs)
+      typeSignature match {
+        case TypeRefType(prefix, symbol, typeArgs) if typeArgs.isEmpty =>
+          ObjectType(clazz)
+        case _ =>
+          val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
+            case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
+            case other => AnyRefType
+          }
+          GenericType(clazz, typeArgs)
       }
     }
 
