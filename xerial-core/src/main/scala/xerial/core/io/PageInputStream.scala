@@ -99,8 +99,8 @@ import PageInputStream._
  * @author leo
  */
 class PageInputStream(in: InputStream, val pageSize: Int) extends RichInputStream(in) with PagedInput[Byte] {
-  def this(input: InputStream) = this(input, DefaultPageSize)
-  def this(file: File, byteSize: Int = DefaultPageSize) = this(new FileInputStream(file))
+  def this(input: InputStream) = this(input, PageInputStream.DefaultPageSize)
+  def this(file: File, byteSize: Int = PageInputStream.DefaultPageSize) = this(new FileInputStream(file))
 }
 
 /**
@@ -109,6 +109,6 @@ class PageInputStream(in: InputStream, val pageSize: Int) extends RichInputStrea
  * @param pageSize
  */
 class PageReader(in: Reader, val pageSize: Int) extends RichReader(in) with PagedInput[Char] {
-  def this(in: Reader) = this(in, DefaultPageSize)
-  def this(file: File, numCharsInPage: Int = DefaultPageSize) = this(new FileReader(file))
+  def this(in: Reader) = this(in, PageInputStream.DefaultPageSize)
+  def this(file: File, numCharsInPage: Int = PageInputStream.DefaultPageSize) = this(new FileReader(file))
 }

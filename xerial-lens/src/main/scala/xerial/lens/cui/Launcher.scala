@@ -26,19 +26,20 @@ package xerial.lens.cui
 import xerial.core.util.{CName, CommandLineTokenizer}
 import xerial.lens.{TypeUtil, MethodCallBuilder, ObjectMethod, ObjectSchema}
 import xerial.core.log.Logger
+import reflect.ClassTag
 
 /**
  * Command launcher
  */
 object Launcher extends Logger {
 
-  def of[A <: AnyRef](implicit m:ClassManifest[A]) : Launcher = {
-    new Launcher(m.erasure)
+  def of[A <: AnyRef](implicit m:ClassTag[A]) : Launcher = {
+    new Launcher(m.runtimeClass)
   }
 
 
-  def execute[A <: AnyRef](argLine:String)(implicit m:ClassManifest[A]) : A = execute(CommandLineTokenizer.tokenize(argLine))(m)
-  def execute[A <: AnyRef](args:Array[String])(implicit m:ClassManifest[A]) : A = {
+  def execute[A <: AnyRef](argLine:String)(implicit m:ClassTag[A]) : A = execute(CommandLineTokenizer.tokenize(argLine))(m)
+  def execute[A <: AnyRef](args:Array[String])(implicit m:ClassTag[A]) : A = {
     val l = Launcher.of[A]
     l.execute(args)
   }

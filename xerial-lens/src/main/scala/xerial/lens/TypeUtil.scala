@@ -6,6 +6,9 @@ import java.text.DateFormat
 import mutable.ArrayBuffer
 import java.lang.{reflect => jr}
 import xerial.core.log.Logger
+import scala.reflect.ClassTag
+import scala.reflect.runtime.{universe => ru}
+import scala.reflect.runtime.universe.TypeTag
 
 
 //--------------------------------------
@@ -20,7 +23,7 @@ import xerial.core.log.Logger
  */
 object TypeUtil extends Logger {
 
-  implicit def toClassManifest[T](targetType: Class[T]): ClassManifest[T] = ClassManifest.fromClass(targetType)
+  implicit def toClassTag[T](targetType: Class[T]): ClassTag[T] = ClassTag(targetType)
 
   @inline def cls[A](obj:A) : Class[_] = obj.asInstanceOf[AnyRef].getClass
   
@@ -54,49 +57,49 @@ object TypeUtil extends Logger {
     } getOrElse (false)
   }
 
-  def isOption[T](cl: ClassManifest[T]): Boolean = {
-    val name = cl.erasure.getSimpleName
+  def isOption[T](cl: ClassTag[T]): Boolean = {
+    val name = cl.runtimeClass.getSimpleName
     // Option None is an object ($)
     name == "Option" || name == "Some" || name == "None$"
   }
 
-  def isBuffer[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[mutable.Buffer[_]]
+  def isBuffer[T](cl: Class[T]) = {
+    classOf[mutable.Buffer[_]].isAssignableFrom(cl)
   }
 
-  def isSeq[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[Seq[_]] || isArray(cl.erasure)
+  def isSeq[T](cl: Class[T]) = {
+    classOf[Seq[_]].isAssignableFrom(cl)
   }
 
-  def isIndexedSeq[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[IndexedSeq[_]] || isArray(cl.erasure)
-  }
-
-
-  def isMap[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[Map[_, _]]
-  }
-
-  def isSet[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[Set[_]]
-  }
-
-  def isTuple[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[Product]
-  }
-
-  def isList[T](cl:ClassManifest[T]) ={
-    cl <:< classOf[List[_]]
-  }
-
-  def isEither[T](cl: ClassManifest[T]) = {
-    cl <:< classOf[Either[_, _]]
+  def isIndexedSeq[T](cl: Class[T]) = {
+    classOf[IndexedSeq[_]].isAssignableFrom(cl) || isArray(cl.runtimeClass)
   }
 
 
-  def isTraversable[T](cl: ClassManifest[T]) = cl <:< classOf[Traversable[_]]
+  def isMap[T](cl: Class[T]) = {
+    classOf[Map[_, _]].isAssignableFrom(cl)
+  }
 
-  def isTraversableOnce[T](cl: ClassManifest[T]) = cl <:< classOf[TraversableOnce[_]]
+  def isSet[T](cl: Class[T]) = {
+    classOf[Set[_]].isAssignableFrom(cl)
+  }
+
+  def isTuple[T](cl: Class[T]) = {
+    classOf[Product].isAssignableFrom(cl) && cl.getName.startsWith("Tuple")
+  }
+
+  def isList[T](cl:Class[T]) ={
+    classOf[List[_]].isAssignableFrom(cl)
+  }
+
+  def isEither[T](cl: Class[T]) = {
+    classOf[Either[_, _]].isAssignableFrom(cl)
+  }
+
+
+  def isTraversable[T](cl: Class[T]) = classOf[Traversable[_]].isAssignableFrom(cl)
+
+  def isTraversableOnce[T](cl: Class[T]) = classOf[TraversableOnce[_]].isAssignableFrom(cl)
 
   def toBuffer[A](input: Array[A]): collection.mutable.Buffer[A] = {
     input.toBuffer[A]
@@ -147,7 +150,7 @@ object TypeUtil extends Logger {
       Some(companionObj)
     }
     catch {
-      case e => {
+      case e : Throwable => {
         //warn("no companion object is found for %s: %s", cl, e)
         //e.printStackTrace()
         None
@@ -184,7 +187,7 @@ object TypeUtil extends Logger {
 //    c.isDefined
   }
 
-  def canBuildFromBuffer[T](cl: ClassManifest[T]) = isArray(cl.erasure) || isSeq(cl) || isMap(cl) || isSet(cl)
+  def canBuildFromBuffer[T](cl: Class[T]) = isArray(cl) || isSeq(cl) || isMap(cl) || isSet(cl)
   def canBuildFromString[T](cl: Class[T]) = isPrimitive(cl) || hasStringUnapplyConstructor(cl)
 
   def zero[A](cl:Class[A], param: ObjectType) : A = {
@@ -270,7 +273,7 @@ object TypeUtil extends Logger {
           }
           catch {
             // When no method for the initial value is found, use 'zero' value of the type
-            case e => {
+            case e : Throwable => {
               zero(p(i))
             }
           }

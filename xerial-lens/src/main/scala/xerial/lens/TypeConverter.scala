@@ -12,6 +12,8 @@ import collection.mutable
 import java.text.DateFormat
 import java.io.File
 import xerial.core.log.Logger
+import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.{universe => ru}
 
 /**
  * @author leo
@@ -21,7 +23,7 @@ object TypeConverter extends Logger {
   import TypeUtil._
   import java.lang.{reflect=>jr}
 
-  def convert(value: Any, targetType: ObjectType): Option[Any] = {
+  def convert[T](value: T, targetType: ObjectType): Option[Any] = {
     if (targetType.isOption) {
       if (isOption(cls(value)))
         Some(value)
@@ -38,7 +40,7 @@ object TypeConverter extends Logger {
       val s: Class[_] = cls(value)
       if (t.isAssignableFrom(s))
         Some(value)
-      else if (TypeUtil.isBuffer(s)) {
+      else if (TypeUtil.isBuffer(t)) {
         debug("convert buffer %s into %s", value, targetType)
         val buf = value.asInstanceOf[mutable.Buffer[_]]
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes

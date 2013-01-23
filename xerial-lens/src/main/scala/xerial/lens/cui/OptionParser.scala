@@ -14,6 +14,7 @@ import xerial.core.util.{CommandLineTokenizer, StringTemplate}
 import xerial.core.log.Logger
 import xerial.lens._
 import scala.Some
+import reflect.ClassTag
 
 
 /**
@@ -23,8 +24,8 @@ object OptionParser extends Logger {
 
   def tokenize(line: String): Array[String] = CommandLineTokenizer.tokenize(line)
 
-  def of[A](implicit m: ClassManifest[A]): OptionParser = {
-    apply(m.erasure)
+  def of[A](implicit m: ClassTag[A]): OptionParser = {
+    apply(m.runtimeClass)
   }
 
   def apply(cl: Class[_]): OptionParser = {
@@ -38,11 +39,11 @@ object OptionParser extends Logger {
     new OptionParser(ClassOptionSchema(cl))
   }
   
-  def parse[A <: AnyRef](args: Array[String])(implicit m: ClassManifest[A]): OptionParserResult = {
+  def parse[A <: AnyRef](args: Array[String])(implicit m: ClassTag[A]): OptionParserResult = {
     of[A].parse(args)
   }
 
-  def parse[A <: AnyRef](argLine: String)(implicit m: ClassManifest[A]): OptionParserResult = {
+  def parse[A <: AnyRef](argLine: String)(implicit m: ClassTag[A]): OptionParserResult = {
     parse(tokenize(argLine))
   }
 
@@ -488,7 +489,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
           case _ => None
         }
       catch {
-        case _ => None
+        case _ : Throwable => None
       }
     }
 

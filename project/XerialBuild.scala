@@ -24,7 +24,7 @@ import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.9.2"
+  val SCALA_VERSION = "2.10.0"
 
   def releaseResolver(v: String): Resolver = {
     val profile = System.getProperty("xerial.profile", "default")
@@ -56,7 +56,7 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.5"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6"),
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
@@ -96,7 +96,6 @@ object XerialBuild extends Build {
     id = "xerial",
     base = file("."),
     settings = buildSettings ++ packSettings ++ Seq(
-      libraryDependencies ++= bootLib,
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
       publish := {},
@@ -136,16 +135,13 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.0.M5" % "test"
-    )
-
-    val bootLib = Seq(
-      "org.codehaus.plexus" % "plexus-classworlds" % "2.4" % "provided"
+      "org.scalatest" %% "scalatest" % "2.0.M5b" % "test"
     )
 
     val lensLib = Seq(
       "org.javassist" % "javassist" % "3.15.0-GA",
-      "org.scala-lang" % "scalap" % SCALA_VERSION
+      "org.scala-lang" % "scalap" % SCALA_VERSION,
+      "org.scala-lang" % "scala-reflect" % SCALA_VERSION
     )
   }
 

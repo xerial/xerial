@@ -159,7 +159,7 @@ object Shell extends Logger {
       pid
     }
     catch {
-      case e => -1
+      case e : Throwable => -1
     }
   }
 
