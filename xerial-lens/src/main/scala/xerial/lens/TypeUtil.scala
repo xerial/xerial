@@ -10,7 +10,6 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.{universe => ru}
 import scala.reflect.runtime.universe.TypeTag
 
-
 //--------------------------------------
 //
 // TypeUtil.scala
@@ -23,7 +22,15 @@ import scala.reflect.runtime.universe.TypeTag
  */
 object TypeUtil extends Logger {
 
-  implicit def toClassTag[T](targetType: Class[T]): ClassTag[T] = ClassTag(targetType)
+  trait ClassToTag {
+    def classToTag[T](cl:Class[T]) : ClassTag[T]
+  }
+
+  private implicit object DefaultClassTagConversion extends ClassToTag {
+    def classToTag[T](cl: Class[T]) = ClassTag(cl)
+  }
+
+  //implicit def toClassTag[T](targetType: Class[T]): ClassTag[T] = ClassTag(targetType)
 
   @inline def cls[A](obj:A) : Class[_] = obj.asInstanceOf[AnyRef].getClass
   
@@ -40,7 +47,7 @@ object TypeUtil extends Logger {
    * @return
    */
   def hasStringUnapplyConstructor[T](cl:Class[T]) : Boolean = {
-    companionObject(cl) map { co =>
+    companionObject(cl).map { co =>
       cls(co).getDeclaredMethods.find{ p =>
         def acceptString = {
           val t = p.getParameterTypes
@@ -53,12 +60,12 @@ object TypeUtil extends Logger {
         }
 
         p.getName == "unapply" && acceptString && returnOptionOfT
-      } isDefined
-    } getOrElse (false)
+      }.isDefined
+    }.getOrElse (false)
   }
 
-  def isOption[T](cl: ClassTag[T]): Boolean = {
-    val name = cl.runtimeClass.getSimpleName
+  def isOption[T](cl: Class[T]): Boolean = {
+    val name = cl.getSimpleName
     // Option None is an object ($)
     name == "Option" || name == "Some" || name == "None$"
   }
@@ -72,7 +79,7 @@ object TypeUtil extends Logger {
   }
 
   def isIndexedSeq[T](cl: Class[T]) = {
-    classOf[IndexedSeq[_]].isAssignableFrom(cl) || isArray(cl.runtimeClass)
+    classOf[IndexedSeq[_]].isAssignableFrom(cl) || isArray(cl)
   }
 
 
@@ -143,6 +150,8 @@ object TypeUtil extends Logger {
 
   def companionObject[A](cl: Class[A]): Option[Any] = {
     try {
+      import scala.language.existentials
+
       val clName = cl.getName
       val companionCls = if(clName.endsWith("$")) cl else Class.forName(clName + "$")
       val module = companionCls.getField("MODULE$")
@@ -192,7 +201,7 @@ object TypeUtil extends Logger {
 
   def zero[A](cl:Class[A], param: ObjectType) : A = {
     param match {
-      case ArrayType(cl, elemType) => elemType.rawType.newArray(0).asInstanceOf[A]
+      case ArrayType(cl, elemType) => ClassTag(elemType.rawType).newArray(0).asInstanceOf[A]
       case _ => zero[A](cl)
     }
   }
@@ -223,7 +232,7 @@ object TypeUtil extends Logger {
       v.asInstanceOf[A]
     }
     else if (isArray(cl)) {
-      elementType(cl).newArray(0).asInstanceOf[A]
+      ClassTag(elementType(cl)).newArray(0).asInstanceOf[A]
     }
     else if (isMap(cl)) {
       Map.empty.asInstanceOf[A]

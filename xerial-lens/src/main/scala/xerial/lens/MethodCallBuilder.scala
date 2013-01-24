@@ -51,7 +51,7 @@ class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends StandardBuilder[Me
         Some(dm.invoke(owner))
       }
       catch {
-        case _ => None
+        case _ : Throwable => None
       }
     }
   }

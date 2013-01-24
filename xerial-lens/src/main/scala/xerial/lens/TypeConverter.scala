@@ -14,6 +14,7 @@ import java.io.File
 import xerial.core.log.Logger
 import scala.reflect.runtime.universe.TypeTag
 import scala.reflect.runtime.{universe => ru}
+import reflect.ClassTag
 
 /**
  * @author leo
@@ -47,7 +48,7 @@ object TypeConverter extends Logger {
         val e = gt(0).rawType
         type E = e.type
         if (TypeUtil.isArray(t)) {
-          val arr = e.newArray(buf.length).asInstanceOf[Array[Any]]
+          val arr = ClassTag(e).newArray(buf.length).asInstanceOf[Array[Any]]
           buf.copyToArray(arr)
           Some(arr)
         }

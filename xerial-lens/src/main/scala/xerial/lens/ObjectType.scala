@@ -24,6 +24,7 @@
 package xerial.lens
 import java.{lang => jl}
 import collection.mutable.ArrayBuffer
+import reflect.ClassTag
 
 object ObjectType {
 
@@ -49,8 +50,8 @@ trait ObjectMethod extends Type {
 
   val params : Array[MethodParameter]
   val jMethod : jl.reflect.Method
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T]
-  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T]
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]): Option[T]
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassTag[T]): Option[T]
 
   def invoke(obj:AnyRef, params:AnyRef*) : Any
 }
@@ -153,7 +154,7 @@ object TextType {
   def isTextType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
-case class StandardType(override val rawType:Class[_]) extends ObjectType(rawType) {
+case class StandardType[A](override val rawType:Class[A]) extends ObjectType(rawType) {
   override val name = rawType.getSimpleName
 }
 
@@ -196,13 +197,13 @@ class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectTy
   override def isGenericType = true
 }
 
-case class MapType(cl: Class[_], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
-case class SetType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class SeqType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class ArrayType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class OptionType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class EitherType(cl: Class[_], leftType:ObjectType, rightType:ObjectType) extends GenericType(cl, Seq(leftType, rightType))
-case class TupleType(cl: Class[_], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
+case class MapType[A](cl: Class[A], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
+case class SetType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class SeqType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class ArrayType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class OptionType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class EitherType[A](cl: Class[A], leftType:ObjectType, rightType:ObjectType) extends GenericType(cl, Seq(leftType, rightType))
+case class TupleType[A](cl: Class[A], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
 
 
 case object AnyRefType extends ObjectType(classOf[AnyRef])

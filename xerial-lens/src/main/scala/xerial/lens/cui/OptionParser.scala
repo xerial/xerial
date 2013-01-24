@@ -425,25 +425,23 @@ class OptionParser(val schema: OptionSchema) extends Logger {
     traverseArg(args.toList)
 
     val mapping: Seq[OptionMapping] = {
-      val m: TraversableOnce[OptionMapping] = for ((opt, values) <- optionValues) yield {
-        opt match {
-          case c: CLOption =>
-            if (c.takesArgument) {
-              if (c.takesMultipleArguments)
-                OptMappingMultiple(c, values.toArray)
-              else
-                OptMapping(c, values(0))
-            }
+      val m = optionValues.collect {
+        case (c:CLOption, values) =>
+          if (c.takesArgument) {
+            if (c.takesMultipleArguments)
+              OptMappingMultiple(c, values.toArray)
             else
-              OptSetFlag(c)
-          case a: CLArgument =>
-            if (a.takesMultipleArguments)
-              ArgMappingMultiple(a, values.toArray)
-            else
-              ArgMapping(a, values(0))
-          case cn: CommandNameArgument =>
-            ArgMapping(cn, values(0))
-        }
+              OptMapping(c, values(0))
+          }
+          else
+            OptSetFlag(c)
+        case (a: CLArgument, values) =>
+          if (a.takesMultipleArguments)
+            ArgMappingMultiple(a, values.toArray)
+          else
+            ArgMapping(a, values(0))
+        case (cn: CommandNameArgument, values) =>
+          ArgMapping(cn, values(0))
       }
       m.toSeq
     }

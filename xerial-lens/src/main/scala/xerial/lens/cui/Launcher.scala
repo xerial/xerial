@@ -72,7 +72,7 @@ object Launcher extends Logger {
     }
   }
 
-  private[Launcher] case class ModuleRef(m:ModuleDef) extends Command {
+  private[Launcher] case class ModuleRef[A](m:ModuleDef[A]) extends Command {
     def name = m.name
     def printHelp = {
       debug("module help")

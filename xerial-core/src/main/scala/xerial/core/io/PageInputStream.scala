@@ -10,6 +10,7 @@ package xerial.core.io
 import java.io._
 import xerial.core.log.Logger
 import annotation.tailrec
+import reflect.ClassTag
 
 
 object PageInputStream {
@@ -48,7 +49,7 @@ trait PagedInput[T] extends RichInput[T] with Iterable[Array[T]] with Logger {
     loop
   }
 
-  override def toArray[B >: Array[T] : ClassManifest]: Array[B] = {
+  override def toArray[B >: Array[T] : ClassTag]: Array[B] = {
     /*
      Overriding this method is necessary since [[scala.core.TraversableOnce.toArray]]
       wrongly set isTraversableAgain = true but page reader cannot be traverse more than once

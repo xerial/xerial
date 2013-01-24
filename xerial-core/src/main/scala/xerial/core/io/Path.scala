@@ -23,6 +23,7 @@
 
 package xerial.core.io
 import java.io.{File => JFile}
+import scala.language.implicitConversions
 
 /**
  * Utilities for managing files and paths
@@ -33,7 +34,7 @@ object Path {
   implicit def wrap(f:java.io.File) = new Path(f)
 }
 
-class Path(f:JFile) {
+class Path(val f:JFile) extends AnyVal {
   def / (s:String) : JFile = new JFile(f, s)
 
   def ls : Seq[Path] = {

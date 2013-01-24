@@ -56,7 +56,7 @@ object XerialBuild extends Build {
     },
     parallelExecution := true,
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>

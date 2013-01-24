@@ -376,7 +376,7 @@ object Shell extends Logger {
       val ret: Option[String] = java_home match {
         case Some(x) => Some(javaBin(x).trim)
         case None => {
-          val javaPath = (Process("which %s".format(javaCmdName)) !!).trim
+          val javaPath = Process("which %s".format(javaCmdName)).!!.trim
           if (javaPath.isEmpty)
             None
           else

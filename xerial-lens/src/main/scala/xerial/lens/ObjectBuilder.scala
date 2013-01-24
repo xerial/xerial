@@ -41,7 +41,7 @@ object ObjectBuilder extends Logger {
   }
 
   sealed trait BuilderElement
-  case class Holder(holder:ObjectBuilder[_]) extends BuilderElement
+  case class Holder[A](holder:ObjectBuilder[A]) extends BuilderElement
   case class Value(value:Any) extends BuilderElement
   case class ArrayHolder(holder:mutable.ArrayBuffer[Any]) extends BuilderElement
 
@@ -100,11 +100,13 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
   }
 
   private def canBuildFromStringValue(t:ObjectType) : Boolean = {
+    import scala.language.existentials
+
     if(TextType.isTextType(t.rawType) || canBuildFromString(t.rawType))
       true
     else
       t match {
-        case o:OptionType => canBuildFromStringValue(o.elementType)
+        case o:OptionType[_] => canBuildFromStringValue(o.elementType)
         case _ => false
       }
   }

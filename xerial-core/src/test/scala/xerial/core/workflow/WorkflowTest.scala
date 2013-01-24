@@ -16,12 +16,15 @@ import xerial.core.workflow.Workflow.Rule
  */
 class WorkflowTest extends XerialSpec {
 
+  import Workflow._
+
   class MyWorkflow extends Workflow {
 
     def inputFiles =
       rule := Seq("A.txt", "B.txt", "C.txt")
+
     def lc =
-      rule := f(lineCount) < inputFiles
+      rule := FunRef(lineCount) <= inputFiles
 
 
     //def r1 =

@@ -69,6 +69,13 @@ class LoggerTest extends XerialSpec {
       val l = getLogger('file)
     }
 
+    "support string interpolation" in {
+      val l = getLogger("test-logger")
+      val message = "Hello World"
+      val v = 10000
+      l.info(f"$message number:$v%,d")
+    }
+
   }
 
 }

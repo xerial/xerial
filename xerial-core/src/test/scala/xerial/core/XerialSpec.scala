@@ -6,7 +6,7 @@ import xerial.core.util.Timer
 import xerial.core.log.Logger
 import org.scalatest.{Tag, OptionValues, GivenWhenThen, WordSpec}
 import java.io.ByteArrayOutputStream
-
+import scala.language.implicitConversions
 
 //--------------------------------------
 //

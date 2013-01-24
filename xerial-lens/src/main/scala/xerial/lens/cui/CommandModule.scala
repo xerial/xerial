@@ -49,7 +49,7 @@ package xerial.lens.cui
  * @author leo
  */
 trait CommandModule {
-  def modules : Seq[ModuleDef]
+  def modules : Seq[ModuleDef[_]]
 
   /**
    * Place holder for the executed module
@@ -58,10 +58,10 @@ trait CommandModule {
 
 }
 
-case class ModuleDef(name:String, moduleClass:Class[_], description:String = "")
+case class ModuleDef[A](name:String, moduleClass:Class[A], description:String = "")
 
 
 object CommandModule {
-  def isModuleClass(cl:Class[_]) = classOf[CommandModule].isAssignableFrom(cl)
+  def isModuleClass[A](cl:Class[A]) = classOf[CommandModule].isAssignableFrom(cl)
 
 }

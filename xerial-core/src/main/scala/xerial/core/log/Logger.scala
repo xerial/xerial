@@ -29,6 +29,7 @@ import management.ManagementFactory
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import util.DynamicVariable
 import java.io.{PrintStream, ByteArrayOutputStream}
+import scala.language.postfixOps
 
 
 /**

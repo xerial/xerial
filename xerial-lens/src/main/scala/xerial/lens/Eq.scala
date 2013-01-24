@@ -126,7 +126,7 @@ object EqGen extends Logger {
 
   def buildHashCode(cl: Class[_]): String = {
     val schema = ObjectSchema(cl)
-    val getter = for (p <- schema.parameters; val n = p.name) yield {
+    val getter = for (p <- schema.parameters; n = p.name) yield {
       def default = Seq("(int) v.%s()".format(n))
       def splitDouble = Seq("(int) ((v.%s() >> 32) & 0xFFFFFFFFL)".format(n), "(int) (v.%s() & 0xFFFFFFFFL)".format(n))
       ObjectType(p.valueType.rawType) match {

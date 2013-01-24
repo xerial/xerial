@@ -76,12 +76,11 @@ class ObjectSchemaTest extends XerialSpec {
         ("map", classOf[Map[String, Float]]))
     }
 
-    import ObjectSchema.toSchema
 
     "find class definition containing ScalaSignature" in {
       new ClassFixture {
-        val s1 = cg.findSignature
-        val s2 = co.findSignature
+        val s1 = ObjectSchema(cg).findSignature
+        val s2 = ObjectSchema(co).findSignature
 
         s1 should be('defined)
         s2 should be('defined)
@@ -90,7 +89,8 @@ class ObjectSchemaTest extends XerialSpec {
 
     "find constructor parameters defined in global classes" in {
       new ClassFixture {
-        val cc = cg.constructor
+        val s = ObjectSchema(cg)
+        val cc = s.constructor
 
         //debug { p.mkString(", ") }
         val p = cc.params
@@ -106,7 +106,7 @@ class ObjectSchemaTest extends XerialSpec {
 
     "find constructor parameters defined in object classes" in {
       new ClassFixture {
-        val cc = co.constructor
+        val cc = ObjectSchema(co).constructor
         //debug { p.mkString(", ") }
         val p = cc.params
         p.size must be(4)
@@ -120,11 +120,11 @@ class ObjectSchemaTest extends XerialSpec {
     }
 
     "find root constructor" in {
-      val c1 = classOf[ScalaClassLensTest.ClsInObj].constructor
+      val c1 = ObjectSchema.of[ScalaClassLensTest.ClsInObj].constructor
       debug {
         c1
       }
-      val c2 = classOf[GlocalCls].constructor
+      val c2 = ObjectSchema.of[GlocalCls].constructor
       debug {
         c2
       }
@@ -132,7 +132,7 @@ class ObjectSchemaTest extends XerialSpec {
 
 
     "find attributes defined in class body" in {
-      val c = classOf[ValInBody].parameters
+      val c = ObjectSchema.of[ValInBody].parameters
       debug {
         "ValInBody: " + c.mkString(", ")
       }
@@ -140,7 +140,7 @@ class ObjectSchemaTest extends XerialSpec {
     }
 
     "find methods" in {
-      val c = classOf[MethodHolder].methods
+      val c = ObjectSchema.of[MethodHolder].methods
       debug {
         c.mkString(", ")
       }
@@ -149,7 +149,7 @@ class ObjectSchemaTest extends XerialSpec {
     }
 
     "find imported methods" in {
-      val c = classOf[ImportSample].methods
+      val c = ObjectSchema.of[ImportSample].methods
       c.size should be (1)
     }
 
@@ -256,7 +256,9 @@ trait SampleTrait2 {
 class MixinSample(val paramA: String) extends SampleTrait1 with SampleTrait2
 
 class ArrayMethodSample {
-  def main(args: Array[String]): Unit = "hello"
+  def main(args: Array[String]) {
+    println("hello")
+  }
 }
 
 

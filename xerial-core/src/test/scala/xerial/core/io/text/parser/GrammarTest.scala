@@ -10,7 +10,7 @@ package xerial.core.io.text.parser
 import xerial.core.XerialSpec
 import xerial.core.io.text.parser.Grammar.Expr
 import org.scalatest.Tag
-
+import scala.language.reflectiveCalls
 
 object SimpleGrammar extends Grammar {
 

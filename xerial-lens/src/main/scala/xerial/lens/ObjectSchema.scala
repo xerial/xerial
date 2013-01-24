@@ -20,6 +20,8 @@ import tools.scalap.scalax.rules.scalasig._
 import xerial.core.log.Logger
 import java.{lang => jl}
 import java.lang.{reflect => jr}
+import scala.reflect.ClassTag
+import scala.language.implicitConversions
 
 //--------------------------------------
 //
@@ -38,7 +40,7 @@ object ObjectSchema extends Logger {
   import java.{lang => jl}
   import TypeUtil._
 
-  implicit def toSchema(cl: Class[_]): ObjectSchema = ObjectSchema(cl)
+  //implicit def toSchema(cl: Class[_]): ObjectSchema = ObjectSchema(cl)
 
   private val schemaTable = new WeakHashMap[Class[_], ObjectSchema]
 
@@ -52,7 +54,7 @@ object ObjectSchema extends Logger {
     new ObjectSchema(cl)
   }
 
-  def of[A](implicit m: ClassManifest[A]): ObjectSchema = apply(m.erasure)
+  def of[A](implicit m: ClassTag[A]): ObjectSchema = apply(m.runtimeClass)
 
   def getSchemaOf(obj: Any): ObjectSchema = apply(cls(obj))
 
@@ -63,7 +65,7 @@ object ObjectSchema extends Logger {
       Some(Class.forName(name))
     }
     catch {
-      case e => None
+      case e : Throwable => None
     }
   }
 
@@ -92,7 +94,7 @@ object ObjectSchema extends Logger {
         }
         catch {
           // ScalaSigParser throws NPE when noe signature for the class is found
-          case _ => None
+          case _ : Throwable => None
         }
       // If no signature is found, search an enclosing object
       sig.orElse(enclosingObject(cl).flatMap(findSignature(_)))
@@ -106,7 +108,7 @@ object ObjectSchema extends Logger {
         true
       }
       catch {
-        case _ => false
+        case _ : Throwable => false
       }
     }
 
@@ -169,7 +171,7 @@ object ObjectSchema extends Logger {
     try
       for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
     catch {
-      case e =>
+      case e : Throwable =>
         error(e)
         None
     }
@@ -324,7 +326,7 @@ object ObjectSchema extends Logger {
               }
             }
             catch {
-              case e => None
+              case e : Throwable => None
             }
           }
         }
@@ -348,7 +350,7 @@ object ObjectSchema extends Logger {
               }
             }
             catch {
-              case e => {
+              case e : Throwable => {
                 warn("error occurred when accessing method %s : %s", s, e)
                 e.printStackTrace()
                 None
@@ -367,7 +369,7 @@ object ObjectSchema extends Logger {
 
 
   def parentMethodsOf(cl: Class[_]) = {
-    def resolveImplOwner(m: ScMethod) {
+    def resolveImplOwner(m: ScMethod) = {
       m.owner
     }
     findParentSchemas(cl).flatMap(_.methods).map {
@@ -409,7 +411,7 @@ object ObjectSchema extends Logger {
           val loader = Thread.currentThread().getContextClassLoader
           try loader.loadClass(name)
           catch {
-            case _ => {
+            case _ : Throwable => {
               // When the class is defined in an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
               val parent = typeSignature.symbol.parent
               val anotherClassName = "%s$%s".format(if (parent.isDefined) parent.get.path else "", typeSignature.symbol.name)
