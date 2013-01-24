@@ -265,33 +265,12 @@ object TypeUtil extends Logger {
 
 
   def defaultConstructorParameters[A](cl: Class[A]): Seq[AnyRef] = {
-    val cc = cl.getConstructors()(0)
-    val p = cc.getParameterTypes
-
-    // Search for default parameter values
-    //val hasOuter = cl.getDeclaredFields.find(x => x.getName == "$outer").isDefined
-    //val numParamStart = if (hasOuter) 1 else 0
-    val companion = companionObject(cl)
-    val paramArgs = for (i <- 0 until p.length) yield {
-      val defaultValue =
-        if (companion.isDefined) {
-          val methodName = "init$default$%d".format(i + 1)
-          try {
-            val m = cls(companion.get).getDeclaredMethod(methodName)
-            m.invoke(companion.get)
-          }
-          catch {
-            // When no method for the initial value is found, use 'zero' value of the type
-            case e : Throwable => {
-              zero(p(i))
-            }
-          }
-        }
-        else
-          zero(p(i))
-      defaultValue.asInstanceOf[AnyRef]
+    val d = for(p <- ObjectSchema(cl).constructor.params) yield {
+      val v = p.getDefaultValue getOrElse zero(p.rawType, p.valueType)
+      v.asInstanceOf[AnyRef]
     }
-    paramArgs
+
+    d
   }
 
   def newInstance[A, B <: AnyRef](cl: Class[A], args: Seq[B]): A = {
