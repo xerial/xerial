@@ -41,7 +41,7 @@ object TypeConverter extends Logger {
       val s: Class[_] = cls(value)
       if (t.isAssignableFrom(s))
         Some(value)
-      else if (TypeUtil.isBuffer(t)) {
+      else if (TypeUtil.isBuffer(s)) {
         debug("convert buffer %s into %s", value, targetType)
         val buf = value.asInstanceOf[mutable.Buffer[_]]
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
