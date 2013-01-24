@@ -75,18 +75,23 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], i
    */
   def getDefaultValue : Option[Any] = {
     trace(s"get the default value of ${this}")
+
     TypeUtil.companionObject(owner).flatMap { companion =>
-      val methodName = "apply$default$%d".format(index + 1)
-      try {
-        val m = TypeUtil.cls(companion).getDeclaredMethod(methodName)
-        Some(m.invoke(companion))
-      }
-      catch {
-        // When no method for the initial value is found, use 'zero' value of the type
-        case e : Throwable => {
-          warn(e)
-          None
+      def findMethod(name:String) = {
+        try {
+          Some(TypeUtil.cls(companion).getDeclaredMethod(name))
         }
+        catch {
+          case e: NoSuchMethodException => None
+        }
+      }
+      // Find Scala methods for retrieving default values. Since Scala 2.10 appply or $lessinit$greater$ can be the prefix
+      val m = findMethod("apply$default$%d".format(index + 1)) orElse(findMethod("$lessinit$greater$default$%d".format(index + 1)))
+      try
+        m.map(_.invoke(companion))
+      catch {
+        case e : Throwable =>
+          None
       }
     }
   }

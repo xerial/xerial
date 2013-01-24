@@ -204,7 +204,7 @@ class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with Standar
     val cc = schema.constructor
     // Prepare constructor args
     val args = (for (p <- cc.params) yield {
-      (get(p.name) getOrElse TypeUtil.zero(p.rawType)).asInstanceOf[AnyRef]
+      (get(p.name) getOrElse TypeUtil.zero(p.rawType, p.valueType)).asInstanceOf[AnyRef]
     })
     trace("cc:%s, args:%s (size:%d)", cc, args.mkString(", "), args.length)
     cc.newInstance(args).asInstanceOf[A]
