@@ -127,8 +127,7 @@ object Shell extends Logger {
    * @param cmdLine
    */
   def launchRemoteDaemon(host:String, cmdLine:String)  {
-    val cmd = """ssh %s \"%s < /dev/null > /dev/null &\""""".format(host, cmdLine)
-    exec(cmd)
+    execRemote(host, s"$cmdLine < /dev/null > /dev/null &")
   }
 
   /**

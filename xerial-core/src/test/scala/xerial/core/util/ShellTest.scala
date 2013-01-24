@@ -85,7 +85,7 @@ class ShellTest extends XerialSpec {
       Shell.launchProcess("echo cygwin env=$CYGWIN")
     }
 
-    "launch process" in {
+    "launch process" taggedAs("launch_process") in {
       if (OS.isWindows) {
         When("OS is windows")
         Shell.launchCmdExe("echo hello cmd.exe")
