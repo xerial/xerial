@@ -70,7 +70,7 @@ class LauncherTest extends XerialSpec {
       }
     }
 
-    "populate arguments in constructor even when no parmeter is given" in {
+    "populate arguments in constructor even when no parameter is given" taggedAs("popl") in {
       val l = Launcher.execute[GlobalOption]("")
       l.help should be (false)
       l.loglevel should be (None)

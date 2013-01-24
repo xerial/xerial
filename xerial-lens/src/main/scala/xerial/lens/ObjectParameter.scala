@@ -56,7 +56,7 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
  * @param name
  * @param valueType
  */
-case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
+case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) with Logger {
   lazy val field : jl.reflect.Field =
     if(fieldOwner.isDefined)
       fieldOwner.get.getDeclaredField(name)
@@ -74,8 +74,9 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], i
    * @return
    */
   def getDefaultValue : Option[Any] = {
+    trace(s"get the default value of ${this}")
     TypeUtil.companionObject(owner).flatMap { companion =>
-      val methodName = "init$default$%d".format(index + 1)
+      val methodName = "apply$default$%d".format(index + 1)
       try {
         val m = TypeUtil.cls(companion).getDeclaredMethod(methodName)
         Some(m.invoke(companion))
@@ -83,6 +84,7 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], i
       catch {
         // When no method for the initial value is found, use 'zero' value of the type
         case e : Throwable => {
+          warn(e)
           None
         }
       }

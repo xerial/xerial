@@ -189,9 +189,10 @@ class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with Standar
     val schema = ObjectSchema(cl)
     val prop = Map.newBuilder[String, Any]
 
+    debug("here")
     // get the default values of the constructor
     for(c <- schema.findConstructor; p <- c.params; v <- p.getDefaultValue) {
-      trace("set default parameter: %s", p)
+      trace(s"set default parameter $p to $v")
       prop += p.name -> v
     }
     val r = prop.result
