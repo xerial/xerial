@@ -264,7 +264,7 @@ case class TupleType[A](cl: Class[A], elementType: Seq[ObjectType]) extends Gene
 
 
 case object AnyRefType extends ObjectType(classOf[AnyRef]) {
-  override def toString = "AnyRef"
+  override val name = "AnyRef"
 }
 
 
