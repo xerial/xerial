@@ -25,10 +25,56 @@ package xerial.lens
 import java.{lang => jl}
 import collection.mutable.ArrayBuffer
 import reflect.ClassTag
+import scala.reflect.runtime.universe._
+import scala.reflect.runtime.{universe => ru}
+import xerial.core.log.Logger
 
-object ObjectType {
+object ObjectType extends Logger {
 
-  def apply(cl: Class[_]): ObjectType = {
+  private def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
+
+  def apply[A](obj:A)(implicit tag:TypeTag[A]) : ObjectType ={
+    obj match {
+      case cl:Class[_] => of(cl)
+      case t:ru.Type => of(t)
+      case _ => tag.tpe match {
+        case TypeRef(pre, symbol, typeArgs) if typeArgs.isEmpty =>
+          apply(obj.getClass)
+        case tp @ TypeRef(pre, symbol, typeArgs) if !typeArgs.isEmpty =>
+          debug(f"tpe: $tp")
+          val args = typeArgs.map{ tpe => apply(tpe) }
+          GenericType(obj.getClass, args)
+        case _ => error(f"unknown type: $tag"); throw new IllegalArgumentException("error")
+      }
+    }
+  }
+
+  def of(tpe:ru.Type) : ObjectType = {
+    tpe match {
+      case t if t =:= typeOf[Short] => Primitive.Short
+      case t if t =:= typeOf[Byte] => Primitive.Byte
+      case t if t =:= typeOf[Char] => Primitive.Char
+      case t if t =:= typeOf[Int] => Primitive.Int
+      case t if t =:= typeOf[Float] => Primitive.Float
+      case t if t =:= typeOf[Long] => Primitive.Long
+      case t if t =:= typeOf[Double] => Primitive.Double
+      case t if t =:= typeOf[String] => TextType.String
+      case t if t =:= typeOf[java.util.Date] => TextType.Date
+      case t if t =:= typeOf[java.io.File] => TextType.File
+      case TypeRef(pre, symbol, typeArgs) =>
+        if(typeArgs.isEmpty) {
+          apply(mirror.runtimeClass(tpe))
+        }
+        else
+          GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+      case _ =>
+        warn(f"unknown type: $tpe, class:${tpe.getClass}")
+        AnyRefType
+    }
+
+  }
+
+  def of(cl: Class[_]): ObjectType = {
     if (Primitive.isPrimitive(cl))
       Primitive(cl)
     else if (TextType.isTextType(cl))
