@@ -7,6 +7,9 @@ import xerial.core.XerialSpec
 // PrimitiveTest.scalaSince: 2012/07/17 22:30
 //
 //--------------------------------------
+object ObjectTypeTest {
+  case class Person(id:Int, name:String)
+}
 
 /**
  * @author leo
@@ -44,6 +47,19 @@ class ObjectTypeTest extends XerialSpec {
         case _ => fail(f"unexpected type: $t2")
       }
     }
+    import ObjectTypeTest._
+
+    "inspect case classes" in {
+      val p = Person(1, "leo")
+      val t = ObjectType(p)
+      t.name should be ("Person")
+    }
+
+    "inspect case classes in Seq" in {
+      val t = ObjectType(Seq[Any](Person(1, "leo")))
+    }
+
+
 
   }
 

@@ -33,11 +33,11 @@ object ObjectType extends Logger {
 
   private def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
 
-  def apply[A](obj:A)(implicit tag:TypeTag[A]) : ObjectType ={
+  def apply[A : TypeTag](obj:A) : ObjectType ={
     obj match {
       case cl:Class[_] => of(cl)
       case t:ru.Type => of(t)
-      case _ => of(tag.tpe)
+      case _ => of(typeOf[A])
     }
   }
 
