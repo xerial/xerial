@@ -28,10 +28,13 @@ import reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import xerial.core.log.Logger
+import collection.mutable
 
 object ObjectType extends Logger {
 
   private def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
+
+  private val typeTable = mutable.WeakHashMap[ru.Type, ObjectType]()
 
   def apply[A : TypeTag](obj:A) : ObjectType ={
     obj match {
@@ -42,13 +45,16 @@ object ObjectType extends Logger {
   }
 
   def of(tpe:ru.Type) : ObjectType = {
-    debug(f"ObjectType.of(${tpe})")
-    val m = primitiveMatcher.orElse(textMatcher).orElse(typeRefMatcher).orElse[ru.Type, ObjectType] {
-      case _ =>
-        warn(f"unknown type: $tpe, class:${tpe.getClass}")
-        AnyRefType
+    def resolveType = {
+      debug(f"ObjectType.of(${tpe})")
+      val m = primitiveMatcher.orElse(textMatcher).orElse(typeRefMatcher).orElse[ru.Type, ObjectType] {
+        case _ =>
+          trace(f"Resolving the unknown type $tpe into AnyRef")
+          AnyRefType
+      }
+      m(tpe)
     }
-    m(tpe)
+    typeTable.getOrElseUpdate(tpe, resolveType)
   }
 
   def primitiveMatcher : PartialFunction[ru.Type, Primitive] = {
@@ -257,7 +263,9 @@ case class EitherType[A](cl: Class[A], leftType:ObjectType, rightType:ObjectType
 case class TupleType[A](cl: Class[A], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
 
 
-case object AnyRefType extends ObjectType(classOf[AnyRef])
+case object AnyRefType extends ObjectType(classOf[AnyRef]) {
+  override def toString = "AnyRef"
+}
 
 
 
