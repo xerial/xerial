@@ -37,13 +37,13 @@ class ObjectTypeTest extends XerialSpec {
     "detect types using Scala 2.10 reflection" in {
       val t = ObjectType(Seq(1, 3, 5))
       t match {
-        case SeqType(cl, Primitive.Int) => // OK
+        case SeqType(_, Primitive.Int) => // OK
         case _ => fail(f"unexpected type: $t")
       }
 
       val t2 = ObjectType(Seq(Seq(1,2)))
       t2 match {
-        case SeqType(cl, SeqType(cl2, Primitive.Int)) => // OK
+        case SeqType(_, SeqType(_, Primitive.Int)) => // OK
         case _ => fail(f"unexpected type: $t2")
       }
     }
@@ -61,10 +61,15 @@ class ObjectTypeTest extends XerialSpec {
 
     "detect generic types" taggedAs("gen") in {
       val st = ObjectType(Seq("hello"))
+      debug(f"raw type ${st.rawType}")
       st.name should be ("Seq[String]")
 
       val mt = ObjectType(collection.mutable.Map(1 -> "leo"))
+      debug(f"raw type ${mt.rawType}")
       mt.name should be ("Map[Int, String]")
+
+      val im = ObjectType(Map(2 -> 1.4))
+      debug(f"raw type ${im.rawType}")
     }
 
   }
