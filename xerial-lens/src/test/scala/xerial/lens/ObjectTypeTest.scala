@@ -59,7 +59,13 @@ class ObjectTypeTest extends XerialSpec {
       val t = ObjectType(Seq[Any](Person(1, "leo")))
     }
 
+    "detect generic types" taggedAs("gen") in {
+      val st = ObjectType(Seq("hello"))
+      st.name should be ("Seq[String]")
 
+      val mt = ObjectType(collection.mutable.Map(1 -> "leo"))
+      mt.name should be ("Map[Int, String]")
+    }
 
   }
 

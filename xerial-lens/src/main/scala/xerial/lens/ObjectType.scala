@@ -47,7 +47,10 @@ object ObjectType extends Logger {
   def of(tpe:ru.Type) : ObjectType = {
     def resolveType = {
       debug(f"ObjectType.of(${tpe})")
-      val m = primitiveMatcher.orElse(textMatcher).orElse(typeRefMatcher).orElse[ru.Type, ObjectType] {
+      val m = (primitiveMatcher orElse
+        textMatcher orElse
+//        genericTypeMatcher orElse
+        typeRefMatcher).orElse[ru.Type, ObjectType] {
         case _ =>
           trace(f"Resolving the unknown type $tpe into AnyRef")
           AnyRefType
@@ -81,6 +84,31 @@ object ObjectType extends Logger {
         of(mirror.runtimeClass(tpe))
       else
         GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+  }
+
+  private def extractTypeArgs(t:ru.Type) : Seq[ObjectType] = {
+    val a = t.asInstanceOf[TypeRefApi].args
+    debug(f"type args: ${a.mkString(", ")}")
+    a.map(apply(_))
+  }
+
+
+  def genericTypeMatcher : PartialFunction[ru.Type, ObjectType] = {
+    case t if t =:= weakTypeOf[Seq[_]] =>
+      debug("here")
+      SeqType(mirror.runtimeClass(t), extractTypeArgs(t).head)
+    case t if t =:= weakTypeOf[Array[_]] =>
+      ArrayType(mirror.runtimeClass(t), extractTypeArgs(t).head)
+    case t if t =:= weakTypeOf[Set[_]] =>
+      SetType(mirror.runtimeClass(t), extractTypeArgs(t).head)
+    case t if t =:= weakTypeOf[Map[_, _]] =>
+      val kvt = extractTypeArgs(t)
+      MapType(mirror.runtimeClass(t), kvt(0), kvt(1))
+    case t if t =:= weakTypeOf[Option[_]] =>
+      OptionType(mirror.runtimeClass(t), extractTypeArgs(t).head)
+    case t if t =:= weakTypeOf[Either[_, _]] =>
+      val lr = extractTypeArgs(t)
+      EitherType(mirror.runtimeClass(t), lr(0), lr(1))
   }
 
 
