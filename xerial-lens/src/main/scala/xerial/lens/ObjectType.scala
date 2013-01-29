@@ -25,10 +25,70 @@ package xerial.lens
 import java.{lang => jl}
 import collection.mutable.ArrayBuffer
 import reflect.ClassTag
+import scala.reflect.runtime.universe._
+import scala.reflect.runtime.{universe => ru}
+import xerial.core.log.Logger
+import collection.mutable
 
-object ObjectType {
+object ObjectType extends Logger {
 
-  def apply(cl: Class[_]): ObjectType = {
+  private def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
+
+  private val typeTable = mutable.WeakHashMap[ru.Type, ObjectType]()
+
+  def apply[A : TypeTag](obj:A) : ObjectType ={
+    obj match {
+      case cl:Class[_] => of(cl)
+      case t:ru.Type => of(t)
+      case _ => of(typeOf[A])
+    }
+  }
+
+  def of(tpe:ru.Type) : ObjectType = {
+    def resolveType = {
+      debug(f"ObjectType.of(${tpe})")
+      val m =
+        (primitiveMatcher orElse
+          textMatcher orElse
+          typeRefMatcher).orElse[ru.Type, ObjectType] {
+        case _ =>
+          trace(f"Resolving the unknown type $tpe into AnyRef")
+          AnyRefType
+      }
+      m(tpe)
+    }
+    typeTable.getOrElseUpdate(tpe, resolveType)
+  }
+
+  def primitiveMatcher : PartialFunction[ru.Type, Primitive] = {
+    case t if t =:= typeOf[Short] => Primitive.Short
+    case t if t =:= typeOf[Boolean] => Primitive.Boolean
+    case t if t =:= typeOf[Byte] => Primitive.Byte
+    case t if t =:= typeOf[Char] => Primitive.Char
+    case t if t =:= typeOf[Int] => Primitive.Int
+    case t if t =:= typeOf[Float] => Primitive.Float
+    case t if t =:= typeOf[Long] => Primitive.Long
+    case t if t =:= typeOf[Double] => Primitive.Double
+
+  }
+
+  def textMatcher : PartialFunction[ru.Type, TextType] = {
+    case t if t =:= typeOf[String] => TextType.String
+    case t if t =:= typeOf[java.util.Date] => TextType.Date
+    case t if t =:= typeOf[java.io.File] => TextType.File
+  }
+
+  def typeRefMatcher : PartialFunction[ru.Type, ObjectType] = {
+    case t if t =:= typeOf[scala.Any] => AnyRefType
+    case tpe @ TypeRef(pre, symbol, typeArgs) =>
+      if(typeArgs.isEmpty)
+        of(mirror.runtimeClass(tpe))
+      else
+        GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+  }
+
+
+  def of(cl: Class[_]): ObjectType = {
     if (Primitive.isPrimitive(cl))
       Primitive(cl)
     else if (TextType.isTextType(cl))
@@ -64,6 +124,7 @@ trait ObjectMethod extends Type {
  */
 abstract class ObjectType(val rawType: Class[_]) extends Type {
   val name : String = this.getClass.getSimpleName
+  def fullName : String = this.getClass.getName
   override def toString = name
   def isOption = false
   def isBooleanType = false
@@ -190,7 +251,7 @@ object GenericType {
 }
 
 class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectType]) extends ObjectType(rawType) {
-  override def toString = "%s[%s]".format(rawType.getSimpleName, genericTypes.map(_.name).mkString(", "))
+  override val name = "%s[%s]".format(rawType.getSimpleName, genericTypes.map(_.name).mkString(", "))
 
   override def isOption = rawType == classOf[Option[_]]
   override def isBooleanType = isOption && genericTypes(0).isBooleanType
@@ -206,7 +267,9 @@ case class EitherType[A](cl: Class[A], leftType:ObjectType, rightType:ObjectType
 case class TupleType[A](cl: Class[A], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
 
 
-case object AnyRefType extends ObjectType(classOf[AnyRef])
+case object AnyRefType extends ObjectType(classOf[AnyRef]) {
+  override val name = "AnyRef"
+}
 
 
 
