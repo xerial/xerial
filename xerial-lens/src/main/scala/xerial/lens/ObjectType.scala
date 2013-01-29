@@ -37,42 +37,47 @@ object ObjectType extends Logger {
     obj match {
       case cl:Class[_] => of(cl)
       case t:ru.Type => of(t)
-      case _ => tag.tpe match {
-        case TypeRef(pre, symbol, typeArgs) if typeArgs.isEmpty =>
-          apply(obj.getClass)
-        case tp @ TypeRef(pre, symbol, typeArgs) if !typeArgs.isEmpty =>
-          debug(f"tpe: $tp")
-          val args = typeArgs.map{ tpe => apply(tpe) }
-          GenericType(obj.getClass, args)
-        case _ => error(f"unknown type: $tag"); throw new IllegalArgumentException("error")
-      }
+      case _ => of(tag.tpe)
     }
   }
 
   def of(tpe:ru.Type) : ObjectType = {
-    tpe match {
-      case t if t =:= typeOf[Short] => Primitive.Short
-      case t if t =:= typeOf[Byte] => Primitive.Byte
-      case t if t =:= typeOf[Char] => Primitive.Char
-      case t if t =:= typeOf[Int] => Primitive.Int
-      case t if t =:= typeOf[Float] => Primitive.Float
-      case t if t =:= typeOf[Long] => Primitive.Long
-      case t if t =:= typeOf[Double] => Primitive.Double
-      case t if t =:= typeOf[String] => TextType.String
-      case t if t =:= typeOf[java.util.Date] => TextType.Date
-      case t if t =:= typeOf[java.io.File] => TextType.File
-      case TypeRef(pre, symbol, typeArgs) =>
-        if(typeArgs.isEmpty) {
-          apply(mirror.runtimeClass(tpe))
-        }
-        else
-          GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+    debug(f"ObjectType.of(${tpe})")
+    val m = primitiveMatcher.orElse(textMatcher).orElse(typeRefMatcher).orElse[ru.Type, ObjectType] {
       case _ =>
         warn(f"unknown type: $tpe, class:${tpe.getClass}")
         AnyRefType
     }
+    m(tpe)
+  }
+
+  def primitiveMatcher : PartialFunction[ru.Type, Primitive] = {
+    case t if t =:= typeOf[Short] => Primitive.Short
+    case t if t =:= typeOf[Byte] => Primitive.Byte
+    case t if t =:= typeOf[Char] => Primitive.Char
+    case t if t =:= typeOf[Int] => Primitive.Int
+    case t if t =:= typeOf[Float] => Primitive.Float
+    case t if t =:= typeOf[Long] => Primitive.Long
+    case t if t =:= typeOf[Double] => Primitive.Double
 
   }
+
+  def textMatcher : PartialFunction[ru.Type, TextType] = {
+    case t if t =:= typeOf[String] => TextType.String
+    case t if t =:= typeOf[java.util.Date] => TextType.Date
+    case t if t =:= typeOf[java.io.File] => TextType.File
+  }
+
+  def typeRefMatcher : PartialFunction[ru.Type, ObjectType] = {
+    case t if t =:= typeOf[scala.Any] => AnyRefType
+    case tpe @ TypeRef(pre, symbol, typeArgs) =>
+      if(typeArgs.isEmpty)
+        of(mirror.runtimeClass(tpe))
+      else
+        GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+  }
+
+
 
   def of(cl: Class[_]): ObjectType = {
     if (Primitive.isPrimitive(cl))
