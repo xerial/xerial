@@ -47,9 +47,10 @@ object ObjectType extends Logger {
   def of(tpe:ru.Type) : ObjectType = {
     def resolveType = {
       debug(f"ObjectType.of(${tpe})")
-      val m = (primitiveMatcher orElse
-        textMatcher orElse
-        typeRefMatcher).orElse[ru.Type, ObjectType] {
+      val m =
+        (primitiveMatcher orElse
+          textMatcher orElse
+          typeRefMatcher).orElse[ru.Type, ObjectType] {
         case _ =>
           trace(f"Resolving the unknown type $tpe into AnyRef")
           AnyRefType
@@ -61,6 +62,7 @@ object ObjectType extends Logger {
 
   def primitiveMatcher : PartialFunction[ru.Type, Primitive] = {
     case t if t =:= typeOf[Short] => Primitive.Short
+    case t if t =:= typeOf[Boolean] => Primitive.Boolean
     case t if t =:= typeOf[Byte] => Primitive.Byte
     case t if t =:= typeOf[Char] => Primitive.Char
     case t if t =:= typeOf[Int] => Primitive.Int
