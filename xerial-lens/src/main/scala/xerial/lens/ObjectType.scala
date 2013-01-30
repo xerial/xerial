@@ -215,19 +215,17 @@ object TextType {
   def isTextType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
-case class StandardType[A : TypeTag](override val rawType:Class[A]) extends ObjectType(rawType) with Logger {
+object StandardType {
+  def newInstance[A:TypeTag](obj:A) = StandardType(obj.getClass)
+}
+
+case class StandardType[A](override val rawType:Class[A]) extends ObjectType(rawType) with Logger {
+
   override val name = rawType.getSimpleName
 
   lazy val constructorParams : Seq[ConstructorParameter] = {
-    val t = typeOf[A]
-    val cc = t.declaration(ru.nme.CONSTRUCTOR).asMethod
-    val firstConstructorParams = cc.paramss.headOption.getOrElse(Seq.empty)
-    val params = for((p, i) <- firstConstructorParams.zipWithIndex)yield {
-      val name = p.name.decoded
-      ConstructorParameter(rawType, ObjectSchema.findFieldOwner(name, rawType), i, name, ObjectType.of(p.typeSignature))
-    }
-    debug(params.mkString(", "))
-    params
+    val schema = ObjectSchema(rawType)
+    schema.constructor.params
   }
 
 

@@ -171,7 +171,7 @@ object ObjectSchema extends Logger {
     try
       for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
     catch {
-      case e : Throwable =>
+      case e : Exception =>
         error(e)
         None
     }
