@@ -32,7 +32,7 @@ import collection.mutable
 
 object ObjectType extends Logger {
 
-  private def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
+  private[lens] def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
 
   private val typeTable = mutable.WeakHashMap[ru.Type, ObjectType]()
 
@@ -215,8 +215,20 @@ object TextType {
   def isTextType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
-case class StandardType[A](override val rawType:Class[A]) extends ObjectType(rawType) {
+object StandardType {
+  def newInstance[A:TypeTag](obj:A) = StandardType(obj.getClass)
+}
+
+case class StandardType[A](override val rawType:Class[A]) extends ObjectType(rawType) with Logger {
+
   override val name = rawType.getSimpleName
+
+  lazy val constructorParams : Seq[ConstructorParameter] = {
+    val schema = ObjectSchema(rawType)
+    schema.constructor.params
+  }
+
+
 }
 
 

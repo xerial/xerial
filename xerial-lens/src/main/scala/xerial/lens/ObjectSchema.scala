@@ -94,7 +94,7 @@ object ObjectSchema extends Logger {
         }
         catch {
           // ScalaSigParser throws NPE when noe signature for the class is found
-          case _ : Throwable => None
+          case _ : Exception => None
         }
       // If no signature is found, search an enclosing object
       sig.orElse(enclosingObject(cl).flatMap(findSignature(_)))
@@ -108,7 +108,7 @@ object ObjectSchema extends Logger {
         true
       }
       catch {
-        case _ : Throwable => false
+        case _ : Exception => false
       }
     }
 
@@ -171,7 +171,7 @@ object ObjectSchema extends Logger {
     try
       for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
     catch {
-      case e : Throwable =>
+      case e : Exception =>
         error(e)
         None
     }
