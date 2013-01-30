@@ -72,10 +72,11 @@ class ObjectTypeTest extends XerialSpec {
       debug(f"raw type ${im.rawType}")
     }
 
-    "detect constructor params" in {
+    "detect constructor params" taggedAs("cc") in {
       val t = new StandardType[Person](classOf[Person])
-      t.params
+      debug(t.constructorParams)
     }
+
 
   }
 
