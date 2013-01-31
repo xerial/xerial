@@ -16,9 +16,9 @@
 package xerial.lens
 
 import java.{lang => jl}
-import java.lang.{reflect => jr}
 import xerial.core.log.Logger
-
+import reflect.ClassTag
+import scala.language.existentials
 //--------------------------------------
 //
 // ObjectParameter.scala
@@ -36,16 +36,18 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
 
   override def toString = "%s:%s".format(name, valueType)
 
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T]
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]): Option[T]
 
-  protected def findAnnotationOf[T <: jl.annotation.Annotation](annot: Array[jl.annotation.Annotation])(implicit c: ClassManifest[T]): Option[T] = {
+  protected def findAnnotationOf[T <: jl.annotation.Annotation](annot: Array[jl.annotation.Annotation])(implicit c: ClassTag[T]): Option[T] = {
     annot.collectFirst {
-      case x if (c.erasure isAssignableFrom x.annotationType) => x
+      case x if (c.runtimeClass isAssignableFrom x.annotationType) => x
     }.asInstanceOf[Option[T]]
   }
 
   def get(obj: Any): Any
 }
+
+
 
 /**
  * Represents a constructor parameter
@@ -55,12 +57,44 @@ sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
  * @param name
  * @param valueType
  */
-case class ConstructorParameter(owner: Class[_], fieldOwner: Class[_], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) {
-  lazy val field = fieldOwner.getDeclaredField(name)
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
+case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], index: Int, override val name: String, override val valueType: ObjectType) extends Parameter(name, valueType) with Logger {
+  lazy val field : jl.reflect.Field =
+    if(fieldOwner.isDefined)
+      fieldOwner.get.getDeclaredField(name)
+    else
+      sys.error("no field owner is defined in %s".format(this))
+
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]) = {
     val cc = owner.getConstructors()(0)
     val annot: Array[jl.annotation.Annotation] = cc.getParameterAnnotations()(index)
     findAnnotationOf[T](annot)
+  }
+
+  /**
+   * Get the default value of this parameter or
+   * @return
+   */
+  def getDefaultValue : Option[Any] = {
+    trace(s"get the default value of ${this}")
+
+    TypeUtil.companionObject(owner).flatMap { companion =>
+      def findMethod(name:String) = {
+        try {
+          Some(TypeUtil.cls(companion).getDeclaredMethod(name))
+        }
+        catch {
+          case e: NoSuchMethodException => None
+        }
+      }
+      // Find Scala methods for retrieving default values. Since Scala 2.10 appply or $lessinit$greater$ can be the prefix
+      val m = findMethod("apply$default$%d".format(index + 1)) orElse(findMethod("$lessinit$greater$default$%d".format(index + 1)))
+      try
+        m.map(_.invoke(companion))
+      catch {
+        case e : Throwable =>
+          None
+      }
+    }
   }
 
   def get(obj: Any) = {
@@ -82,17 +116,17 @@ case class FieldParameter(owner: Class[_], ref: Class[_], override val name: Str
     try
       owner.getDeclaredField(name)
     catch {
-      case _ =>
+      case _ : Throwable =>
         warn("no such field %s in %s (ref:%s)", name, owner.getSimpleName, ref.getSimpleName)
         null
     }
   }
 
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]) = {
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]) = {
     field match {
       case null => None
       case field =>
-        field.getAnnotation[T](c.erasure.asInstanceOf[Class[T]]) match {
+        field.getAnnotation[T](c.runtimeClass.asInstanceOf[Class[T]]) match {
           case null => None
           case a => Some(a.asInstanceOf[T])
         }
@@ -113,7 +147,7 @@ case class FieldParameter(owner: Class[_], ref: Class[_], override val name: Str
  */
 case class MethodParameter(owner: jl.reflect.Method, index: Int, override val name: String, override val valueType: ObjectType)
   extends Parameter(name, valueType) {
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]): Option[T] = {
     val annot: Array[jl.annotation.Annotation] = owner.getParameterAnnotations()(index)
     findAnnotationOf[T](annot)
   }
@@ -135,13 +169,13 @@ case class ScMethod(owner: Class[_], jMethod: jl.reflect.Method, name: String, p
   extends ObjectMethod {
   override def toString = "Method(%s#%s, [%s], %s)".format(owner.getSimpleName, name, params.mkString(", "), returnType)
 
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
-    jMethod.getAnnotation(c.erasure.asInstanceOf[Class[T]]) match {
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]): Option[T] = {
+    jMethod.getAnnotation(c.runtimeClass.asInstanceOf[Class[T]]) match {
       case null => None
       case a => Some(a.asInstanceOf[T])
     }
   }
-  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T] = {
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassTag[T]): Option[T] = {
     params(paramIndex).findAnnotationOf[T]
   }
 
@@ -157,13 +191,13 @@ case class ScMethod(owner: Class[_], jMethod: jl.reflect.Method, name: String, p
 case class CompanionMethod(owner:Class[_], jMethod:jl.reflect.Method, name:String, params: Array[MethodParameter], returnType: ObjectType)
  extends ObjectMethod with Logger
 {
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T] = {
-    jMethod.getAnnotation(c.erasure.asInstanceOf[Class[T]]) match {
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]): Option[T] = {
+    jMethod.getAnnotation(c.runtimeClass.asInstanceOf[Class[T]]) match {
       case null => None
       case a => Some(a.asInstanceOf[T])
     }
   }
-  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T] = {
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassTag[T]): Option[T] = {
     params(paramIndex).findAnnotationOf[T]
   }
 
@@ -173,10 +207,10 @@ case class CompanionMethod(owner:Class[_], jMethod:jl.reflect.Method, name:Strin
 
   def invoke(obj:AnyRef, params:AnyRef*) : Any = {
     debug("invoking jMethod:%s, owner:%s", jMethod, owner)
-    TypeUtil.companionObject(owner) map { co =>
+    TypeUtil.companionObject(owner).map{ co =>
       debug("found a companion object of %s", owner)
       jMethod.invoke(co, params:_*)
-    } orNull
+    }.orNull
   }
 
 }
@@ -190,6 +224,8 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
   val name = cl.getSimpleName
   override def toString = "Constructor(%s, [%s])".format(cl.getSimpleName, params.mkString(", "))
 
+  def findParameter(name:String) = params.find(_.name == name)
+
   def newInstance(args: Array[AnyRef]): Any = {
     val cc = cl.getConstructors()(0)
     if (args.isEmpty)
@@ -198,3 +234,5 @@ case class Constructor(cl: Class[_], params: Array[ConstructorParameter]) extend
       cc.newInstance(args: _*)
   }
 }
+
+

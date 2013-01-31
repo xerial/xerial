@@ -37,10 +37,10 @@ object CommandLineTokenizer extends RegexParsers with Logger {
   private def unquote(s: String): String = s.substring(1, s.length() - 1)
 
   def stringLiteral: Parser[String] =
-    ("\"" + """([^"\p{Cntrl}\\]|\\[\\/bfnrt]|\\u[a-fA-F0-9]{4})*""" + "\"").r ^^
+    ("\"" + """([^"\p{Cntrl}\\]|\\[\\/\\"bfnrt]|\\u[a-fA-F0-9]{4})*""" + "\"").r ^^
       { unquote(_) }
   def quotation: Parser[String] =
-    ("'" + """([^'\p{Cntrl}\\]|\\[\\/bfnrt]|\\u[a-fA-F0-9]{4})*""" + "'").r ^^
+    ("'" + """([^'\p{Cntrl}\\]|\\[\\/\\"bfnrt]|\\u[a-fA-F0-9]{4})*""" + "'").r ^^
       { unquote(_) }
   def other: Parser[String] = """([^\"'\s]+)""".r
   def token: Parser[String] = stringLiteral | quotation | other

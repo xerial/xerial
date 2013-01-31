@@ -18,6 +18,7 @@ package xerial.core.collection
 
 import collection.mutable.{IndexedSeqOptimized, ArrayOps, ArrayLike}
 import xerial.core.log.Logger
+import reflect.ClassTag
 
 
 //--------------------------------------
@@ -30,7 +31,7 @@ import xerial.core.log.Logger
 
 object CyclicArray {
 
-  def apply[A : ClassManifest](elem:A *) : CyclicArray[A] = {
+  def apply[A : ClassTag](elem:A *) : CyclicArray[A] = {
     val c = new CyclicArray[A](elem.length)
     elem foreach { c append _ }
     c
@@ -42,7 +43,7 @@ object CyclicArray {
  * 
  * @author Taro L. Saito
  */
-class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassManifest[A]) extends IndexedSeq[A] with Logger {
+class CyclicArray[@specialized A](capacity:Int = 8)(implicit m:ClassTag[A]) extends IndexedSeq[A] with Logger {
   require((capacity & (capacity - 1)) == 0, "queue size must be 2^i but %s".format(capacity))
   type self = this.type
   private var queue:Array[A] = m.newArray(capacity)

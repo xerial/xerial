@@ -29,30 +29,65 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
 //--------------------------------------
 
 /**
- * Timer trait for measuring the performance of code blocks
+ * Timer trait measures the performance of code blocks.
+ * Extend this trait and wrap the code to measure with `time(code_name){ ... }`:
  *
- * <code>
- * <pre>
- *
- *   class A extends Timer {
- *
- *     val t : TimeReport = time("performance test") {
- *       // write any code here
- *       block("A") {
- *        // code A
- *       }
- *       block("B") {
- *        // code B
- *       }
+ * {{{
+ * class A extends Timer {
+ *   val t : TimeReport = time("performance test") {
+ *     // write any code here
+ *     block("A") {
+ *       // code A
  *     }
+ *     block("B") {
+ *      // code B
+ *     }
+ *   }
+ *   // report elapsed time of A, B and the total running time
+ *   println(t)
  *
- *     // report elapsed time of A, B and the total time
- *     println(t)
+ *   t("A").average // the average of running time of code block "A" (min and max are also available)
+ * }
  *
+ * }}}
+ *
+ *
+ * Timer can take the average of repetitive executions:
+ *
+ * {{{
+ * class Rep extends Timer {
+ *
+ *   // Repeat 10 times the evaluation of the whole block
+ *   val t = time("repetitive evaluation", repeat=10) {
+ *      // This part will be executed 1000 x 10 times
+ *      block("A", repeat=1000) {
+ *        // code A
+ *      }
+ *
+ *      // This part will be executed 1000 x 10 times
+ *      block("B", repeat=1000) {
+ *        // code B
+ *      }
  *   }
  *
- * </pre>
- * </code>
+ *   println(t)
+ *
+ *   // Which code is faster?
+ *   if(t("A") <= t("B"))
+ *      println("A is faster")
+ *   else
+ *      println("B is faster")
+ * }
+ * }}}
+ *
+ * When measuring Scala (Java) code performances, you should take the average of execution times and reorder
+ * the code block execution orders, because JVM has JIT compiler, which optimizes the code at runtime.
+ * And also cache usage and the running state of the garbage core (GC) affects
+ * the code performance. By repeating the executions of the entire or individual blocks with the `repeat` option,
+ * you can avoid such pitfalls of benchmarking.
+ *
+ *
+ *
  * @author leo
  */
 trait Timer {
@@ -165,6 +200,15 @@ trait TimeReport extends Ordered[TimeReport] {
   def compare(that: TimeReport) =
     this.elapsedSeconds.compareTo(that.elapsedSeconds)
 
+  def min: Double =  minInterval
+  def max: Double =  maxInterval
+
+  def averageWithoutMinMax = {
+    if(executionCount > 2)
+      (s.getElapsedTime - min - max) / (_executionCount - 2)
+    else
+      average
+  }
 
   def average: Double = {
     s.getElapsedTime / _executionCount

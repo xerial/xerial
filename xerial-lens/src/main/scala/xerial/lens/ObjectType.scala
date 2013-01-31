@@ -23,14 +23,80 @@
 
 package xerial.lens
 import java.{lang => jl}
+import collection.mutable.ArrayBuffer
+import reflect.ClassTag
+import xerial.core.log.Logger
+import collection.mutable
 
-object ObjectType {
+object ObjectType extends Logger {
 
-  def apply(cl: Class[_]): ObjectType = {
+  import scala.reflect.runtime.universe._
+  import scala.reflect.runtime.{universe => ru}
+
+  private[lens] def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
+
+  private val typeTable = mutable.WeakHashMap[ru.Type, ObjectType]()
+
+  def apply[A : TypeTag](obj:A) : ObjectType ={
+    obj match {
+      case cl:Class[_] => of(cl)
+      case t:ru.Type => of(t)
+      case _ => of(typeOf[A])
+    }
+  }
+
+  def of(tpe:ru.Type) : ObjectType = {
+    def resolveType = {
+      debug(f"ObjectType.of(${tpe})")
+      val m =
+        (primitiveMatcher orElse
+          textMatcher orElse
+          typeRefMatcher).orElse[ru.Type, ObjectType] {
+        case _ =>
+          trace(f"Resolving the unknown type $tpe into AnyRef")
+          AnyRefType
+      }
+      m(tpe)
+    }
+    typeTable.getOrElseUpdate(tpe, resolveType)
+  }
+
+  def primitiveMatcher : PartialFunction[ru.Type, Primitive] = {
+    case t if t =:= typeOf[Short] => Primitive.Short
+    case t if t =:= typeOf[Boolean] => Primitive.Boolean
+    case t if t =:= typeOf[Byte] => Primitive.Byte
+    case t if t =:= typeOf[Char] => Primitive.Char
+    case t if t =:= typeOf[Int] => Primitive.Int
+    case t if t =:= typeOf[Float] => Primitive.Float
+    case t if t =:= typeOf[Long] => Primitive.Long
+    case t if t =:= typeOf[Double] => Primitive.Double
+
+  }
+
+  def textMatcher : PartialFunction[ru.Type, TextType] = {
+    case t if t =:= typeOf[String] => TextType.String
+    case t if t =:= typeOf[java.util.Date] => TextType.Date
+    case t if t =:= typeOf[java.io.File] => TextType.File
+  }
+
+  def typeRefMatcher : PartialFunction[ru.Type, ObjectType] = {
+    case t if t =:= typeOf[scala.Any] => AnyRefType
+    case tpe @ TypeRef(pre, symbol, typeArgs) =>
+      if(typeArgs.isEmpty)
+        of(mirror.runtimeClass(tpe))
+      else
+        GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+  }
+
+
+  def of(cl: Class[_]): ObjectType = {
     if (Primitive.isPrimitive(cl))
       Primitive(cl)
     else if (TextType.isTextType(cl))
       TextType(cl)
+    else if (cl.getSimpleName == "$colon$colon") {
+      SeqType(cl, AnyRefType)
+    }
     else
       StandardType(cl)
   }
@@ -45,8 +111,8 @@ trait ObjectMethod extends Type {
 
   val params : Array[MethodParameter]
   val jMethod : jl.reflect.Method
-  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassManifest[T]): Option[T]
-  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassManifest[T]): Option[T]
+  def findAnnotationOf[T <: jl.annotation.Annotation](implicit c: ClassTag[T]): Option[T]
+  def findAnnotationOf[T <: jl.annotation.Annotation](paramIndex: Int)(implicit c: ClassTag[T]): Option[T]
 
   def invoke(obj:AnyRef, params:AnyRef*) : Any
 }
@@ -59,16 +125,20 @@ trait ObjectMethod extends Type {
  */
 abstract class ObjectType(val rawType: Class[_]) extends Type {
   val name : String = this.getClass.getSimpleName
+  def fullName : String = this.getClass.getName
   override def toString = name
   def isOption = false
   def isBooleanType = false
   def isGenericType = false
   def isPrimitive : Boolean = false
+
 }
 
 trait ValueObject extends ObjectType {
   override val name : String = this.getClass.getSimpleName.replaceAll("""\$""", "")
 }
+
+
 
 /**
  * Scala's primitive types. The classes in this category can create primitive type arrays.
@@ -146,26 +216,70 @@ object TextType {
   def isTextType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
-case class StandardType(override val rawType:Class[_]) extends ObjectType(rawType)
 
+case class StandardType[A](override val rawType:Class[A]) extends ObjectType(rawType) with Logger {
+
+  override val name = rawType.getSimpleName
+
+  lazy val constructorParams : Seq[ConstructorParameter] = {
+    val schema = ObjectSchema(rawType)
+    schema.constructor.params
+  }
+
+
+}
+
+
+object GenericType {
+
+  def apply(cl:Class[_], typeArgs:Seq[ObjectType]) : GenericType = {
+    import TypeUtil._
+    if(TypeUtil.isArray(cl) && typeArgs.length == 1) {
+      ArrayType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isOption(cl) && typeArgs.length == 1) {
+      OptionType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isMap(cl) && typeArgs.length == 2) {
+      MapType(cl, typeArgs(0), typeArgs(1))
+    }
+    else if(TypeUtil.isSet(cl) && typeArgs.length == 1) {
+      SetType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isTuple(cl)) {
+      TupleType(cl, typeArgs)
+    }
+    else if(TypeUtil.isSeq(cl) && typeArgs.length == 1) {
+      SeqType(cl, typeArgs(0))
+    }
+    else if(TypeUtil.isEither(cl) && typeArgs.length == 2) {
+      EitherType(cl, typeArgs(0), typeArgs(1))
+    }
+    else
+      new GenericType(cl, typeArgs)
+  }
+}
 
 class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectType]) extends ObjectType(rawType) {
-  override def toString = "%s[%s]".format(rawType.getSimpleName, genericTypes.map(_.name).mkString(", "))
+  override val name = "%s[%s]".format(rawType.getSimpleName, genericTypes.map(_.name).mkString(", "))
 
   override def isOption = rawType == classOf[Option[_]]
   override def isBooleanType = isOption && genericTypes(0).isBooleanType
   override def isGenericType = true
 }
 
-case class MapType(cl: Class[_], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
-case class SeqType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class ArrayType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class OptionType(cl: Class[_], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
-case class EitherType(cl: Class[_], leftType:ObjectType, rightType:ObjectType) extends GenericType(cl, Seq(leftType, rightType))
-case class TupleType(cl: Class[_], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
+case class MapType[A](cl: Class[A], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
+case class SetType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class SeqType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class ArrayType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class OptionType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class EitherType[A](cl: Class[A], leftType:ObjectType, rightType:ObjectType) extends GenericType(cl, Seq(leftType, rightType))
+case class TupleType[A](cl: Class[A], elementType: Seq[ObjectType]) extends GenericType(cl, elementType)
 
 
-
+case object AnyRefType extends ObjectType(classOf[AnyRef]) {
+  override val name = "AnyRef"
+}
 
 
 

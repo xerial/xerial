@@ -10,6 +10,7 @@ package xerial.core.io
 import java.io._
 import xerial.core.log.Logger
 import annotation.tailrec
+import reflect.ClassTag
 
 
 object PageInputStream {
@@ -48,9 +49,9 @@ trait PagedInput[T] extends RichInput[T] with Iterable[Array[T]] with Logger {
     loop
   }
 
-  override def toArray[B >: Array[T] : ClassManifest]: Array[B] = {
+  override def toArray[B >: Array[T] : ClassTag]: Array[B] = {
     /*
-     Overriding this method is necessary since [[scala.collection.TraversableOnce.toArray]]
+     Overriding this method is necessary since [[scala.core.TraversableOnce.toArray]]
       wrongly set isTraversableAgain = true but page reader cannot be traverse more than once
       */
     iterator.toArray
@@ -99,8 +100,8 @@ import PageInputStream._
  * @author leo
  */
 class PageInputStream(in: InputStream, val pageSize: Int) extends RichInputStream(in) with PagedInput[Byte] {
-  def this(input: InputStream) = this(input, DefaultPageSize)
-  def this(file: File, byteSize: Int = DefaultPageSize) = this(new FileInputStream(file))
+  def this(input: InputStream) = this(input, PageInputStream.DefaultPageSize)
+  def this(file: File, byteSize: Int = PageInputStream.DefaultPageSize) = this(new FileInputStream(file))
 }
 
 /**
@@ -109,6 +110,6 @@ class PageInputStream(in: InputStream, val pageSize: Int) extends RichInputStrea
  * @param pageSize
  */
 class PageReader(in: Reader, val pageSize: Int) extends RichReader(in) with PagedInput[Char] {
-  def this(in: Reader) = this(in, DefaultPageSize)
-  def this(file: File, numCharsInPage: Int = DefaultPageSize) = this(new FileReader(file))
+  def this(in: Reader) = this(in, PageInputStream.DefaultPageSize)
+  def this(file: File, numCharsInPage: Int = PageInputStream.DefaultPageSize) = this(new FileReader(file))
 }

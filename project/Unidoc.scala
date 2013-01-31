@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package xerial
 
 import sbt._
 import sbt.Keys._
@@ -29,7 +28,7 @@ object Unidoc {
   val unidoc = TaskKey[File]("unidoc", "Create unified scaladoc for all aggregates")
 
   lazy val settings = Seq(
-    unidocDirectory <<= crossTarget / "unidoc",
+    unidocDirectory <<= (crossTarget, version) { (c, v) => c / ("unidoc/" + v) },
     unidocExclude := Seq.empty,
     unidocAllSources <<= (thisProjectRef, buildStructure, unidocExclude)
     flatMap allSources,
@@ -67,10 +66,10 @@ object Unidoc {
 
   def unidocTask: Initialize[Task[File]] = {
     (compilers, cacheDirectory, unidocSources, unidocClasspath,
-    unidocDirectory, scalacOptions in doc, streams) map {
-      (compilers, cache, sources, classpath, target, options, s) => {
+    unidocDirectory, scalacOptions in doc, version, streams) map {
+      (compilers, cache, sources, classpath, target, options, v, s) => {
         val scaladoc = new Scaladoc(100, compilers.scalac)
-        scaladoc.cached(cache / "unidoc", "main", sources, classpath, target,
+        scaladoc.cached(cache / ("unidoc/" + v), "main", sources, classpath, target,
     options, s.log)
         target
       }

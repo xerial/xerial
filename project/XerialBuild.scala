@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package xerial
-
 import java.io.File
 import sbt._
-import Keys._
-
+import sbt.Keys._
 import sbtrelease.ReleasePlugin._
-import com.jsuereth.pgp.sbtplugin.PgpPlugin._
+import scala._
+import scala.Some
+import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.9.2"
+  val SCALA_VERSION = "2.10.0"
+
 
   def releaseResolver(v: String): Resolver = {
     val profile = System.getProperty("xerial.profile", "default")
@@ -49,9 +49,6 @@ object XerialBuild extends Build {
     organizationHomepage := Some(new URL("http://xerial.org/")),
     description := "Xerial: Data Management Utiilities",
     scalaVersion := SCALA_VERSION,
-    resolvers <++= version { (v) =>
-        Seq("Typesafe repository" at "http://repo.typesafe.com/typesafe/releases", releaseResolver(v))
-    },
     publishMavenStyle := true,
     publishArtifact in Test := false,
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
@@ -59,8 +56,9 @@ object XerialBuild extends Build {
       _ => false
     },
     parallelExecution := true,
+    parallelExecution in Test := false,
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
@@ -87,14 +85,10 @@ object XerialBuild extends Build {
             <url>http://xerial.org/leo</url>
           </developer>
         </developers>
-    },
-    useGpg := true,
-    useGpgAgent := false
+    }
   )
 
 
-
-  import Dist._
   import Dependencies._
 
   private val dependentScope = "test->test;compile->compile"
@@ -103,9 +97,13 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ distSettings ++ Seq(packageDistTask) ++
-      Seq(libraryDependencies ++= bootLib)
-  ) aggregate(core, lens, cui)
+    settings = buildSettings ++ packSettings ++ Seq(
+      packExclude := Seq("root"),
+      packMain := Map("xerial" -> "xerial.lens.cui.Main"),
+      publish := {},
+      publishLocal := {}
+    )
+  ) aggregate(core, lens, compress)
 
   lazy val core = Project(
     id = "xerial-core",
@@ -120,33 +118,32 @@ object XerialBuild extends Build {
     id = "xerial-lens",
     base = file("xerial-lens"),
     settings = buildSettings ++ Seq(
-      description := "Utilities for retrieving object type information",
+      description := "Object mapping utiltiles",
       libraryDependencies ++= testLib ++ lensLib
     )
   ) dependsOn (core % dependentScope)
 
-  lazy val cui = Project(
-    id = "xerial-cui",
-    base = file("xerial-cui"),
+  lazy val compress = Project(
+    id = "xerial-compress",
+    base = file("xerial-compress"),
     settings = buildSettings ++ Seq(
-      description := "command line parser and launcher",
-      libraryDependencies ++= testLib
+      description := "Compression libraries",
+      libraryDependencies ++= testLib ++ Seq(
+        "org.xerial.snappy" % "snappy-java" % "1.0.5-M3"
+      )
     )
-  ) dependsOn(lens % dependentScope)
+  ) dependsOn (core % dependentScope)
 
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.0.M1" % "test"
-    )
-
-    val bootLib = Seq(
-      "org.codehaus.plexus" % "plexus-classworlds" % "2.4" % "provided"
+      "org.scalatest" %% "scalatest" % "2.0.M5b" % "test"
     )
 
     val lensLib = Seq(
       "org.javassist" % "javassist" % "3.15.0-GA",
-      "org.scala-lang" % "scalap" % SCALA_VERSION
+      "org.scala-lang" % "scalap" % SCALA_VERSION,
+      "org.scala-lang" % "scala-reflect" % SCALA_VERSION
     )
   }
 

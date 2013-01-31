@@ -26,6 +26,8 @@ package xerial.core.io.text.parser
 import xerial.core.log.Logger
 import annotation.tailrec
 import xerial.core.io.text.StringScanner
+import scala.language.implicitConversions
+
 
 
 /**
@@ -184,6 +186,7 @@ trait Grammar extends Logger {
  * @author leo
  */
 object Grammar extends Logger {
+
 
   def toVisibleString(s: CharSequence): String = {
     if (s == null) return ""

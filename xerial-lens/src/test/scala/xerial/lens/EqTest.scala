@@ -88,7 +88,7 @@ class EqTest extends XerialSpec {
           new MyClass3(r.nextInt(100), nameList(r.nextInt(nameList.length)))
       }
       val g = l.par.groupBy(m => m)
- 
+
     }
 
     "allow nesting" in {

@@ -18,9 +18,14 @@ package xerial.core.util
 
 import collection.mutable.WeakHashMap
 import java.io.File
-import sys.process.Process
+import sys.process.{ProcessLogger, Process}
 import xerial.core.log.Logger
 import xerial.core.util
+import java.lang.reflect.Field
+import collection.JavaConversions._
+import io.Source
+import management.ManagementFactory
+import java.util.regex.Pattern
 
 //--------------------------------------
 //
@@ -29,11 +34,133 @@ import xerial.core.util
 //
 //--------------------------------------
 
+
+
+
 /**
  * Launch UNIX (or cygwin) commands from Scala
  * @author leo
  */
 object Shell extends Logger {
+
+  private def access[U](f:Field)(body: => U) : U = {
+    val a = f.isAccessible
+    try {
+      if(!a)
+        f.setAccessible(true)
+      body
+    }
+    finally {
+      if(!a)
+        f.setAccessible(a)
+    }
+
+  }
+
+  /**
+   * Kills the process
+   * @param pid
+   * @return
+   */
+  def kill(pid:Int, signal:String="TERM") : Int ={
+    val p = launchProcess("kill -%s %d".format(signal, pid))
+    p.waitFor()
+    val exitCode = p.exitValue()
+    debug("killed process %d with exit code %d", pid, exitCode)
+    exitCode
+  }
+
+  /**
+   * Kill the process tree rooted from pid
+   * @param pid
+   * @return exit code
+   */
+  def killTree(pid:Int, signal:String="TERM") : Int = {
+    // stop the parent process first to keep it from forking another child process
+    exec("kill -STOP %d".format(pid))
+
+    // retrieve child processes
+    val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid), inheritIO=true)
+    for(line <- Process(pb).lines_!) {
+      val childPID = line.trim.toInt
+      killTree(childPID, signal)
+    }
+
+    // Now send the signal
+    exec("kill -%s %d".format(signal, pid))
+    // Try and continue the process in case the signal is non-terminating
+    // but doesn't continue the process
+    exec("kill -CONT %d".format(pid))
+  }
+
+
+  def escape(s:String) : String = {
+    val r = """([^\\])(\")""".r
+    val b = new StringBuilder
+    var cursor = 0
+    for(m <- r.findAllIn(s).matchData) {
+      b append s.substring(cursor, m.start)
+      b append m.group(2)
+      cursor = m.end
+    }
+    b append s.substring(cursor)
+    b.result
+  }
+
+  def unescape(s:String) : String = {
+    val r = """(\\)([\\/\\"bfnrt])""".r
+    val b = new StringBuilder
+    var cursor = 0
+    for(m <- r.findAllIn(s).matchData) {
+      b append s.substring(cursor, m.start)
+      b append m.group(2)
+      cursor = m.end
+    }
+    b append s.substring(cursor)
+    b.result
+  }
+
+  /**
+   * launch a command in the remote host. The target host needs to be accessed
+   * via ssh command without password.
+   * @param host
+   * @param cmdLine
+   */
+  def launchRemoteDaemon(host:String, cmdLine:String)  {
+    execRemote(host, s"$cmdLine < /dev/null > /dev/null &")
+  }
+
+  /**
+   * Return the process ID of the current JVM.
+   *
+   * @return process id or -1 when process ID is not found.
+   */
+  def getProcessIDOfCurrentJVM : Int = {
+    val r = ManagementFactory.getRuntimeMXBean
+    // This value is ought to be (process id)@(host name)
+    val n = r.getName
+    n.split("@").headOption.map{ _.toInt } getOrElse { -1 }
+  }
+
+  /**
+   * Returns process id
+   * @param p
+   * @return process id or -1 if pid cannot be detected
+   */
+  def getProcessID(p:java.lang.Process) : Int = {
+    try {
+      // If the current OS is *Nix, the class of p is UNIXProcess and its pid can be obtained
+      // from pid field by using reflection.
+      val f = p.getClass().getDeclaredField("pid")
+      val pid : Int = access(f) {
+        f.get(p).asInstanceOf[Int]
+      }
+      pid
+    }
+    catch {
+      case e : Throwable => -1
+    }
+  }
 
   def launchJava(args: String) = {
     val javaCmd = Shell.findJavaCommand()
@@ -41,23 +168,62 @@ object Shell extends Logger {
       throw new IllegalStateException("No JVM is found. Set JAVA_HOME environmental variable")
 
     val cmdLine = "%s %s".format(javaCmd.get, args)
+    launchProcess(cmdLine)
+  }
 
-    debug("Run command: " + cmdLine)
-
-    Process(CommandLineTokenizer.tokenize(cmdLine)).run()
+  /**
+   * Launch a process then retrieves the exit code
+   * @param cmdLine
+   * @return
+   */
+  def exec(cmdLine:String) : Int = {
+    val pb = prepareProcessBuilder(cmdLine, inheritIO=true)
+    val exitCode = Process(pb).!(ProcessLogger{
+      out:String => info(out)
+    })
+    debug("exec command %s with exitCode:%d", cmdLine, exitCode)
+    exitCode
   }
 
 
   def launchProcess(cmdLine: String) = {
-    val c = "%s -c \"%s\"".format(Shell.getCommand("sh"), cmdLine)
-    debug {
-      "exec command: " + c
-    }
+    val pb = prepareProcessBuilder(cmdLine, inheritIO=true)
+    val p = pb.start
+    debug("exec command [pid:%d] %s", getProcessID(p), pb.command.mkString(" "))
+    p
+  }
 
+  def execRemote(hostname:String, cmdLine:String) : Int = {
+    val pb = prepareProcessBuilderFromSeq(Seq("ssh", hostname, quote(cmdLine)), inheritIO=true)
+    val exitCode = Process(pb).!(ProcessLogger{
+      out:String => info(out)
+    })
+    debug("exec command %s with exitCode:%d", cmdLine, exitCode)
+    exitCode
+  }
+
+  private def quote(s:String) : String = {
+    s.replaceAll("""\"""", """\\"""")
+  }
+
+
+  def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean): ProcessBuilder = {
+    trace("cmdLine: %s", cmdLine)
+    val tokens = Array(Shell.getCommand("sh"), "-c", if(OS.isWindows) quote(cmdLine) else cmdLine)
+    prepareProcessBuilderFromSeq(tokens, inheritIO)
+  }
+
+  def prepareProcessBuilderFromSeq(tokens:Seq[String], inheritIO:Boolean) : ProcessBuilder = {
+    trace("command line tokens: %s", tokens.mkString(", "))
+    val pb = new ProcessBuilder(tokens:_*)
+    if(inheritIO)
+      pb.inheritIO()
     var env = getEnv
     if(OS.isWindows)
       env += ("CYGWIN" -> "notty")
-    Process(CommandLineTokenizer.tokenize(c), None, env.toSeq:_*).run
+    val envMap = pb.environment()
+    env.foreach(e => envMap.put(e._1, e._2))
+    pb
   }
 
   def getEnv : Map[String, String] = {
@@ -67,10 +233,7 @@ object Shell extends Logger {
 
   def launchCmdExe(cmdLine: String) = {
     val c = "%s /c \"%s\"".format(Shell.getCommand("cmd"), cmdLine)
-    debug {
-      "exec command: " + c
-    }
-
+    debug("exec command: %s", c)
     Process(CommandLineTokenizer.tokenize(c), None, getEnv.toSeq:_*).run
   }
 
@@ -128,22 +291,20 @@ object Shell extends Logger {
     })
   }
 
-  def findJavaHome: Option[String] = {
-    // lookup environment variable JAVA_HOME first
-    val e = System.getenv("JAVA_HOME")
+  def sysProp(key:String) : Option[String] = Option(System.getProperty(key))
+  def env(key:String) : Option[String] = Option(System.getenv(key))
 
+
+  def findJavaHome: Option[String] = {
+
+    // lookup environment variable JAVA_HOME first.
     // If JAVA_HOME is not defined, use java.home system property
-    if (e == null) {
-      return System.getProperty("java.home") match {
-        case null => None
-        case x => Some(x)
-      }
-    }
+    val e : Option[String] = env("JAVA_HOME") orElse sysProp("java.home")
 
     def resolveCygpath(p: String) = {
       if (OS.isWindows) {
         // If the path is for Cygwin environment
-        val m = """/cygdrive/(\w)(/.*)""".r.findFirstMatchIn(e)
+        val m = """/cygdrive/(\w)(/.*)""".r.findFirstMatchIn(p)
         if (m.isDefined)
           "%s:%s".format(m.get.group(1), m.get.group(2))
         else
@@ -152,7 +313,8 @@ object Shell extends Logger {
       else
         p
     }
-    val p = Some(resolveCygpath(e))
+
+    val p = e.map(resolveCygpath(_))
     debug("Found JAVA_HOME=" + p.get)
     p
   }
@@ -213,7 +375,7 @@ object Shell extends Logger {
       val ret: Option[String] = java_home match {
         case Some(x) => Some(javaBin(x).trim)
         case None => {
-          val javaPath = (Process("which %s".format(javaCmdName)) !!).trim
+          val javaPath = Process("which %s".format(javaCmdName)).!!.trim
           if (javaPath.isEmpty)
             None
           else

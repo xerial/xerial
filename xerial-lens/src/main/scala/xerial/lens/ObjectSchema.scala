@@ -1,5 +1,3 @@
-package xerial.lens
-
 /*
  * Copyright 2012 Taro L. Saito
  *
@@ -7,7 +5,7 @@ package xerial.lens
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,12 +13,15 @@ package xerial.lens
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package xerial.lens
 
 import collection.mutable.WeakHashMap
 import tools.scalap.scalax.rules.scalasig._
 import xerial.core.log.Logger
 import java.{lang => jl}
 import java.lang.{reflect => jr}
+import scala.reflect.ClassTag
+import scala.language.implicitConversions
 
 //--------------------------------------
 //
@@ -39,7 +40,7 @@ object ObjectSchema extends Logger {
   import java.{lang => jl}
   import TypeUtil._
 
-  implicit def toSchema(cl: Class[_]): ObjectSchema = ObjectSchema(cl)
+  //implicit def toSchema(cl: Class[_]): ObjectSchema = ObjectSchema(cl)
 
   private val schemaTable = new WeakHashMap[Class[_], ObjectSchema]
 
@@ -47,9 +48,13 @@ object ObjectSchema extends Logger {
    * Get the object schema of the specified ObjectType. This method caches previously created ObjectSchema instances, and
    * second call for the same ObjectType object return the cached entry.
    */
-  def apply(cl: Class[_]): ObjectSchema = schemaTable.getOrElseUpdate(cl, new ObjectSchema(cl))
+  def apply(cl: Class[_]): ObjectSchema = schemaTable.getOrElseUpdate(cl, createSchema(cl))
 
-  def of[A](implicit m: ClassManifest[A]): ObjectSchema = apply(m.erasure)
+  private def createSchema(cl:Class[_]) : ObjectSchema = {
+    new ObjectSchema(cl)
+  }
+
+  def of[A](implicit m: ClassTag[A]): ObjectSchema = apply(m.runtimeClass)
 
   def getSchemaOf(obj: Any): ObjectSchema = apply(cls(obj))
 
@@ -60,7 +65,7 @@ object ObjectSchema extends Logger {
       Some(Class.forName(name))
     }
     catch {
-      case e => None
+      case e : Throwable => None
     }
   }
 
@@ -89,7 +94,7 @@ object ObjectSchema extends Logger {
         }
         catch {
           // ScalaSigParser throws NPE when noe signature for the class is found
-          case _ => None
+          case _ : Exception => None
         }
       // If no signature is found, search an enclosing object
       sig.orElse(enclosingObject(cl).flatMap(findSignature(_)))
@@ -103,7 +108,7 @@ object ObjectSchema extends Logger {
         true
       }
       catch {
-        case _ => false
+        case _ : Exception => false
       }
     }
 
@@ -124,14 +129,15 @@ object ObjectSchema extends Logger {
 
     def isTargetClass(t: scalasig.Type): Boolean = {
       t match {
-        case TypeRefType(_, ClassSymbol(sinfo, _), _) => {
-          //debug("className = %s, found name = %s", className, sinfo.name)
-          sinfo.name == cl.getSimpleName
+        case TypeRefType(_, c@ClassSymbol(sinfo, _), _) => {
+          // when ClassSymbol contains isModule flag, it is a constructor of the companion object
+          sinfo.name == cl.getSimpleName && !c.isModule
         }
         case _ => false
       }
     }
     def findConstructorParameters(mt: MethodType): Array[ConstructorParameter] = {
+      trace("constructor method type: %s", mt)
       val paramSymbols: Seq[MethodSymbol] = mt match {
         case MethodType(_, param: Seq[_]) => param.collect {
           case m: MethodSymbol => m
@@ -144,22 +150,32 @@ object ObjectSchema extends Logger {
         // resolve the actual field owner
         val fieldOwner = findFieldOwner(name, cl)
 
-        if (fieldOwner.isEmpty)
-          throw new IllegalStateException("No field owner is found: name:%s, base class:%s".format(name, cl.getSimpleName))
-        ConstructorParameter(cl, fieldOwner.get, index, name, vt)
+        // This error happens when a private val field is defined in the constructor, but never used in the class body
+        //if (fieldOwner.isEmpty)
+        //     throw new IllegalStateException("No field owner is found: name:%s, base class:%s".format(name, cl.getSimpleName))
+        ConstructorParameter(cl, fieldOwner, index, name, vt)
       }
       l.toArray
     }
 
     val entries = (0 until sig.table.length).map(sig.parseEntry(_))
     entries.collectFirst {
-      case m: MethodType if isTargetClass(m.resultType) =>
-        Constructor(cl, findConstructorParameters(m))
+      case m: MethodType if isTargetClass(m.resultType) => {
+        val params = findConstructorParameters(m)
+        Constructor(cl, params)
+      }
     }
   }
 
-  private def findConstructor(cl: Class[_]): Option[Constructor] =
-    for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
+  private def findConstructor(cl: Class[_]): Option[Constructor] = {
+    try
+      for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
+    catch {
+      case e : Exception =>
+        error(e)
+        None
+    }
+  }
 
 
   private def isSystemClass(cl: Class[_]) = {
@@ -172,11 +188,11 @@ object ObjectSchema extends Logger {
   }
 
   def getParentsByReflection(cl: Class[_]) = {
-    trace("get parents of %s by reflecton", cl.getSimpleName)
     val i = if (cl.getInterfaces != null) cl.getInterfaces else Array.empty[Class[_]]
     val p = Seq(cl.getSuperclass) ++ i
     val filtered = p.filterNot(c => isSystemClass(c))
-    trace("parents of %s: %s ", cl.getSimpleName, filtered.map(_.getName).mkString(", "))
+    if(!filtered.isEmpty)
+      trace("parents of %s: %s ", cl.getSimpleName, filtered.map(_.getName).mkString(", "))
     filtered
   }
 
@@ -188,11 +204,15 @@ object ObjectSchema extends Logger {
 
   private def toAttribute(param: Seq[MethodSymbol], sig: ScalaSig, refCl: Class[_]): Seq[(String, ObjectType)] = {
     val paramRefs = param.map(p => (p.name, sig.parseEntry(p.symbolInfo.info)))
-    val paramSigs = paramRefs.map {
-      case (name: String, t: TypeRefType) => (name, t)
+    trace("method param refs:\n%s", paramRefs.mkString("\n"))
+    paramRefs.map {
+//      case (name: String, t @ TypeRefType(prefix, symbol, Seq(tp : TypeRefType))) =>
+//        (name, resolveClass(tp))
+      case (name: String, t: TypeRefType) =>
+        (name, resolveClass(t))
+      case (name: String, ExistentialType(tref:TypeRefType, symbols)) =>
+        (name, resolveClass(tref))
     }
-
-    for ((name, typeSignature) <- paramSigs) yield (name, resolveClass(typeSignature))
   }
 
   def isOwnedByTargetClass(m: MethodSymbol, cl: Class[_]): Boolean = {
@@ -217,7 +237,8 @@ object ObjectSchema extends Logger {
 
         val parents = findParentSchemas(cl)
         val logger = getLogger("parameter")
-        logger.trace("parents: %s", parents.mkString(", "))
+        if(!parents.isEmpty)
+          logger.trace("parents: %s", parents.mkString(", "))
         val parentParams = parents.flatMap {
           p => p.parameters
         }.collect {
@@ -305,7 +326,7 @@ object ObjectSchema extends Logger {
               }
             }
             catch {
-              case e => None
+              case e : Throwable => None
             }
           }
         }
@@ -329,9 +350,9 @@ object ObjectSchema extends Logger {
               }
             }
             catch {
-              case e => {
+              case e : Throwable => {
                 warn("error occurred when accessing method %s : %s", s, e)
-                //e.printStackTrace()
+                e.printStackTrace()
                 None
               }
             }
@@ -348,7 +369,7 @@ object ObjectSchema extends Logger {
 
 
   def parentMethodsOf(cl: Class[_]) = {
-    def resolveImplOwner(m: ScMethod) {
+    def resolveImplOwner(m: ScMethod) = {
       m.owner
     }
     findParentSchemas(cl).flatMap(_.methods).map {
@@ -356,11 +377,12 @@ object ObjectSchema extends Logger {
     }
   }
 
-  def resolveClass(typeSignature: TypeRefType): ObjectType = {
 
+  def resolveClass(typeSignature: TypeRefType): ObjectType = {
 
     val name = typeSignature.symbol.path
     val clazz: Class[_] = {
+      trace("resolve class: %s %s", name, typeSignature)
       name match {
         // Resolve classes of primitive types.
         // This special treatment is necessary because classes of primitive types, classOf[scala.Int] etc. are converted by
@@ -377,17 +399,20 @@ object ObjectSchema extends Logger {
         // Map and Set type names are defined in Scala.Predef
         case "scala.Predef.Map" => classOf[Map[_, _]]
         case "scala.Predef.Set" => classOf[Set[_]]
+        case "scala.Predef.Class" => classOf[Class[_]]
+        case "scala.package.IndexedSeq" => classOf[IndexedSeq[_]]
         case "scala.package.Seq" => classOf[Seq[_]]
         case "scala.package.List" => classOf[List[_]]
         case "scala.Any" => classOf[Any]
         case "scala.AnyRef" => classOf[AnyRef]
+        case _ if typeSignature.symbol.isDeferred => classOf[AnyRef]
         case _ =>
           // Find the class using the context class loader
           val loader = Thread.currentThread().getContextClassLoader
           try loader.loadClass(name)
           catch {
-            case _ => {
-              // When class is defined inside an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
+            case _ : Throwable => {
+              // When the class is defined in an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
               val parent = typeSignature.symbol.parent
               val anotherClassName = "%s$%s".format(if (parent.isDefined) parent.get.path else "", typeSignature.symbol.name)
               loader.loadClass(anotherClassName)
@@ -396,15 +421,17 @@ object ObjectSchema extends Logger {
       }
     }
 
+
     def toObjectType(cl:Class[_]) : ObjectType = {
-      if (typeSignature.typeArgs.isEmpty) {
-        ObjectType(clazz)
-      }
-      else {
-        val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
-          case x: TypeRefType => resolveClass(x)
-        }
-        new GenericType(clazz, typeArgs)
+      typeSignature match {
+        case TypeRefType(prefix, symbol, typeArgs) if typeArgs.isEmpty =>
+          ObjectType(clazz)
+        case _ =>
+          val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
+            case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
+            case other => AnyRefType
+          }
+          GenericType(clazz, typeArgs)
       }
     }
 
@@ -447,17 +474,20 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
   def containsParameter(name: String) = parameterIndex.contains(name)
 
   lazy val constructor: Constructor = {
-    findConstructor(cl) match {
+    findConstructor match {
       case Some(c) => c
       case None => throw new IllegalArgumentException("no constructor is found for " + cl)
     }
   }
+  def findConstructor : Option[Constructor] = ObjectSchema.findConstructor(cl)
 
   override def toString = {
-    if (parameters.isEmpty)
-      name
-    else
-      "%s(%s)".format(name, parameters.mkString(", "))
+    findConstructor.map { cc =>
+      if(cc.params.isEmpty)
+        name
+      else
+        "%s(%s)".format(name, cc.params.mkString(", "))
+    } getOrElse name
   }
 }
 

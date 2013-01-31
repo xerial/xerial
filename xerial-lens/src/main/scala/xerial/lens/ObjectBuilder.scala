@@ -16,9 +16,9 @@ package xerial.lens
  * limitations under the License.
  */
 
-import collection.mutable.{ArrayBuffer, Map}
-import xerial.lens
+import collection.mutable.{ArrayBuffer}
 import xerial.core.log.Logger
+import collection.mutable
 
 
 //--------------------------------------
@@ -34,33 +34,26 @@ import xerial.core.log.Logger
  */
 object ObjectBuilder extends Logger {
 
-  // class ValObj(val p1, val p2, ...)
-  // class VarObj(var p1, var p2, ...)
-
   def apply[A](cl: Class[A]): ObjectBuilder[A] = {
-
-    if (!TypeUtil.canInstantiate(cl))
-      throw new IllegalArgumentException("Cannot instantiate class " + cl)
-
-    // collect default values of the object
-    val schema = ObjectSchema(cl)
-    val prop = Map.newBuilder[String, Any]
-    trace("class %s. values to set: %s", cl.getSimpleName, prop)
-    // get the default values (including constructor parameters and fields)
-    val default = TypeUtil.newInstance(cl)
-    for (p <- schema.parameters) {
-      trace("set parameter: %s", p)
-      prop += p.name -> p.get(default)
-    }
-
-    new ObjectBuilderFromString(cl, prop.result)
+    //if (!TypeUtil.canInstantiate(cl))
+//      throw new IllegalArgumentException("Cannot instantiate class " + cl)
+    new SimpleObjectBuilder(cl)
   }
+
+  sealed trait BuilderElement
+  case class Holder[A](holder:ObjectBuilder[A]) extends BuilderElement
+  case class Value(value:Any) extends BuilderElement
+  case class ArrayHolder(holder:mutable.ArrayBuffer[Any]) extends BuilderElement
+
 
 }
 
 trait GenericBuilder {
 
-  def set(name: String, value: Any): Unit
+  def set(path:String, value:Any): Unit = set(Path(path), value)
+  def set(path:Path, value:Any): Unit
+
+  def get(name:String) : Option[Any]
 }
 
 /**
@@ -69,94 +62,153 @@ trait GenericBuilder {
  */
 trait ObjectBuilder[A] extends GenericBuilder {
 
-  def get(name: String): Option[_]
   def build: A
+
 }
 
-class ObjectBuilderFromString[A](cl: Class[A], defaultValue: Map[String, Any]) extends ObjectBuilder[A] with Logger {
-  private val schema = ObjectSchema(cl)
-  private val valueHolder = collection.mutable.Map[String, Any]()
+trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger {
 
-  import lens.TypeUtil._
+  import ObjectBuilder._
+  import TypeUtil._
 
-  defaultValue.foreach {
-    case (name, value) => {
-      val v =
-        schema.findParameter(name) match {
-          case Some(x) =>
-            if (canBuildFromBuffer(x.valueType.rawType)) {
-              trace("name:%s valueType:%s", name, x.valueType)
-              toBuffer(value, x.valueType)
-            }
-            else
-              value
-          case None => value
+
+  protected val holder = collection.mutable.Map.empty[String, BuilderElement]
+
+  protected def findParameter(name:String) : Option[ParamType]
+  protected def getParameterTypeOf(name:String) = findParameter(name).get.valueType
+
+  protected def defaultValues : collection.immutable.Map[String, Any]
+
+  // set the default values of the object
+  for((name, value) <- defaultValues) {
+    val v : BuilderElement = findParameter(name).map {
+      case p if TypeUtil.canBuildFromBuffer(p.rawType) => Value(value)
+      case p if canBuildFromStringValue(p.valueType) => Value(value)
+      case p => {
+        // nested object
+        // TODO handling of recursive objects
+        val b = ObjectBuilder(p.rawType)
+        val schema = ObjectSchema(p.rawType)
+        for(p <- schema.constructor.params) {
+          b.set(p.name, p.get(value))
         }
-      valueHolder += name -> v
+        Holder(b)
+      }
+    } getOrElse Value(value)
+
+    holder += name -> v
+  }
+
+  private def canBuildFromStringValue(t:ObjectType) : Boolean = {
+    import scala.language.existentials
+
+    if(TextType.isTextType(t.rawType) || canBuildFromString(t.rawType))
+      true
+    else
+      t match {
+        case o:OptionType[_] => canBuildFromStringValue(o.elementType)
+        case _ => false
+      }
+  }
+
+  def set(path: Path, value: Any) {
+    if(path.isEmpty) {
+      // do nothing
+      return
     }
-  }
+    val name = path.head
+    val p = findParameter(name)
+    if(p.isEmpty) {
+      error("no parameter is found for path %s", path)
+      return
+    }
 
-  def get(name: String) = valueHolder.get(name)
+    trace("set path %s : %s", path, value)
 
-  def set(name: String, value: Any) {
-    val p = schema.getParameter(name)
-    updateValueHolder(name, p.valueType, value)
-  }
 
-  private def updateValueHolder(name: String, valueType: ObjectType, value: Any): Unit = {
-    trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
-    if (canBuildFromBuffer(valueType.rawType)) {
-      val t = valueType.asInstanceOf[GenericType]
-      val gt = t.genericTypes(0).rawType
-      type E = gt.type
-      val arr = valueHolder.getOrElseUpdate(name, new ArrayBuffer[E]).asInstanceOf[ArrayBuffer[Any]]
-      arr += TypeConverter.convert(value, gt)
+    if(path.isLeaf) {
+      val valueType = p.get.valueType
+      trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
+      if (canBuildFromBuffer(valueType.rawType)) {
+        val t = valueType.asInstanceOf[GenericType]
+        val gt = t.genericTypes(0)
+
+        holder.get(name) match {
+          case Some(Value(v)) =>
+            // remove the default value
+            holder.remove(name)
+          case _ => // do nothing
+        }
+        val arr = holder.getOrElseUpdate(name, ArrayHolder(new ArrayBuffer[Any])).asInstanceOf[ArrayHolder]
+        TypeConverter.convert(value, gt) map { arr.holder += _ }
+      }
+      else if(canBuildFromStringValue(valueType)) {
+        TypeConverter.convert(value, valueType).map { v =>
+          holder += name -> Value(v)
+        }
+      }
+      else {
+        error("failed to set %s to path %s", value, path)
+      }
     }
     else {
-      valueHolder(name) = value
+      // nested object
+      val h = holder.getOrElseUpdate(path.head, Holder(ObjectBuilder(p.get.valueType.rawType)))
+      h match {
+        case Holder(b) => b.set(path.tailPath, value)
+        case other =>
+          // overwrite the existing holder
+          throw new IllegalStateException("invalid path:%s, value:%s, holder:%s".format(path, value, other))
+      }
     }
+  }
+
+  def get(name:String) : Option[Any] = {
+    holder.get(name) flatMap {
+      case Holder(h) => Some(h.build)
+      case Value(v) => Some(v)
+      case ArrayHolder(h) => {
+        val p = getParameterTypeOf(name)
+        debug("convert array holder:%s into %s", h, p)
+        TypeConverter.convert(h, p)
+      }
+    }
+  }
+}
+
+class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with StandardBuilder[Parameter] with Logger {
+
+  private lazy val schema = ObjectSchema(cl)
+
+  protected def findParameter(name: String) = {
+    assert(schema != null)
+    schema.findParameter(name)
+  }
+  protected def defaultValues = {
+    // collect default values of the object
+    val schema = ObjectSchema(cl)
+    val prop = Map.newBuilder[String, Any]
+
+    // get the default values of the constructor
+    for(c <- schema.findConstructor; p <- c.params; v <- p.getDefaultValue) {
+      trace(s"set default parameter $p to $v")
+      prop += p.name -> v
+    }
+    val r = prop.result
+    trace("class %s. values to set: %s", cl.getSimpleName, r)
+    r
   }
 
   def build: A = {
-
+    trace("holder contents: %s", holder)
     val cc = schema.constructor
-
-    var remainingParams = schema.parameters.map(_.name).toSet
-
-    def getValue(p: Parameter): Option[_] = {
-      val v = valueHolder.getOrElse(p.name, TypeUtil.zero(p.valueType.rawType))
-      if (v != null) {
-        val cv = TypeConverter.convert(v, p.valueType)
-        trace("getValue:%s, v:%s => cv:%s", p, v, cv)
-        Some(cv)
-      }
-      else
-        None
-    }
-
     // Prepare constructor args
-    val args = for (p <- cc.params) yield {
-      val v = getValue(p)
-      remainingParams -= p.name
-      v.get.asInstanceOf[AnyRef]
-    }
-
-    trace("cc:%s, args:%s", cc, args.mkString(", "))
-    val res = cc.newInstance(args).asInstanceOf[A]
-
-    // Set the remaining parameters
-    trace("remaining params: %s", remainingParams.mkString(", "))
-    for (pname <- remainingParams) {
-      schema.getParameter(pname) match {
-        case f@FieldParameter(owner, ref, name, valueType) => {
-          getValue(f).map {
-            Reflect.setField(res, f.field, _)
-          }
-        }
-        case _ => // ignore constructor/method parameters
-      }
-    }
-
-    res
+    val args = (for (p <- cc.params) yield {
+      (get(p.name) getOrElse TypeUtil.zero(p.rawType, p.valueType)).asInstanceOf[AnyRef]
+    })
+    trace("cc:%s, args:%s (size:%d)", cc, args.mkString(", "), args.length)
+    cc.newInstance(args).asInstanceOf[A]
   }
+
 }
+

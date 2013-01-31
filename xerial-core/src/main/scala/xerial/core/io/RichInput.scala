@@ -16,9 +16,9 @@
 
 package xerial.core.io
 
-import java.io.InputStream
-import java.io.Reader
+import java.io.{Closeable, InputStream, Reader}
 import xerial.core.log.Logger
+import reflect.ClassTag
 
 //--------------------------------------
 //
@@ -31,7 +31,7 @@ import xerial.core.log.Logger
  * Enhances InputStream or Reader for block-wise reading
  * @author leo
  */
-abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassManifest[T]) extends Logger {
+abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassTag[T]) extends Logger {
   var reachedEOF = false
 
   def read(b: Array[T], off: Int, len: Int): Int
@@ -61,11 +61,13 @@ abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassManifest
 
 }
 
-class RichInputStream(in: InputStream) extends RichInput[Byte] {
+class RichInputStream(in: InputStream) extends RichInput[Byte] with Closeable {
   def read(b: Array[Byte], off: Int, len: Int) = in.read(b, off, len)
+  def close { in.close }
 }
 
-class RichReader(in: Reader) extends RichInput[Char] {
+class RichReader(in: Reader) extends RichInput[Char] with Closeable {
   def read(b: Array[Char], off: Int, len: Int) = in.read(b, off, len)
+  def close { in.close }
 }
 

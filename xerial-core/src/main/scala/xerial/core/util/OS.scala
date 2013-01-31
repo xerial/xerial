@@ -38,7 +38,7 @@ object OS {
   def isLinux = getType == OSType.Linux
   lazy val isCygwin = {
     Shell.findCommand("uname") match {
-      case Some(uname) => (Process(uname)!!).startsWith("CYGWIN")
+      case Some(uname) => Process(uname).!!.startsWith("CYGWIN")
       case None => false
     }
   }

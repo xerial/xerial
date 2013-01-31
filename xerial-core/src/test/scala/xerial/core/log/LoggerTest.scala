@@ -32,13 +32,14 @@ class LoggerTest extends XerialSpec {
     }
 
     "support logging in recursion" in {
+      pending
       debug("sub log test")
       def loop(i: Int): Unit = {
         if (i >= 0) {
-          withLogger("sub") {
+//        withLogger("sub") {
             debug("recursion: %d", i)
             loop(i - 1)
-          }
+//        }
         }
       }
       loop(3)
@@ -66,6 +67,13 @@ class LoggerTest extends XerialSpec {
     "support file logger" in {
       pending
       val l = getLogger('file)
+    }
+
+    "support string interpolation" in {
+      val l = getLogger("test-logger")
+      val message = "Hello World"
+      val v = 10000
+      l.info(f"$message number:$v%,d")
     }
 
   }

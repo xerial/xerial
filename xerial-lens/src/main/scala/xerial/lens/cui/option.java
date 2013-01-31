@@ -1,4 +1,4 @@
-package xerial.cui;
+package xerial.lens.cui;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,25 +16,10 @@ import java.lang.annotation.Target;
 public @interface option {
 
     /**
-     * symbol of the option. If this symbol is "h", it handles option "-h".
-     * The symbol must be a single character.
-     *
+     * Comma-separated list of option prefixes. For example, "-h,--help" handles option "-h" and
+     * "--help". If no prefix is specified, this parameter is handled as a nested option.
      */
-    String symbol() default "";
-
-    /**
-     * name of the option. If this name is "help", it handles option
-     * "--help"
-     *
-     */
-    String name() default "";
-
-
-    /**
-     * Variable name used to describe option argument (e.g. --file=VALUE). The
-     * default value is capitalized name().
-     */
-    String varName() default "value";
+    String prefix() default "";
 
     /**
      * Description of the option, used to generate a help message of this
@@ -42,6 +27,10 @@ public @interface option {
      */
     String description() default "";
 
+    /**
+     * If this option is used as a switch to display help messages of commands, set this value to true.
+     */
+    boolean isHelp() default false;
 }
 
 

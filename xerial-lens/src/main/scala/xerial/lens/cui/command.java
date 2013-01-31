@@ -1,4 +1,4 @@
-package xerial.cui;
+package xerial.lens.cui;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -22,8 +22,17 @@ public @interface command {
     String description() default "";
 
     /**
-     * Usage note e.g. "$ command name (argument)"
+     * One-line usage note e.g. "$ command name (argument)"
      * @return
      */
     String usage() default "";
+
+    /**
+     * Detailed help message of the command. For writing multi-line help messages,
+     * "|" can be used as prefixes of lines.
+     * @return
+     */
+    String detailedHelp() default "";
+
+
 }

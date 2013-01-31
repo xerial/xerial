@@ -32,7 +32,8 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 
 /**
- * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class using Reflection
+ * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class using Reflection.
+ * [[xerial.lens.Eq]] trait is a faster version of this class, based on runtime code generation.
  *
  * @author leo
  */
@@ -68,7 +69,7 @@ trait EqByReflection {
 }
 
 /**
- * Add value based [Any#equals] comparison and [Any#hashCode] support to an arbitrary class
+ * Add value based [Any#equals] comparison and [Any#hashCode] support to an arbitrary class.
  *
  * @author leo
  */
@@ -85,6 +86,9 @@ trait Eq {
 
 import java.lang.{reflect => jr}
 
+/**
+ * A common trait that implements comparator and hash code generation.
+ */
 trait HasEq {
   def compare(a: AnyRef, b: AnyRef): Boolean
 
@@ -122,7 +126,7 @@ object EqGen extends Logger {
 
   def buildHashCode(cl: Class[_]): String = {
     val schema = ObjectSchema(cl)
-    val getter = for (p <- schema.parameters; val n = p.name) yield {
+    val getter = for (p <- schema.parameters; n = p.name) yield {
       def default = Seq("(int) v.%s()".format(n))
       def splitDouble = Seq("(int) ((v.%s() >> 32) & 0xFFFFFFFFL)".format(n), "(int) (v.%s() & 0xFFFFFFFFL)".format(n))
       ObjectType(p.valueType.rawType) match {
@@ -134,6 +138,7 @@ object EqGen extends Logger {
         case Primitive.Long => splitDouble
         case Primitive.Float => Seq("(int) (v.%s() & ~0)".format(n))
         case Primitive.Double => splitDouble
+        // TODO support collection types (e.g., Array, Seq, etc.)
         case _ => Seq("(v.%s() != null) ? v.%s().hashCode() : 0".format(n, n))
       }
     }
@@ -157,6 +162,8 @@ object EqGen extends Logger {
   def eqCodeOf(cl: Class[_]) : HasEq = {
     synchronized {
       eqCodeCache.getOrElseUpdate(cl, {
+        // Use the same class loader with Eq to ensure Eq trait is
+        // visible from the newly generated class.
         val loader = classOf[HasEq].getClassLoader
         val eqClassName = cl.getName + "$Eq"
 

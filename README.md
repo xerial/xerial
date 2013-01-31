@@ -1,7 +1,7 @@
 Xerial Project
 ===========
 
-Xerial is data manegment utilties for Scala. 
+Xerial is data managment utilties for Scala. 
 The ulitimate goal of Xerial project is to manage everything as database,
 including class objects, text format data (json, XML, Silk, etc.), data
 streams, etc.
@@ -34,34 +34,44 @@ Retrives object type information embeded in Scala-generated class files.
     * Now you are free-from the type erasure problem!
     * Use `ObjectSchema(cl:Class[_])` to obtain consturctors, methods and the other parameters defined in a class.  
     * SigParser of the scalap is used for reading ScalaSignatures.
+ * `xerial.lens.cui.Launcher` command line parser
 
 ### Applications of ObjectSchema
  * Eq trait for injecting field-value based hashCode and equals method to any objects
     * Your classes extending Eq trait become ready to use in containers, e.g, Set[K], Map[K, V] etc.  
 
- * Command-line parser (xerial-cui)
+ * Command-line parser (`xerial.lens.cui.Launcher`)
    * You can call methods in a class by mapping command line arguments to the method arguments
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
 # Release plan
 
+ * Version 3.1
+  * Scala2.10 support
+  * Enhancement of command-line parser: allow nested command line options 
+ 
  * Version 3.0: Scala-based release. 
   * Migrating common utilities from Java to Scala
 
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.1"
+    
+    # When you want to use ObjectSchema and command line parser
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.1"
+
+#### Using Snapshot version
+
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.0-SNAPSHOT"
-    
-    # When you want to use ObjectSchema
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.0-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2-SNAPSHOT"
 
-    # command line parser
-    libraryDependencies += "org.xerial" % "xerial-cui" % "3.0-SNAPSHOT"
 
 ## Scala API
 
-* [xerial-core 3.0-SNAPSHOT API](https://oss.sonatype.org/service/local/repositories/snapshots/archive/org/xerial/xerial-core/3.0-SNAPSHOT/xerial-core-3.0-SNAPSHOT-javadoc.jar/!/index.html)
-* [xerial-lens 3.0-SNAPSHOT API](https://oss.sonatype.org/service/local/repositories/snapshots/archive/org/xerial/xerial-lens/3.0-SNAPSHOT/xerial-lens-3.0-SNAPSHOT-javadoc.jar/!/index.html)
+(Unidoc of API will be prepared)
+
+* [xerial-core 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.1/xerial-core-3.1-javadoc.jar/!/index.html)
+* [xerial-lens 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.1/xerial-lens-3.1-javadoc.jar/!/index.html)
+

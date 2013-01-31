@@ -40,10 +40,10 @@ object Workflow {
 
   case class FunRef[A, B](f:A=>B) {
     def apply(t:Rule*) : Rule = new FunApply(this, t)
-    def <(t:Rule*) : Rule = new FunApply(this, t)  // TODO static type checking
+    def <=(t:Rule*) : Rule = new FunApply(this, t)  // TODO static type checking
   }
 
-  case class FunApply(f:FunRef[_,_], input:Seq[Rule]) extends Rule("funapply") {
+  case class FunApply[A, B](f:FunRef[A,B], input:Seq[Rule]) extends Rule("funapply") {
 
   }
 }
@@ -57,7 +57,7 @@ trait Workflow extends Logger {
 
   //def rule[R](r: R) : Rule = rule(getEnclosingMethodName(3), r)
 
-  implicit def f[A, B](func:A => B) : FunRef[A, B] = new FunRef[A, B](func)
+
 
 //  private var ruleCache : Map[String, Rule] = Map[String, Rule]()
 //
