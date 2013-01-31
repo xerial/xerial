@@ -141,7 +141,7 @@ object Resource extends Logger {
     find("", if (absoluteResourcePath.startsWith("/")) absoluteResourcePath.substring(1) else absoluteResourcePath)
 
   /**
-   * Finds the [[java.net.URL]] of the resource
+   * Finds the java.net.URL of the resource
    *
    * @param packageName
    * the base package name to find the resource
