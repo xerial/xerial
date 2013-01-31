@@ -47,6 +47,7 @@ Retrives object type information embeded in Scala-generated class files.
 # Release plan
 
  * Version 3.1
+  * Scala2.10 support
   * Enhancement of command-line parser: allow nested command line options 
  
  * Version 3.0: Scala-based release. 
@@ -55,22 +56,22 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.0"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.1"
     
     # When you want to use ObjectSchema and command line parser
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.0"
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.1"
 
 #### Using Snapshot version
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.1-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2-SNAPSHOT"
 
 
 ## Scala API
 
 (Unidoc of API will be prepared)
 
-* [xerial-core 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.0/xerial-core-3.0-javadoc.jar/!/index.html)
-* [xerial-lens 3.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.0/xerial-lens-3.0-javadoc.jar/!/index.html)
+* [xerial-core 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.1/xerial-core-3.1-javadoc.jar/!/index.html)
+* [xerial-lens 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.1/xerial-lens-3.1-javadoc.jar/!/index.html)
 
