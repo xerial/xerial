@@ -25,12 +25,13 @@ package xerial.lens
 import java.{lang => jl}
 import collection.mutable.ArrayBuffer
 import reflect.ClassTag
-import scala.reflect.runtime.universe._
-import scala.reflect.runtime.{universe => ru}
 import xerial.core.log.Logger
 import collection.mutable
 
 object ObjectType extends Logger {
+
+  import scala.reflect.runtime.universe._
+  import scala.reflect.runtime.{universe => ru}
 
   private[lens] def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
 
@@ -215,9 +216,6 @@ object TextType {
   def isTextType(cl: Class[_]) : Boolean = table.contains(cl)
 }
 
-object StandardType {
-  def newInstance[A:TypeTag](obj:A) = StandardType(obj.getClass)
-}
 
 case class StandardType[A](override val rawType:Class[A]) extends ObjectType(rawType) with Logger {
 

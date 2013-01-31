@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 /**
  * Add value based [Any#equals] and [Any#hashCode] support to an arbitrary class using Reflection.
- * [[xerial.core.lens.Eq]] trait is a faster version of this class, based on runtime code generation.
+ * [[xerial.lens.Eq]] trait is a faster version of this class, based on runtime code generation.
  *
  * @author leo
  */

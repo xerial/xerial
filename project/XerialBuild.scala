@@ -26,6 +26,7 @@ object XerialBuild extends Build {
 
   val SCALA_VERSION = "2.10.0"
 
+
   def releaseResolver(v: String): Resolver = {
     val profile = System.getProperty("xerial.profile", "default")
     profile match {
@@ -55,6 +56,7 @@ object XerialBuild extends Build {
       _ => false
     },
     parallelExecution := true,
+    parallelExecution in Test := false,
     crossPaths := false,
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
     pomExtra := {
