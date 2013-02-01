@@ -27,11 +27,11 @@ import collection.mutable.ArrayBuffer
 import reflect.ClassTag
 import xerial.core.log.Logger
 import collection.mutable
+import scala.reflect.runtime.universe._
+import scala.reflect.runtime.{universe => ru}
 
 object ObjectType extends Logger {
 
-  import scala.reflect.runtime.universe._
-  import scala.reflect.runtime.{universe => ru}
 
   private[lens] def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
 
@@ -222,8 +222,21 @@ case class StandardType[A](override val rawType:Class[A]) extends ObjectType(raw
   override val name = rawType.getSimpleName
 
   lazy val constructorParams : Seq[ConstructorParameter] = {
-    val schema = ObjectSchema(rawType)
-    schema.constructor.params
+
+    val m = ObjectType.mirror
+    val classSymbol : ru.ClassSymbol = m.staticClass(rawType.getCanonicalName)
+    val cc = classSymbol.typeSignature.declaration(ru.nme.CONSTRUCTOR)
+    if(cc.isMethod) {
+      val fstParen = cc.asMethod.paramss.headOption.getOrElse(Seq.empty)
+      for((p, i) <- fstParen.zipWithIndex) yield {
+        val name = p.name.decoded
+        val tpe = ObjectType(p.typeSignature)
+        ConstructorParameter(rawType, ObjectSchema.findFieldOwner(name, rawType), i, name, tpe)
+      }
+    }
+    else
+      Seq.empty
+
   }
 
 
