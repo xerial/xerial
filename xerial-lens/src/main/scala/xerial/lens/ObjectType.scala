@@ -47,7 +47,7 @@ object ObjectType extends Logger {
 
   def of(tpe:ru.Type) : ObjectType = {
     def resolveType = {
-      debug(f"ObjectType.of(${tpe})")
+      trace(f"ObjectType.of(${tpe})")
       val m =
         (primitiveMatcher orElse
           textMatcher orElse
