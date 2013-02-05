@@ -9,6 +9,7 @@ import xerial.core.log.Logger
 import scala.reflect.ClassTag
 import scala.reflect.runtime.{universe => ru}
 import scala.reflect.runtime.universe.TypeTag
+import collection.parallel.ParSeq
 
 //--------------------------------------
 //
@@ -76,6 +77,10 @@ object TypeUtil extends Logger {
 
   def isSeq[T](cl: Class[T]) = {
     classOf[Seq[_]].isAssignableFrom(cl)
+  }
+
+  def isParSeq[T](cl: Class[T]) = {
+    classOf[ParSeq[_]].isAssignableFrom(cl)
   }
 
   def isIndexedSeq[T](cl: Class[T]) = {

@@ -268,6 +268,9 @@ object GenericType {
     else if(TypeUtil.isEither(cl) && typeArgs.length == 2) {
       EitherType(cl, typeArgs(0), typeArgs(1))
     }
+    else if(TypeUtil.isParSeq(cl) && typeArgs.length == 1) {
+      ParSeqType(cl, typeArgs(0))
+    }
     else
       new GenericType(cl, typeArgs)
   }
@@ -284,6 +287,7 @@ class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectTy
 case class MapType[A](cl: Class[A], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
 case class SetType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class SeqType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class ParSeqType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class ArrayType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class OptionType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class EitherType[A](cl: Class[A], leftType:ObjectType, rightType:ObjectType) extends GenericType(cl, Seq(leftType, rightType))

@@ -98,7 +98,15 @@ case class ConstructorParameter(owner: Class[_], fieldOwner: Option[Class[_]], i
   }
 
   def get(obj: Any) = {
-    Reflect.readField(obj, field)
+    try {
+      Reflect.readField(obj, field)
+    }
+    catch {
+      case e:IllegalAccessException =>
+        error(s"read field: class ${obj.getClass}, field:${field.getName}")
+        error(e)
+        throw e
+    }
   }
 
 }
@@ -134,7 +142,13 @@ case class FieldParameter(owner: Class[_], ref: Class[_], override val name: Str
   }
 
   def get(obj: Any) = {
-    Reflect.readField(obj, field)
+    try
+      Reflect.readField(obj, field)
+    catch {
+      case e : IllegalAccessException =>
+        error(f"get obj: ${obj.getClass}, field:${field.getName}")
+        throw e
+    }
   }
 }
 
