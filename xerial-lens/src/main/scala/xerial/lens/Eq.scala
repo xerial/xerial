@@ -156,58 +156,13 @@ object EqGen extends Logger {
     code
   }
 
+  protected[lens] val codeFactory = JavassistUtil.newFactory[Class[_], HasEq]
 
-  protected[lens] val eqCodeCache = collection.mutable.Map[Class[_], HasEq]()
-
-  def eqCodeOf(cl: Class[_]) : HasEq = {
-    synchronized {
-      eqCodeCache.getOrElseUpdate(cl, {
-        // Use the same class loader with Eq to ensure Eq trait is
-        // visible from the newly generated class.
-        val loader = classOf[HasEq].getClassLoader
-        val eqClassName = cl.getName + "$Eq"
-
-        trace("Class %s is not in the cache", eqClassName)
-
-        val p = ClassPool.getDefault
-        p.appendClassPath(new LoaderClassPath(loader))
-
-        def loadClass: Option[Class[_]] =
-          try
-            Some(loader.loadClass(eqClassName))
-          catch {
-            case e: ClassNotFoundException =>
-              trace("Class %s is not found", eqClassName)
-              None
-          }
-
-        def loadCtClass: Option[CtClass] =
-          try
-            Some(p.get(eqClassName))
-          catch {
-            case e: NotFoundException =>
-              trace("CtClass %s is not found", eqClassName)
-              None
-          }
-
-        def newCtClass = {
-          trace("new CtClass %s", eqClassName)
-
-          val c = p.makeClass(eqClassName)
-          c.setInterfaces(Array(p.get(classOf[HasEq].getName)))
-          c.addMethod(CtNewMethod.make(buildEqCode(cl), c))
-          c.addMethod(CtNewMethod.make(buildHashCode(cl), c))
-          c
-        }
-
-        val cls = loadClass getOrElse {
-          loadCtClass getOrElse newCtClass toClass(loader, null)
-        }
-        cls.newInstance.asInstanceOf[HasEq]
-      })
-    }
-
-  }
+  def eqCodeOf(cl: Class[_]) : HasEq =
+    codeFactory.getOrElseUpdate(cl, s"${cl.getName}$$Eq", { c =>
+      c.addMethod(CtNewMethod.make(buildEqCode(cl), c))
+      c.addMethod(CtNewMethod.make(buildHashCode(cl), c))
+    })
 
   def compare(cl: Class[_], a: AnyRef, b: AnyRef): Boolean = eqCodeOf(cl).compare(a, b)
 
