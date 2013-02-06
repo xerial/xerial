@@ -219,9 +219,7 @@ trait TimeReport extends Ordered[TimeReport] {
   }
 
   def genReportLine: String = {
-    "-%-10s\ttotal:%.3f sec., count:%,5d, avg:%.3f sec., min:%.3f sec., max:%.3f sec.".format(
-      name, s.getElapsedTime, executionCount, average, minInterval, maxInterval
-    )
+    f"-$name%-10s\ttotal:${s.getElapsedTime}%.3f sec., count:${executionCount}%,5d, avg:${average}%.3f sec., core avg:${averageWithoutMinMax}%.3f sec., min:$minInterval%.3f sec., max:$maxInterval%.3f sec."
   }
 
   def report: String = {

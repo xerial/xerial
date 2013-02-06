@@ -131,7 +131,7 @@ abstract class ObjectType(val rawType: Class[_]) extends Type {
   def isBooleanType = false
   def isGenericType = false
   def isPrimitive : Boolean = false
-
+  def isTextType : Boolean = false
 }
 
 trait ValueObject extends ObjectType {
@@ -196,7 +196,9 @@ sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ValueO
  * Types that can be constructed from String
  * @param cl
  */
-sealed abstract class TextType(cl: Class[_]) extends ObjectType(cl) with ValueObject
+sealed abstract class TextType(cl: Class[_]) extends ObjectType(cl) with ValueObject {
+  override def isTextType = true
+}
 
 object TextType {
   object String extends TextType(classOf[String])
@@ -239,6 +241,7 @@ case class StandardType[A](override val rawType:Class[A]) extends ObjectType(raw
 
   }
 
+  lazy val constructorParamTypes : Array[ObjectType] = constructorParams.map(_.valueType).toArray
 
 }
 
