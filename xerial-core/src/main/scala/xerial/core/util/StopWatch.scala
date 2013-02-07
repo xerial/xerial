@@ -218,8 +218,24 @@ trait TimeReport extends Ordered[TimeReport] {
     s.getElapsedTime
   }
 
+  def toHumanReadableFormat(time:Double) : String = {
+    val symbol = Seq("", "m", "n")
+
+    val digits = math.log10(time)
+    val unitIndex =
+      if(digits >= -2.0)
+        0
+      else {
+        val u = - ((digits - 1) / 3.0).toInt
+        if(u >= symbol.length) symbol.length - 1 else u
+      }
+    val v = time * math.pow(10, unitIndex * 3)
+    val str = f"$v%.3f ${symbol(unitIndex)}sec."
+    f"$str%-11s"
+  }
+
   def genReportLine: String = {
-    f"-$name%-10s\ttotal:${s.getElapsedTime}%.3f sec., count:${executionCount}%,5d, avg:${average}%.3f sec., core avg:${averageWithoutMinMax}%.3f sec., min:$minInterval%.3f sec., max:$maxInterval%.3f sec."
+    f"-$name%-15s\ttotal:${toHumanReadableFormat(s.getElapsedTime)}, count:${executionCount}%,5d, avg:${toHumanReadableFormat(average)}, core avg:${toHumanReadableFormat(averageWithoutMinMax)}, min:${toHumanReadableFormat(minInterval)}, max:${toHumanReadableFormat(maxInterval)}"
   }
 
   def report: String = {
@@ -227,12 +243,12 @@ trait TimeReport extends Ordered[TimeReport] {
       (for (i <- 0 until level * 2) yield ' ').mkString + s
     }
 
-    val lines = new ListBuffer[String]
+    val lines = Seq.newBuilder[String]
     lines += indent(0, genReportLine)
     for ((k, v) <- subMeasure)
       lines += indent(1, v.genReportLine)
 
-    lines.mkString("\n")
+    lines.result.mkString("\n")
   }
 
   override def toString: String = report
