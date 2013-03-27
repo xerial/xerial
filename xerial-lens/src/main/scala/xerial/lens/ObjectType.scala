@@ -27,11 +27,11 @@ import collection.mutable.ArrayBuffer
 import reflect.ClassTag
 import xerial.core.log.Logger
 import collection.mutable
+import scala.reflect.runtime.universe._
+import scala.reflect.runtime.{universe => ru}
 
 object ObjectType extends Logger {
 
-  import scala.reflect.runtime.universe._
-  import scala.reflect.runtime.{universe => ru}
 
   private[lens] def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
 
@@ -47,7 +47,7 @@ object ObjectType extends Logger {
 
   def of(tpe:ru.Type) : ObjectType = {
     def resolveType = {
-      debug(f"ObjectType.of(${tpe})")
+      trace(f"ObjectType.of(${tpe})")
       val m =
         (primitiveMatcher orElse
           textMatcher orElse
@@ -131,7 +131,7 @@ abstract class ObjectType(val rawType: Class[_]) extends Type {
   def isBooleanType = false
   def isGenericType = false
   def isPrimitive : Boolean = false
-
+  def isTextType : Boolean = false
 }
 
 trait ValueObject extends ObjectType {
@@ -196,7 +196,9 @@ sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ValueO
  * Types that can be constructed from String
  * @param cl
  */
-sealed abstract class TextType(cl: Class[_]) extends ObjectType(cl) with ValueObject
+sealed abstract class TextType(cl: Class[_]) extends ObjectType(cl) with ValueObject {
+  override def isTextType = true
+}
 
 object TextType {
   object String extends TextType(classOf[String])
@@ -222,10 +224,24 @@ case class StandardType[A](override val rawType:Class[A]) extends ObjectType(raw
   override val name = rawType.getSimpleName
 
   lazy val constructorParams : Seq[ConstructorParameter] = {
-    val schema = ObjectSchema(rawType)
-    schema.constructor.params
+
+    val m = ObjectType.mirror
+    val classSymbol : ru.ClassSymbol = m.staticClass(rawType.getCanonicalName)
+    val cc = classSymbol.typeSignature.declaration(ru.nme.CONSTRUCTOR)
+    if(cc.isMethod) {
+      val fstParen = cc.asMethod.paramss.headOption.getOrElse(Seq.empty)
+      for((p, i) <- fstParen.zipWithIndex) yield {
+        val name = p.name.decoded
+        val tpe = ObjectType(p.typeSignature)
+        ConstructorParameter(rawType, ObjectSchema.findFieldOwner(name, rawType), i, name, tpe)
+      }
+    }
+    else
+      Seq.empty
+
   }
 
+  lazy val constructorParamTypes : Array[ObjectType] = constructorParams.map(_.valueType).toArray
 
 }
 
@@ -255,6 +271,9 @@ object GenericType {
     else if(TypeUtil.isEither(cl) && typeArgs.length == 2) {
       EitherType(cl, typeArgs(0), typeArgs(1))
     }
+    else if(TypeUtil.isParSeq(cl) && typeArgs.length == 1) {
+      ParSeqType(cl, typeArgs(0))
+    }
     else
       new GenericType(cl, typeArgs)
   }
@@ -271,6 +290,7 @@ class GenericType(override val rawType: Class[_], val genericTypes: Seq[ObjectTy
 case class MapType[A](cl: Class[A], keyType: ObjectType, valueType: ObjectType) extends GenericType(cl, Seq(keyType, valueType))
 case class SetType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class SeqType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
+case class ParSeqType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class ArrayType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class OptionType[A](cl: Class[A], elementType: ObjectType) extends GenericType(cl, Seq(elementType))
 case class EitherType[A](cl: Class[A], leftType:ObjectType, rightType:ObjectType) extends GenericType(cl, Seq(leftType, rightType))

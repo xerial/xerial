@@ -21,15 +21,17 @@ object Reflect {
    * do some operation, and reset the accessibility properly upon the completion.
    */
   private[lens] def access[A <: jr.AccessibleObject, B](f: A)(body: => B): B = {
-    val accessible = f.isAccessible
-    try {
-      if (!accessible)
-        f.setAccessible(true)
-      body
-    }
-    finally {
-      if (!accessible)
-        f.setAccessible(false)
+    synchronized {
+      val accessible = f.isAccessible
+      try {
+        if (!accessible)
+          f.setAccessible(true)
+        body
+      }
+      finally {
+        if (!accessible)
+          f.setAccessible(false)
+      }
     }
   }
 

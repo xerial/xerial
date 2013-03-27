@@ -77,6 +77,17 @@ class ObjectTypeTest extends XerialSpec {
       debug(t.constructorParams)
     }
 
+    "treat vector type as Seq" taggedAs("vector") in {
+      val v = Vector(1, 2, 3)
+      val t = ObjectType(v)
+      debug(t)
+
+      t match {
+        case SeqType(_, Primitive.Int) => // OK
+        case _ => fail
+      }
+    }
+
 
   }
 
