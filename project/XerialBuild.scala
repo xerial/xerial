@@ -24,7 +24,7 @@ import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.10.0"
+  val SCALA_VERSION = "2.10.1"
 
 
   def releaseResolver(v: String): Resolver = {
@@ -146,7 +146,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.0.M5b" % "test"
+      "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test"
     )
 
     val lensLib = Seq(
