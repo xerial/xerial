@@ -17,7 +17,7 @@ class LoggerTest extends XerialSpec {
 
   "LogWriter" should {
     "be used as an trait" in {
-      true
+      
     }
 
     "have root logger" in {
