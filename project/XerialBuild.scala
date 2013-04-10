@@ -17,8 +17,12 @@
 import java.io.File
 import sbt._
 import sbt.Keys._
+import sbt.Keys._
 import sbtrelease.ReleasePlugin._
 import scala._
+import scala.Some
+import scala.Some
+import scala.Some
 import scala.Some
 import xerial.sbt.Pack._
 
@@ -54,6 +58,9 @@ object XerialBuild extends Build {
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
     pomIncludeRepository := {
       _ => false
+    },
+    testOptions in Test <+= (target in Test) map {
+      t => Tests.Argument(TestFrameworks.ScalaTest, "junitxml(directory=\"%s\")".format(t /"test-reports" ), "stdout")
     },
     parallelExecution := true,
     parallelExecution in Test := false,
