@@ -47,7 +47,7 @@ Retrives object type information embeded in Scala-generated class files.
 # Release plan
  * Version 3.2.0
   * Upgrade to Scala 2.10.1
-  * Logger interface has changed. Use string-interpolation of Scala 2.10 instead of vararg logging methods.
+  * Logger interface has changed. Use string-interpolation of Scala 2.10 instead of logging methods that take varialbe-length arguments.
  * Version 3.1.1
   * Timer trait now reports core average of code blocks
 
