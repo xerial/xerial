@@ -70,7 +70,7 @@ Add the following settings to your sbt build file (e.g., `build.sbt`)
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.0-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.1-SNAPSHOT"
 
 
 ## Scala API
