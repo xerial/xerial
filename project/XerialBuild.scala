@@ -17,14 +17,18 @@
 import java.io.File
 import sbt._
 import sbt.Keys._
+import sbt.Keys._
 import sbtrelease.ReleasePlugin._
 import scala._
+import scala.Some
+import scala.Some
+import scala.Some
 import scala.Some
 import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.10.0"
+  val SCALA_VERSION = "2.10.1"
 
 
   def releaseResolver(v: String): Resolver = {
@@ -54,6 +58,9 @@ object XerialBuild extends Build {
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
     pomIncludeRepository := {
       _ => false
+    },
+    testOptions in Test <+= (target in Test) map {
+      t => Tests.Argument(TestFrameworks.ScalaTest, "junitxml(directory=\"%s\")".format(t /"test-reports" ), "stdout")
     },
     parallelExecution := true,
     parallelExecution in Test := false,
@@ -146,7 +153,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.0.M5b" % "test"
+      "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test"
     )
 
     val lensLib = Seq(

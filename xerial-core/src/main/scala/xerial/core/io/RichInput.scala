@@ -31,7 +31,7 @@ import reflect.ClassTag
  * Enhances InputStream or Reader for block-wise reading
  * @author leo
  */
-abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassTag[T]) extends Logger {
+abstract class RichInput[@specialized(Byte, Char) T]()(implicit m: ClassTag[T]) {
   var reachedEOF = false
 
   def read(b: Array[T], off: Int, len: Int): Int

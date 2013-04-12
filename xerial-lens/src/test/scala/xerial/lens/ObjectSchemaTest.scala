@@ -178,13 +178,13 @@ class ObjectSchemaTest extends XerialSpec {
 
     "be safe when Array[A] is passed" in {
       val s = ObjectSchema.of[Array[String]]
-      debug("schema:%s", s)
+      debug(s"schema:$s")
       s.name must be("String[]")
     }
 
     "be safe when Seq[A] is passed" taggedAs("opt-seq") in {
       val s = ObjectSchema.of[Seq[String]]
-      debug("schema:%s", s)
+      debug(s"schema:$s")
       s.name must be("Seq")
       //s.parameters.isEmpty must be (true)
       debug {

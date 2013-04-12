@@ -65,7 +65,7 @@ object ObjectSchema extends Logger {
       Some(Class.forName(name))
     }
     catch {
-      case e : Throwable => None
+      case e : Exception => None
     }
   }
 
@@ -85,10 +85,10 @@ object ObjectSchema extends Logger {
     sigCache.getOrElseUpdate(cl, {
       val sig =
         try {
-          trace("Searching for signature of %s", cl.getName)
+          trace(s"Searching for signature of ${cl.getName}")
           val s = ScalaSigParser.parse(cl)
           if (s.isDefined) {
-            trace("Found signature of %s", cl.getSimpleName)
+            trace(s"Found signature of ${cl.getSimpleName}")
           }
           s
         }
@@ -112,7 +112,7 @@ object ObjectSchema extends Logger {
       }
     }
 
-    trace("find field owner: %s, %s", name, baseClass)
+    trace(s"find field owner: $name, $baseClass")
     if (isFieldOwner(baseClass))
       Some(baseClass)
     else {
@@ -137,7 +137,7 @@ object ObjectSchema extends Logger {
       }
     }
     def findConstructorParameters(mt: MethodType): Array[ConstructorParameter] = {
-      trace("constructor method type: %s", mt)
+      trace(s"constructor method type: $mt")
       val paramSymbols: Seq[MethodSymbol] = mt match {
         case MethodType(_, param: Seq[_]) => param.collect {
           case m: MethodSymbol => m
@@ -192,7 +192,7 @@ object ObjectSchema extends Logger {
     val p = Seq(cl.getSuperclass) ++ i
     val filtered = p.filterNot(c => isSystemClass(c))
     if(!filtered.isEmpty)
-      trace("parents of %s: %s ", cl.getSimpleName, filtered.map(_.getName).mkString(", "))
+      trace(s"parents of ${cl.getSimpleName}: ${filtered.map(_.getName).mkString(", ")}")
     filtered
   }
 
@@ -204,7 +204,7 @@ object ObjectSchema extends Logger {
 
   private def toAttribute(param: Seq[MethodSymbol], sig: ScalaSig, refCl: Class[_]): Seq[(String, ObjectType)] = {
     val paramRefs = param.map(p => (p.name, sig.parseEntry(p.symbolInfo.info)))
-    trace("method param refs:\n%s", paramRefs.mkString("\n"))
+    trace(s"method param refs:\n${paramRefs.mkString("\n")}")
     paramRefs.map {
 //      case (name: String, t @ TypeRefType(prefix, symbol, Seq(tp : TypeRefType))) =>
 //        (name, resolveClass(tp))
@@ -238,7 +238,7 @@ object ObjectSchema extends Logger {
         val parents = findParentSchemas(cl)
         val logger = getLogger("parameter")
         if(!parents.isEmpty)
-          logger.trace("parents: %s", parents.mkString(", "))
+          logger.trace(s"parents: ${parents.mkString(", ")}")
         val parentParams = parents.flatMap {
           p => p.parameters
         }.collect {
@@ -326,7 +326,7 @@ object ObjectSchema extends Logger {
               }
             }
             catch {
-              case e : Throwable => None
+              case e : Exception => None
             }
           }
         }
@@ -336,7 +336,7 @@ object ObjectSchema extends Logger {
         val mOpt = targetMethodSymbol.map {
           s =>
             try {
-              trace("method: %s", s)
+              trace(s"method: $s")
               s match {
                 case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
                   resolveMethod(cl, m.name, resultType, Seq.empty)
@@ -350,9 +350,9 @@ object ObjectSchema extends Logger {
               }
             }
             catch {
-              case e : Throwable => {
-                warn("error occurred when accessing method %s : %s", s, e)
-                e.printStackTrace()
+              case e : Exception => {
+                warn(s"error occurred when accessing method $s : $e")
+                warn(e)
                 None
               }
             }
@@ -363,7 +363,7 @@ object ObjectSchema extends Logger {
     }
 
     val p = parentMethodsOf(cl)
-    trace("parent methods of %s: %s", cl.getSimpleName, p.mkString(", "))
+    trace(s"parent methods of ${cl.getSimpleName}: ${p.mkString(", ")}")
     ((methods getOrElse (Seq.empty)) ++ p).toArray
   }
 
@@ -382,7 +382,7 @@ object ObjectSchema extends Logger {
 
     val name = typeSignature.symbol.path
     val clazz: Class[_] = {
-      trace("resolve class: %s %s", name, typeSignature)
+      trace(s"resolve class: $name $typeSignature")
       name match {
         // Resolve classes of primitive types.
         // This special treatment is necessary because classes of primitive types, classOf[scala.Int] etc. are converted by

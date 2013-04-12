@@ -125,7 +125,7 @@ case class FieldParameter(owner: Class[_], ref: Class[_], override val name: Str
       owner.getDeclaredField(name)
     catch {
       case _ : Throwable =>
-        warn("no such field %s in %s (ref:%s)", name, owner.getSimpleName, ref.getSimpleName)
+        warn(s"no such field $name in ${owner.getSimpleName} (ref:${ref.getSimpleName})")
         null
     }
   }
@@ -220,9 +220,9 @@ case class CompanionMethod(owner:Class[_], jMethod:jl.reflect.Method, name:Strin
   }
 
   def invoke(obj:AnyRef, params:AnyRef*) : Any = {
-    debug("invoking jMethod:%s, owner:%s", jMethod, owner)
+    debug(s"invoking jMethod:$jMethod, owner:$owner")
     TypeUtil.companionObject(owner).map{ co =>
-      debug("found a companion object of %s", owner)
+      debug(s"found a companion object of $owner")
       jMethod.invoke(co, params:_*)
     }.orNull
   }

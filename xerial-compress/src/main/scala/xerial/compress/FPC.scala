@@ -42,9 +42,9 @@ object FPC extends Logger {
     val hashTableSizeInLog2 = math.max(4, (32 - Integer.numberOfLeadingZeros(tableSize)))  // truncate to 2^i value
     val hashTableSize = 1 << hashTableSizeInLog2
 
-    trace("hash table size: %,d", hashTableSize)
+    trace(f"hash table size: $hashTableSize%,d")
     val tableMask = hashTableSize - 1
-    trace("table mask:%s", (for(i <- 0 until 32) yield { if(((1 << i) & tableMask) == 0) "1" else "0"}).mkString)
+    trace(s"table mask:${(for(i <- 0 until 32) yield { if(((1 << i) & tableMask) == 0) "1" else "0"}).mkString}")
     val fcm = new Array[Long](hashTableSize)
     val dfcm = new Array[Long](hashTableSize)
 
@@ -128,7 +128,7 @@ object FPC extends Logger {
     val hashTableSizeInLog2 = in.get()
     val N = in.getInt
     val hashTableSize = 1 << hashTableSizeInLog2
-    trace("hash table size: %,d", hashTableSize)
+    trace(f"hash table size: $hashTableSize%,d")
 
     val tableMask = hashTableSize - 1
     val fcm = new Array[Long](hashTableSize)

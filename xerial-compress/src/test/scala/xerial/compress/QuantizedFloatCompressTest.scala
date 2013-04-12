@@ -55,8 +55,8 @@ class QuantizedFloatCompressTest extends XerialSpec {
         }
       }
 
-      debug("quantized: compressed size: %,d => %,d", in.length*8, fc.length)
-      debug("snappy   : compressed size: %,d => %,d", in.length*8, sc.length)
+      debug(f"quantized: compressed size: ${in.length*8}%,d => ${fc.length}%,d")
+      debug(f"snappy   : compressed size: ${in.length*8}%,d => ${sc.length}%,d")
 
       var fcDecompressed : Array[Float] = null
       var scDecompressed : Array[Float] = null
@@ -121,8 +121,8 @@ class QuantizedFloatCompressTest extends XerialSpec {
         }
       }
 
-      debug("quantized: compressed size: %,d => %,d", in.length*8, fc.length)
-      debug("snappy   : compressed size: %,d => %,d", in.length*8, sc.length)
+      debug(f"quantized: compressed size: ${in.length*8}%,d => ${fc.length}%,d")
+      debug(f"snappy   : compressed size: ${in.length*8}%,d => ${sc.length}%,d")
 
       var fcDecompressed : Array[Float] = null
       var scDecompressed : Array[Float] = null

@@ -120,7 +120,7 @@ object EqGen extends Logger {
               | $cond$
               | return true; }""".stripMargin
     val code = StringTemplate.eval(t)(Map("type" -> cl.getName, "cond" -> cmpCode.mkString("\n else ")))
-    trace("generated a equality check code:\n%s", code)
+    trace(s"generated a equality check code:\n$code")
     code
   }
 
@@ -152,7 +152,7 @@ object EqGen extends Logger {
         |}
       """.stripMargin
     val code = StringTemplate.eval(t)(Map("type" -> cl.getName, "comp" -> comp))
-    trace("generated a hash code:\n%s", code)
+    trace(s"generated a hash code:\n$code")
     code
   }
 

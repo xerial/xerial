@@ -58,7 +58,7 @@ class MethodCallBuilder(m:ObjectMethod, owner:AnyRef) extends StandardBuilder[Me
 
 
   def execute : Any = {
-    trace("holder: %s", holder)
+    trace(s"holder: $holder")
     val args = for(p <- m.params) yield {
       (get(p.name) getOrElse TypeUtil.zero(p.rawType, p.valueType)).asInstanceOf[AnyRef]
     }

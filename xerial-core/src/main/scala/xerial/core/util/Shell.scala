@@ -66,7 +66,7 @@ object Shell extends Logger {
     val p = launchProcess("kill -%s %d".format(signal, pid))
     p.waitFor()
     val exitCode = p.exitValue()
-    debug("killed process %d with exit code %d", pid, exitCode)
+    debug(s"killed process $pid with exit code $exitCode")
     exitCode
   }
 
@@ -77,20 +77,20 @@ object Shell extends Logger {
    */
   def killTree(pid:Int, signal:String="TERM") : Int = {
     // stop the parent process first to keep it from forking another child process
-    exec("kill -STOP %d".format(pid))
+    exec(f"kill -STOP $pid%d")
 
     // retrieve child processes
-    val pb = prepareProcessBuilder("ps -o pid --no-headers --ppid %d".format(pid), inheritIO=true)
+    val pb = prepareProcessBuilder(s"ps -o pid --no-headers --ppid $pid", inheritIO=true)
     for(line <- Process(pb).lines_!) {
       val childPID = line.trim.toInt
       killTree(childPID, signal)
     }
 
     // Now send the signal
-    exec("kill -%s %d".format(signal, pid))
+    exec(s"kill -$signal $pid")
     // Try and continue the process in case the signal is non-terminating
     // but doesn't continue the process
-    exec("kill -CONT %d".format(pid))
+    exec(s"kill -CONT $pid")
   }
 
 
@@ -181,7 +181,7 @@ object Shell extends Logger {
     val exitCode = Process(pb).!(ProcessLogger{
       out:String => info(out)
     })
-    debug("exec command %s with exitCode:%d", cmdLine, exitCode)
+    debug(s"exec command $cmdLine with exitCode:$exitCode")
     exitCode
   }
 
@@ -189,7 +189,7 @@ object Shell extends Logger {
   def launchProcess(cmdLine: String) = {
     val pb = prepareProcessBuilder(cmdLine, inheritIO=true)
     val p = pb.start
-    debug("exec command [pid:%d] %s", getProcessID(p), pb.command.mkString(" "))
+    debug(s"exec command [pid:${getProcessID(p)}] ${pb.command.mkString(" ")}")
     p
   }
 
@@ -198,7 +198,7 @@ object Shell extends Logger {
     val exitCode = Process(pb).!(ProcessLogger{
       out:String => info(out)
     })
-    debug("exec command %s with exitCode:%d", cmdLine, exitCode)
+    debug(s"exec command $cmdLine with exitCode:$exitCode")
     exitCode
   }
 
@@ -208,13 +208,13 @@ object Shell extends Logger {
 
 
   def prepareProcessBuilder(cmdLine:String, inheritIO:Boolean): ProcessBuilder = {
-    trace("cmdLine: %s", cmdLine)
+    trace(s"cmdLine: $cmdLine")
     val tokens = Array(Shell.getCommand("sh"), "-c", if(OS.isWindows) quote(cmdLine) else cmdLine)
     prepareProcessBuilderFromSeq(tokens, inheritIO)
   }
 
   def prepareProcessBuilderFromSeq(tokens:Seq[String], inheritIO:Boolean) : ProcessBuilder = {
-    trace("command line tokens: %s", tokens.mkString(", "))
+    trace(s"command line tokens: ${tokens.mkString(", ")}")
     val pb = new ProcessBuilder(tokens:_*)
     if(inheritIO)
       pb.inheritIO()
@@ -233,7 +233,7 @@ object Shell extends Logger {
 
   def launchCmdExe(cmdLine: String) = {
     val c = "%s /c \"%s\"".format(Shell.getCommand("cmd"), cmdLine)
-    debug("exec command: %s", c)
+    debug(s"exec command: $c")
     Process(CommandLineTokenizer.tokenize(c), None, getEnv.toSeq:_*).run
   }
 
@@ -315,7 +315,7 @@ object Shell extends Logger {
     }
 
     val p = e.map(resolveCygpath(_))
-    debug("Found JAVA_HOME=" + p.get)
+    debug(s"Found JAVA_HOME=${p.get}")
     p
   }
 

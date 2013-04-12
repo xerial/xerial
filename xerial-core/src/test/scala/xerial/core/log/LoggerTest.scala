@@ -17,7 +17,7 @@ class LoggerTest extends XerialSpec {
 
   "LogWriter" should {
     "be used as an trait" in {
-      true
+      
     }
 
     "have root logger" in {
@@ -37,7 +37,7 @@ class LoggerTest extends XerialSpec {
       def loop(i: Int): Unit = {
         if (i >= 0) {
 //        withLogger("sub") {
-            debug("recursion: %d", i)
+            debug(s"recursion: $i")
             loop(i - 1)
 //        }
         }

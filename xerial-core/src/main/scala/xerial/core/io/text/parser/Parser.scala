@@ -67,7 +67,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
       if(cache.contains(e.name))
         cache(e.name)
       else {
-        //debug("bulid %s", e)
+        //debug(s"bulid $e")
         val ref = EvalRef(null)
         // Register a proxy entry to avoid recursive call of toEval
         cache += e.name -> ref
@@ -130,7 +130,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
 
   case class EvalSeq(name:String, seq: Array[Eval]) extends Eval {
     def eval: ParseResult = {
-      debug("EvalSeq %s", toVisibleString(name))
+      debug(s"EvalSeq ${toVisibleString(name)}")
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
         if(i >= seq.length)
@@ -148,7 +148,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
   case class EvalOr(name:String, seq: Array[Eval]) extends Eval {
     def eval: ParseResult = {
 
-      debug("EvalOr %s", toVisibleString(name))
+      debug(s"EvalOr ${toVisibleString(name)}")
 
       @tailrec
       def loop(i: Int, t: ParseTree): ParseResult = {
@@ -184,7 +184,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
    */
   private def evalIgnored: ParseResult = {
     if(fallbackToIgnoredToken.value) {
-      trace("Eval ignored token: %s", input.first.toChar)
+      trace(s"Eval ignored token: ${input.first.toChar}")
       input.withMark {
         noIgnore(ignored.eval) match {
           case nm@Left(NoMatch) => nm
@@ -201,9 +201,9 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
     def eval: ParseResult = {
       def loop : ParseResult = {
         val t = input.first
-        //debug("eval char pred %s: %s", Grammar.toVisibleString(name), Grammar.toVisibleString(t.toChar.toString))
+        //debug(s"eval char pred ${Grammar.toVisibleString(name)}: ${Grammar.toVisibleString(t.toChar.toString)}")
         if (t != input.EOF && pred(t)) {
-          trace("match %s", t.toChar)
+          trace(s"match ${t.toChar}")
           input.consume
           Right(OK)
         }
@@ -242,7 +242,7 @@ class Parser(input: Scanner, e: Expr, ignoredExprs: Set[Expr]) extends Logger {
 
 
   def parse = {
-    debug("parse %s", body)
+    debug(s"parse $body")
     body.eval
   }
 

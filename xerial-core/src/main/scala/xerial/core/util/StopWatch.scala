@@ -222,13 +222,16 @@ trait TimeReport extends Ordered[TimeReport] {
     val symbol = Seq("", "m", "n")
 
     val digits = math.log10(time)
-    val unitIndex =
-      if(digits >= -2.0)
+
+    val unitIndex = {
+      if(digits.isNaN || digits.isInfinity || digits >= -2.0)
         0
       else {
         val u = - ((digits - 1) / 3.0).toInt
         if(u >= symbol.length) symbol.length - 1 else u
       }
+    }
+    require(unitIndex >= 0 && (unitIndex < symbol.length), s"unitIndex must be between 0 to 2: $unitIndex, digits:$digits")
     val v = time * math.pow(10, unitIndex * 3)
     val str = f"$v%.3f ${symbol(unitIndex)}sec."
     f"$str%-11s"

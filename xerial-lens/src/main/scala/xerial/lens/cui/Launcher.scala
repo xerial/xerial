@@ -60,7 +60,7 @@ object Launcher extends Logger {
       parser.printUsage
     }
     def execute[A <: AnyRef](mainObj:A, args:Array[String], showHelp:Boolean) : A = {
-      trace("execute method: %s", name)
+      trace(s"execute method: $name")
       val parser = new OptionParser(method)
       if(showHelp)
         parser.printUsage
@@ -79,7 +79,7 @@ object Launcher extends Logger {
       new Launcher(m.moduleClass).printHelp
     }
     def execute[A <: AnyRef](mainObj:A, args:Array[String], showHelp:Boolean) : A = {
-      trace("execute module: %s", m.moduleClass)
+      trace(s"execute module: ${m.moduleClass}")
       val result = new Launcher(m.moduleClass).execute[A](args, showHelp)
       mainObj.asInstanceOf[CommandModule].executedModule = Some((name, result.asInstanceOf[AnyRef]))
       mainObj
@@ -135,7 +135,7 @@ class Launcher(cl:Class[_]) extends Logger {
   def execute[A <: AnyRef](args:Array[String], showHelp:Boolean=false) : A = {
     val p = new OptionParser(schema)
     val r = p.parse(args)
-    trace("parse tree: %s", r.parseTree)
+    trace(s"parse tree: ${r.parseTree}")
     val mainObj : A = r.buildObjectWithFilter(cl, _ != commandNameParam).asInstanceOf[A]
     val cn : Option[String] = (for((path, value) <- r.parseTree.dfs if path.fullPath == commandNameParam) yield value).toSeq.headOption
     val helpIsOn = r.showHelp || showHelp
@@ -173,7 +173,7 @@ class Launcher(cl:Class[_]) extends Logger {
   }
 
   private lazy val commandList: Seq[Command] = {
-    trace("command class:" + cl.getName)
+    trace(s"command class:${cl.getName}")
     val lst = for(m <- ObjectSchema(cl).methods; c <- m.findAnnotationOf[command]) yield new CommandDef(m, c)
     lst
   }
@@ -191,7 +191,7 @@ class Launcher(cl:Class[_]) extends Logger {
 
     def find(name: String): Option[Command] = {
     val cname = CName(name)
-    trace("trying to find command:%s", cname)
+    trace(s"trying to find command:$cname")
       commandList.find(e => CName(e.name) == cname)
     }
 
@@ -200,7 +200,7 @@ class Launcher(cl:Class[_]) extends Logger {
 
 
     find(name) orElse findModule(name, mainObj) orElse {
-      warn("Unknown command: %s", name)
+      warn(s"Unknown command: $name")
       None
     }
   }

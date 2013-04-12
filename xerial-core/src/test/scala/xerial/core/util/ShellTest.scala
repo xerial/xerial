@@ -47,7 +47,7 @@ class ShellTest extends XerialSpec {
     "detect process IDs" in {
       val p = Shell.launchProcess("echo hello world")
       val pid = Shell.getProcessID(p)
-      debug("process ID:%d", pid)
+      debug(s"process ID:$pid")
       if(!OS.isWindows) {
         pid should be > (0)
       }
@@ -55,7 +55,7 @@ class ShellTest extends XerialSpec {
 
     "detect current JVM process ID" in {
       val pid = Shell.getProcessIDOfCurrentJVM
-      debug("JVM process ID:%d", pid)
+      debug(s"JVM process ID:$pid")
       pid should not be (-1)
     }
 

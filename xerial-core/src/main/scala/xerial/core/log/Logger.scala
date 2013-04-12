@@ -107,32 +107,6 @@ trait Logger extends Serializable {
   protected def debug(message: => Any): Unit = log(LogLevel.DEBUG, message)
   protected def trace(message: => Any): Unit = log(LogLevel.TRACE, message)
 
-  protected def fatal(format: String, a1: => Any): Unit = fatal(format.format(a1))
-  protected def fatal(format: String, a1: => Any, a2: => Any): Unit = fatal(format.format(a1, a2))
-  protected def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = fatal(format.format(a1, a2, a3))
-  protected def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = fatal(format.format(a1, a2, a3, a4))
-  protected def error(format: String, a1: => Any): Unit = error(format.format(a1))
-  protected def error(format: String, a1: => Any, a2: => Any): Unit = error(format.format(a1, a2))
-  protected def error(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = error(format.format(a1, a2, a3))
-  protected def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = error(format.format(a1, a2, a3, a4))
-  protected def warn(format: String, a1: => Any): Unit = warn(format.format(a1))
-  protected def warn(format: String, a1: => Any, a2: => Any): Unit = warn(format.format(a1, a2))
-  protected def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = warn(format.format(a1, a2, a3))
-  protected def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = warn(format.format(a1, a2, a3, a4))
-  protected def info(format: String, a1: => Any): Unit = info(format.format(a1))
-  protected def info(format: String, a1: => Any, a2: => Any): Unit = info(format.format(a1, a2))
-  protected def info(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = info(format.format(a1, a2, a3))
-  protected def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = info(format.format(a1, a2, a3, a4))
-  protected def debug(format: String, a1: => Any): Unit = debug(format.format(a1))
-  protected def debug(format: String, a1: => Any, a2: => Any): Unit = debug(format.format(a1, a2))
-  protected def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = debug(format.format(a1, a2, a3))
-  protected def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = debug(format.format(a1, a2, a3, a4))
-  protected def trace(format: String, a1: => Any): Unit = trace(format.format(a1))
-  protected def trace(format: String, a1: => Any, a2: => Any): Unit = trace(format.format(a1, a2))
-  protected def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = trace(format.format(a1, a2, a3))
-  protected def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = trace(format.format(a1, a2, a3, a4))
-
-
 }
 
 
@@ -152,31 +126,6 @@ trait LogHelper {
   def info(message: => Any): Unit = log(INFO, message)
   def debug(message: => Any): Unit = log(DEBUG, message)
   def trace(message: => Any): Unit = log(TRACE, message)
-
-  def fatal(format: String, a1: => Any): Unit = fatal(format.format(a1))
-  def fatal(format: String, a1: => Any, a2: => Any): Unit = fatal(format.format(a1, a2))
-  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = fatal(format.format(a1, a2, a3))
-  def fatal(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = fatal(format.format(a1, a2, a3, a4))
-  def error(format: String, a1: => Any): Unit = error(format.format(a1))
-  def error(format: String, a1: => Any, a2: => Any): Unit = error(format.format(a1, a2))
-  def error(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = error(format.format(a1, a2, a3))
-  def error(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = error(format.format(a1, a2, a3, a4))
-  def warn(format: String, a1: => Any): Unit = warn(format.format(a1))
-  def warn(format: String, a1: => Any, a2: => Any): Unit = warn(format.format(a1, a2))
-  def warn(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = warn(format.format(a1, a2, a3))
-  def warn(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = warn(format.format(a1, a2, a3, a4))
-  def info(format: String, a1: => Any): Unit = info(format.format(a1))
-  def info(format: String, a1: => Any, a2: => Any): Unit = info(format.format(a1, a2))
-  def info(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = info(format.format(a1, a2, a3))
-  def info(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = info(format.format(a1, a2, a3, a4))
-  def debug(format: String, a1: => Any): Unit = debug(format.format(a1))
-  def debug(format: String, a1: => Any, a2: => Any): Unit = debug(format.format(a1, a2))
-  def debug(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = debug(format.format(a1, a2, a3))
-  def debug(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = debug(format.format(a1, a2, a3, a4))
-  def trace(format: String, a1: => Any): Unit = trace(format.format(a1))
-  def trace(format: String, a1: => Any, a2: => Any): Unit = trace(format.format(a1, a2))
-  def trace(format: String, a1: => Any, a2: => Any, a3: => Any): Unit = trace(format.format(a1, a2, a3))
-  def trace(format: String, a1: => Any, a2: => Any, a3: => Any, a4: => Any): Unit = trace(format.format(a1, a2, a3, a4))
 
 }
 
@@ -304,12 +253,12 @@ object LoggerFactory {
   def setLogLevelJMX(server:MBeanServerConnection, loggerName:String, logLevel:String) {
     val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
     lc.setLogLevel(loggerName, logLevel)
-    rootLogger.debug("Set the loglevel of %s to %s", loggerName, logLevel)
+    rootLogger.debug(s"Set the loglevel of $loggerName to $logLevel")
   }
   def setDefaultLogLevelJMX(server:MBeanServerConnection, logLevel:String) {
     val lc = JMX.newMBeanProxy(server, configMBeanName, classOf[LoggerConfig], true)
     lc.setDefaultLogLevel(logLevel)
-    rootLogger.debug("Set the default loglevel to %s", logLevel)
+    rootLogger.debug(s"Set the default loglevel to $logLevel")
   }
 
 
@@ -321,17 +270,17 @@ object LoggerFactory {
    *
    */
   private def getJMXServer(pid:Int) : Option[MBeanServerConnection] = {
-    rootLogger.info("Searching for JMX server pid:%d", pid)
+    rootLogger.info(s"Searching for JMX server pid:$pid")
     val addr = getJMXServerAddress(pid)
     val server : Option[MBeanServerConnection] = addr.map{ a =>
       JMXConnectorFactory.connect(new JMXServiceURL(a))
     } map (_.getMBeanServerConnection)
 
     if(server.isEmpty)
-      rootLogger.warn("No JMX server (pid:%d) is found", pid)
+      rootLogger.warn(s"No JMX server (pid:$pid) is found")
     else {
-      rootLogger.info("Found a JMX server", pid)
-      rootLogger.debug("Server address: %s", addr.get)
+      rootLogger.info(s"Found a JMX server (pid:$pid)")
+      rootLogger.debug(s"Server address: ${addr.get}")
     }
     server
   }
@@ -351,7 +300,7 @@ object LoggerFactory {
   def setDefaultLogLevel(logLevel:LogLevel) {
     System.setProperty("loglevel", logLevel.name)
     LoggerFactory.defaultLogLevel = logLevel
-    LoggerFactory.rootLogger.debug("Set the default log level to %s", logLevel)
+    LoggerFactory.rootLogger.debug(s"Set the default log level to $logLevel")
   }
 
 }
@@ -377,7 +326,7 @@ class LoggerConfigImpl extends LoggerConfig {
     val logger = LoggerFactory.apply(loggerName)
     val level = LogLevel(logLevel)
     logger.logLevel = level
-    LoggerFactory.rootLogger.info("set the log level of %s to %s", loggerName, level)
+    LoggerFactory.rootLogger.info(s"set the log level of $loggerName to $level")
   }
 
   def setDefaultLogLevel(logLevel:String) {

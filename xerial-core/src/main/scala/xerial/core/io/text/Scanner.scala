@@ -142,7 +142,7 @@ trait PositionMarkImpl extends PositionMark with Logger { this: Scanner =>
    */
   def rewind : Unit = {
     ensureNotEmpty
-    trace("rewind to %d", lastMark)
+    trace(s"rewind to $lastMark")
     setCursor(markQueue.peekLast)
   }
   def clearMarks : Unit = markQueue.clear

@@ -151,7 +151,7 @@ object Resource extends Logger {
    */
   def find(packageName: String, resourceFileName: String): Option[URL] = {
     val resourcePath = resolveResourcePath(packageName, resourceFileName)
-    trace("search resource: %s", resourcePath)
+    trace(s"search resource: $resourcePath")
 
     val r = classLoaders.map(_.getResource(resourcePath)).
       collectFirst {
@@ -233,7 +233,7 @@ object Resource extends Logger {
     if (logicalName == null)
       throw new IllegalArgumentException("packagePath=" + packagePath + ", resourceURL=" + resourceURLString)
 
-    trace("collect: logical name: %s", logicalName)
+    trace(s"collect: logical name: $logicalName")
 
     val b = Seq.newBuilder[VirtualFile]
     val file: File = new File(new URL(resourceURLString).toURI)
@@ -260,7 +260,7 @@ object Resource extends Logger {
    * @return the list of resources matching the given resource filter
    */
   private def listResources(resourceURL: URL, packageName: String, resourceFilter: String => Boolean): Seq[VirtualFile] = {
-    trace("listResource: url=" + resourceURL)
+    trace(s"listResource: url=$resourceURL")
     val pkgPath = packagePath(packageName)
     val fileList = Seq.newBuilder[VirtualFile]
     if (resourceURL == null)
@@ -285,10 +285,10 @@ object Resource extends Logger {
       while (entryEnum.hasMoreElements) {
         val jarEntry = entryEnum.nextElement
         val physicalURL = jarURLString + "!/" + jarEntry.getName
-        trace("phisical URL: %s", physicalURL)
+        trace(s"phisical URL: $physicalURL")
         val jarFileURL = new URL(physicalURL)
         val logicalName = extractLogicalName(pkgPath, jarEntry.getName)
-        trace("logical name of %s: %s (path:%s)", jarEntry.getName, logicalName, pkgPath)
+        trace(s"logical name of ${jarEntry.getName}: $logicalName (path:$pkgPath)")
         if (logicalName != null && resourceFilter(logicalName))
           fileList += FileInJar(jarFileURL, logicalName, jarEntry.isDirectory)
       }
@@ -334,7 +334,7 @@ object Resource extends Logger {
    */
   def findResourceURLs(cl: ClassLoader, name: String): Seq[URL] = {
     val path = packagePath(name)
-    trace("find resource URLs: %s", path)
+    trace(s"find resource URLs: $path")
     val b = Seq.newBuilder[URL]
     for (c: URLClassLoader <- classLoaders(cl)) {
       val e = c.findResources(path)

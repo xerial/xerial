@@ -45,6 +45,9 @@ Retrives object type information embeded in Scala-generated class files.
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
 # Release plan
+ * Version 3.2.0
+  * Upgrade to Scala 2.10.1
+  * Logger interface has changed. Use string-interpolation of Scala 2.10 instead of vararg logging methods.
  * Version 3.1.1
   * Timer trait now reports core average of code blocks
 
@@ -58,22 +61,22 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.1.1"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.0"
     
     # When you want to use ObjectSchema and command line parser
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.1.1"
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.2.0"
 
 #### Using Snapshot version
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.0-SNAPSHOT"
 
 
 ## Scala API
 
 (Unidoc of API will be prepared)
 
-* [xerial-core 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.1/xerial-core-3.1-javadoc.jar/!/index.html)
-* [xerial-lens 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.1/xerial-lens-3.1-javadoc.jar/!/index.html)
+* [xerial-core 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.2.0/xerial-core-3.2.0-javadoc.jar/!/index.html)
+* [xerial-lens 3.1 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.2.0/xerial-lens-3.2.0-javadoc.jar/!/index.html)
 
