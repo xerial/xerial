@@ -68,7 +68,7 @@ object JavassistUtil {
             Some(loader.loadClass(className))
           catch {
             case e: ClassNotFoundException =>
-              trace("Class %s is not found", className)
+              trace(s"Class $className is not found")
               None
           }
 
@@ -77,12 +77,12 @@ object JavassistUtil {
             Some(pool.get(className))
           catch {
             case e: NotFoundException =>
-              trace("CtClass %s is not found", className)
+              trace(s"CtClass $className is not found")
               None
           }
 
         def newCtClass = {
-          trace("new CtClass %s", className)
+          trace(s"new CtClass $className")
           val c = pool.makeClass(className)
           c.setInterfaces(Array(pool.get(interfaceCls.getName)))
           methodGen(c)

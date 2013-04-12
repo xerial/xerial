@@ -295,7 +295,7 @@ case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Ar
 
   def buildObjectWithFilter[A](cl:Class[A], filter: String => Boolean) : A = {
     val b = ObjectBuilder(cl)
-    trace("build from parse tree: %s", parseTree)
+    trace(s"build from parse tree: ${parseTree}")
     for((path, value) <- parseTree.dfs if filter(path.last))
       b.set(path, value)
     b.build.asInstanceOf[A]
@@ -303,7 +303,7 @@ case class OptionParserResult(parseTree: ValueHolder[String], unusedArgument: Ar
 
 
   def build[B <: GenericBuilder](builder:B) : B = {
-    trace("build from parse tree: %s", parseTree)
+    trace(s"build from parse tree: ${parseTree}")
     for((path, value) <- parseTree.dfs)
       builder.set(path, value)
     builder
@@ -384,7 +384,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
     def traverseArg(l: List[String]): Unit = {
       var argIndex = 0
 
-      logger.trace("index:%d, remaining:%s", argIndex, l)
+      logger.trace(f"index:${argIndex}%d, remaining:$l%s")
 
       def appendOptionValue(ci: CLOptionItem, value: String): Unit = {
         val holder = optionValues.getOrElseUpdate(ci, new ArrayBuffer[String]())
@@ -448,7 +448,7 @@ class OptionParser(val schema: OptionSchema) extends Logger {
 
 
     val holder = ValueHolder(for (m <- mapping; (p, v) <- m) yield p -> v)
-    trace("parse treer: %s", holder)
+    trace(s"parse treer: $holder")
     val showHelp = mapping.collectFirst{ case c@OptSetFlag(o) if o.annot.isHelp => c }.isDefined
     new OptionParserResult(holder, unusedArguments.toArray, showHelp)
   }

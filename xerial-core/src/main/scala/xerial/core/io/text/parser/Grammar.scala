@@ -101,7 +101,7 @@ trait Grammar extends Logger {
       case None => {
         val l = Leaf(tokenName, str.charAt(0))
         ruleCache += tokenName -> l
-        debug("Define token %14s := '%s'", tokenName, str)
+        debug(f"Define token $tokenName%14s := '$str'")
         l
       }
     }
@@ -127,7 +127,7 @@ trait Grammar extends Logger {
   def ignore(rules: Expr*): Unit = {
     rules foreach {
       r =>
-        debug("Tokens that match the expr %s will be ignored", r.name)
+        debug(s"Tokens that match the expr ${r.name} will be ignored")
         ignoredExprs += r
     }
   }
@@ -150,7 +150,7 @@ trait Grammar extends Logger {
         val newExpr: Expr = expr
         // Update the reference
         ref.set(newExpr)
-        debug("Define expr %15s := %s", ruleName, newExpr)
+        debug(f"Define expr $ruleName%15s := $newExpr%s")
         ref
       }
     }

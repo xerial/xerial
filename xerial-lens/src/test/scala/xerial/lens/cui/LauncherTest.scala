@@ -82,7 +82,7 @@ class LauncherTest extends XerialSpec {
         val l = Launcher.execute[GlobalOption]("-h -l debug")
         l.started should be (true)
       }
-      trace("help message:\n%s", help)
+      trace(s"help message:\n$help")
       help should (include ("-h"))
       help should (include ("--help"))
       help should (include ("-l"))
@@ -133,7 +133,7 @@ class LauncherTest extends XerialSpec {
       val help = capture {
         Launcher.of[SimpleCommandSet].printHelp
       }
-      trace("command list help:\n%s", help)
+      trace(s"command list help:\n$help")
       help should (include("hello"))
       help should (include("say hello"))
       help should (include("world"))
@@ -144,7 +144,7 @@ class LauncherTest extends XerialSpec {
       val help = capture {
         Launcher.execute[SimpleCommandSet]("")
       }
-      debug("default command message:\n%s", help)
+      debug(s"default command message:\n$help")
       help should (include(DEFAULT_MESSAGE))
     }
 
@@ -187,7 +187,7 @@ class LauncherTest extends XerialSpec {
         val l = Launcher.execute[MyCommandModule]("box world --help")
         l.g.help should be (true)
       }
-      trace("box world --help:\n%s", help)
+      trace(s"box world --help:\n$help")
       help should (include("message"))
     }
 
@@ -277,7 +277,7 @@ object LauncherTest {
   class MyCommandModule(val g:GlobalOption) extends CommandModule with Logger {
     def modules = Seq(ModuleDef("box", classOf[SimpleCommandSet], description="command set"))
 
-    trace("global option: %s", g)
+    trace(s"global option: $g")
   }
 
   class CommandWithPrivateField

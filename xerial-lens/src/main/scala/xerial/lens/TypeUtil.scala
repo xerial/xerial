@@ -165,8 +165,8 @@ object TypeUtil extends Logger {
     }
     catch {
       case e : Throwable => {
-        //warn("no companion object is found for %s: %s", cl, e)
-        //e.printStackTrace()
+        //warn(s"no companion object is found for $cl)
+        //warn(e)
         None
       }
     }
@@ -187,11 +187,12 @@ object TypeUtil extends Logger {
     } getOrElse(false)
 //
 //    val fields = cl.getDeclaredFields
-//    debug("fields of %s: %s", cl, fields.mkString(", "))
+//    debug(s"fields of $cl: ${fields.mkString(", ")}")
 //    val c = cl.getConstructors().find {
 //      x =>
 //        val p = x.getParameterTypes
-//        debug("parameter types: %s", p.mkString(", "))
+
+//        debug(s"parameter types: ${p.mkString(", ")}")
 //        if (p.length != fields.length)
 //          false
 //        else
@@ -286,14 +287,14 @@ object TypeUtil extends Logger {
 
   def newInstance[A](cl: Class[A]): A = {
     def createDefaultInstance: A = {
-      trace("Creating a default instance of %s", cl)
+      trace(s"Creating a default instance of $cl")
       val hasOuter = cl.getDeclaredFields.exists(x => x.getName == "$outer")
       if (hasOuter)
         throw new IllegalArgumentException("Cannot instantiate the inner class %s. Use classes defined globally or in companion objects".format(cl.getName))
       val paramArgs = defaultConstructorParameters(cl)
       val cc = cl.getConstructors()(0)
       val obj = cc.newInstance(paramArgs: _*)
-      trace("create an instance of %s, args:[%s]", cl, paramArgs.mkString(", "))
+      trace(s"create an instance of $cl, args:[${paramArgs.mkString(", ")}]")
       obj.asInstanceOf[A]
     }
 

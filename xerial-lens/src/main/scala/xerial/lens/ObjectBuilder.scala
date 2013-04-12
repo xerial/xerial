@@ -119,16 +119,16 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
     val name = path.head
     val p = findParameter(name)
     if(p.isEmpty) {
-      error("no parameter is found for path %s", path)
+      error(s"no parameter is found for path $path")
       return
     }
 
-    trace("set path %s : %s", path, value)
+    trace(s"set path $path : $value")
 
 
     if(path.isLeaf) {
       val valueType = p.get.valueType
-      trace("update value holder name:%s, valueType:%s (isArray:%s) with value:%s ", name, valueType, TypeUtil.isArray(valueType.rawType), value)
+      trace(s"update value holder name:$name, valueType:$valueType (isArray:${TypeUtil.isArray(valueType.rawType)}) with value:$value")
       if (canBuildFromBuffer(valueType.rawType)) {
         val t = valueType.asInstanceOf[GenericType]
         val gt = t.genericTypes(0)
@@ -148,7 +148,7 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
         }
       }
       else {
-        error("failed to set %s to path %s", value, path)
+        error(s"failed to set $value to path $path")
       }
     }
     else {
@@ -169,7 +169,7 @@ trait StandardBuilder[ParamType <: Parameter] extends GenericBuilder with Logger
       case Value(v) => Some(v)
       case ArrayHolder(h) => {
         val p = getParameterTypeOf(name)
-        debug("convert array holder:%s into %s", h, p)
+        debug(s"convert array holder:$h into $p")
         TypeConverter.convert(h, p)
       }
     }
@@ -195,18 +195,18 @@ class SimpleObjectBuilder[A](cl: Class[A]) extends ObjectBuilder[A] with Standar
       prop += p.name -> v
     }
     val r = prop.result
-    trace("class %s. values to set: %s", cl.getSimpleName, r)
+    trace(s"class ${cl.getSimpleName}. values to set: $r")
     r
   }
 
   def build: A = {
-    trace("holder contents: %s", holder)
+    trace(s"holder contents: $holder")
     val cc = schema.constructor
     // Prepare constructor args
     val args = (for (p <- cc.params) yield {
       (get(p.name) getOrElse TypeUtil.zero(p.rawType, p.valueType)).asInstanceOf[AnyRef]
     })
-    trace("cc:%s, args:%s (size:%d)", cc, args.mkString(", "), args.length)
+    trace(s"cc:$cc, args:${args.mkString(", ")} (size:${args.length})")
     cc.newInstance(args).asInstanceOf[A]
   }
 

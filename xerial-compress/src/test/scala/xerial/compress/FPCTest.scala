@@ -54,12 +54,12 @@ class FPCTest extends XerialSpec {
         }
       }
 
-      debug("compressed size: %,d => %,d", input.length * 8, compressed.length)
-      debug("snappy compressed size: %,d => %,d", input.length * 8, snappyCompressed.length)
+      debug(f"compressed size: ${input.length*8}%,d => ${compressed.length}%,d")
+      debug(f"snappy compressed size: ${input.length*8}%,d => ${snappyCompressed.length}%,d")
 
       val decompressed = FPC.decompress(compressed)
 
-      debug("decompressed size: %,d", decompressed.length)
+      debug(f"decompressed size: ${decompressed.length}%,d")
       val z = input.zipAll(decompressed, 0.0, 0.0)
       val mismatch = z.zipWithIndex.find{case (x, i) => x._1 != x._2}
       mismatch map { m =>

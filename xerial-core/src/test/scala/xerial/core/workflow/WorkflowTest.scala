@@ -50,8 +50,8 @@ class WorkflowTest extends XerialSpec {
     "allow defining tasks using Workflow trait" in {
       val w = new MyWorkflow
 
-      debug("%s := %s", w.inputFiles.name, w.inputFiles)
-      debug("%s := %s", w.lc.name, w.lc)
+      debug(s"${w.inputFiles.name} := ${w.inputFiles}")
+      debug(s"${w.lc.name} := ${w.lc}")
 
     }
 

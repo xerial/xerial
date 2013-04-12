@@ -81,7 +81,7 @@ trait Workflow extends Logger {
 //        }
 //        // Update the reference
 //        ref.set(newTask)
-//        debug("Define task %15s := %s", ruleName, newTask)
+//        debug(f"Define task $ruleName%15s := $newTask%s")
 //        ref
 //      }
 //    }

@@ -42,7 +42,7 @@ object TypeConverter extends Logger {
       if (t.isAssignableFrom(s))
         Some(value)
       else if (TypeUtil.isBuffer(s)) {
-        debug("convert buffer %s into %s", value, targetType)
+        debug(s"convert buffer $value into $targetType")
         val buf = value.asInstanceOf[mutable.Buffer[_]]
         val gt: Seq[ObjectType] = targetType.asInstanceOf[GenericType].genericTypes
         val e = gt(0).rawType
@@ -68,7 +68,7 @@ object TypeConverter extends Logger {
           Some(buf.asInstanceOf[mutable.Buffer[(_, _)]].toMap)
         }
         else {
-          warn("cannot convert %s to %s", s.getSimpleName, t.getSimpleName)
+          warn(s"cannot convert ${s.getSimpleName} to ${t.getSimpleName}")
           None
         }
       }
@@ -92,7 +92,7 @@ object TypeConverter extends Logger {
         v match {
           case Some(c) => v
           case None =>
-            warn("cannot create an instance of %s from %s", targetType, value)
+            warn(s"cannot create an instance of $targetType from $value")
             None
         }
       }
@@ -123,7 +123,7 @@ object TypeConverter extends Logger {
       case TextType.File => new File(s)
       case TextType.Date => DateFormat.getDateInstance.parse(s)
       case _ =>
-        warn("""Failed to convert "%s" to %s""", s, targetType.toString)
+        warn(s"""Failed to convert "$s" to ${targetType.toString}""")
         None
     }
     Some(v.asInstanceOf[A])

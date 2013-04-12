@@ -103,7 +103,7 @@ class LineReaderTest extends XerialSpec {
 
     "read lines faster than BufferedReader" in {
 
-      debug("sample data size: %,d", sampleData.length)
+      debug(f"sample data size: ${sampleData.length}%,d")
 
       val t = time("reader", repeat=10) {
         block("LineReader") {
@@ -128,8 +128,8 @@ class LineReaderTest extends XerialSpec {
       t("LineReader") should be < (t("BufferedReader"))
 
 
-      debug("LineReader performance: %,.2f", sampleData.length / t("LineReader").averageWithoutMinMax)
-      debug("BufferedReader performance: %,.2f", sampleData.length / t("BufferedReader").averageWithoutMinMax)
+      debug(f"LineReader performance: ${sampleData.length / t("LineReader").averageWithoutMinMax}%,.2f")
+      debug(f"BufferedReader performance: ${sampleData.length / t("BufferedReader").averageWithoutMinMax}%,.2f")
 
     }
 
