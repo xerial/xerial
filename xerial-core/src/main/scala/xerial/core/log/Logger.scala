@@ -24,7 +24,7 @@
 package xerial.core.log
 
 import collection.mutable
-import javax.management.{MBeanServerConnection, JMX, ObjectName}
+import javax.management.{InstanceAlreadyExistsException, MBeanServerConnection, JMX, ObjectName}
 import management.ManagementFactory
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import util.DynamicVariable
@@ -240,6 +240,7 @@ object LoggerFactory {
         server.registerMBean(new LoggerConfigImpl, configMBeanName)
     }
     catch {
+      case e: InstanceAlreadyExistsException => // OK
       case e: Exception => e.printStackTrace()
     }
   }
