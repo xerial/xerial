@@ -42,8 +42,10 @@ object JavaProcess extends Logger {
    */
   def list : Seq[JProcess] = {
     val cmd = Shell.findJavaCommand("jps")
-    if(cmd.isEmpty)
-      sys.error("no jps command is found. Set PATH or JAVA_HOME properly.")
+    if(cmd.isEmpty) {
+      warn("no jps command is found. Set PATH or JAVA_HOME properly.")
+      Seq.empty
+    }
     else {
       val ls = for{
         line <- scala.sys.process.Process("%s -v".format(cmd.get)).lines.toSeq
