@@ -33,6 +33,5 @@ object Macros {
   def enclosingMethodName : String = macro enclosingMethodNameImpl
 
 
-
 }
 
