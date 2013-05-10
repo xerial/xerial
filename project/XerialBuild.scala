@@ -110,7 +110,7 @@ object XerialBuild extends Build {
       publish := {},
       publishLocal := {}
     )
-  ) aggregate(core, lens, compress, macroLib)
+  ) aggregate(core, lens, compress)
 
   lazy val core = Project(
     id = "xerial-core",
@@ -141,14 +141,14 @@ object XerialBuild extends Build {
     )
   ) dependsOn (core % dependentScope)
 
-  lazy val macroLib = Project(
-    id = "xerial-macro",
-    base = file("xerial-macro"),
-    settings = buildSettings ++ Seq(
-      description := "macro libraries for Xerial projects",
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % SCALA_VERSION
-    )
-  ) dependsOn (core % dependentScope)
+//  lazy val macroLib = Project(
+//    id = "xerial-macro",
+//    base = file("xerial-macro"),
+//    settings = buildSettings ++ Seq(
+//      description := "macro libraries for Xerial projects",
+//      libraryDependencies += "org.scala-lang" % "scala-reflect" % SCALA_VERSION
+//    )
+//  ) dependsOn (core % dependentScope)
 
 
   object Dependencies {
