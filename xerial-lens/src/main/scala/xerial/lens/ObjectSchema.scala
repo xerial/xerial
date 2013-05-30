@@ -31,7 +31,6 @@ import scala.language.implicitConversions
 //--------------------------------------
 
 
-
 /**
  * Object information extractor
  */
@@ -50,7 +49,7 @@ object ObjectSchema extends Logger {
    */
   def apply(cl: Class[_]): ObjectSchema = schemaTable.getOrElseUpdate(cl, createSchema(cl))
 
-  private def createSchema(cl:Class[_]) : ObjectSchema = {
+  private def createSchema(cl: Class[_]): ObjectSchema = {
     new ObjectSchema(cl)
   }
 
@@ -60,12 +59,12 @@ object ObjectSchema extends Logger {
 
   private val sigCache = new WeakHashMap[Class[_], Option[ScalaSig]]
 
-  private def findClass(name:String) : Option[Class[_]] = {
+  private def findClass(name: String): Option[Class[_]] = {
     try {
       Some(Class.forName(name))
     }
     catch {
-      case e : Exception => None
+      case e: Exception => None
     }
   }
 
@@ -94,7 +93,7 @@ object ObjectSchema extends Logger {
         }
         catch {
           // ScalaSigParser throws NPE when noe signature for the class is found
-          case _ : Exception => None
+          case _: Exception => None
         }
       // If no signature is found, search an enclosing object
       sig.orElse(enclosingObject(cl).flatMap(findSignature(_)))
@@ -108,7 +107,7 @@ object ObjectSchema extends Logger {
         true
       }
       catch {
-        case _ : Exception => false
+        case _: Exception => false
       }
     }
 
@@ -124,54 +123,79 @@ object ObjectSchema extends Logger {
   }
 
   private def findConstructor(cl: Class[_], sig: ScalaSig): Option[Constructor] = {
-
-    import scala.tools.scalap.scalax.rules.scalasig
-
-    def isTargetClass(t: scalasig.Type): Boolean = {
-      t match {
-        case TypeRefType(_, c@ClassSymbol(sinfo, _), _) => {
-          // when ClassSymbol contains isModule flag, it is a constructor of the companion object
-          sinfo.name == cl.getSimpleName && !c.isModule
-        }
-        case _ => false
+    import scala.reflect.runtime.{universe => ru}
+    import ru._
+    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
+    val cs = mirror.staticClass(cl.getCanonicalName)
+    val cc = cs.typeSignature.declaration(ru.nme.CONSTRUCTOR)
+    if(!cc.isMethod)
+      None
+    else {
+      val fstParen = cc.asMethod.paramss.headOption.getOrElse(Seq.empty)
+      val ccParams = for ((p, i) <- fstParen.zipWithIndex) yield {
+          val name = p.name.decoded
+          val tpe = p.typeSignature
+          ConstructorParameter(cl, findFieldOwner(name, cl), i, name, ObjectType.of(tpe))
       }
-    }
-    def findConstructorParameters(mt: MethodType): Array[ConstructorParameter] = {
-      trace(s"constructor method type: $mt")
-      val paramSymbols: Seq[MethodSymbol] = mt match {
-        case MethodType(_, param: Seq[_]) => param.collect {
-          case m: MethodSymbol => m
-        }
-        case _ => Seq.empty
-      }
-
-      val l = for (((name, vt), index) <- toAttribute(paramSymbols, sig, cl).zipWithIndex)
-      yield {
-        // resolve the actual field owner
-        val fieldOwner = findFieldOwner(name, cl)
-
-        // This error happens when a private val field is defined in the constructor, but never used in the class body
-        //if (fieldOwner.isEmpty)
-        //     throw new IllegalStateException("No field owner is found: name:%s, base class:%s".format(name, cl.getSimpleName))
-        ConstructorParameter(cl, fieldOwner, index, name, vt)
-      }
-      l.toArray
+      val ctor = Constructor(cl, ccParams.toArray)
+      Some(ctor)
     }
 
-    val entries = (0 until sig.table.length).map(sig.parseEntry(_))
-    entries.collectFirst {
-      case m: MethodType if isTargetClass(m.resultType) => {
-        val params = findConstructorParameters(m)
-        Constructor(cl, params)
-      }
-    }
+//    import scala.tools.scalap.scalax.rules.scalasig
+//
+//    def isTargetClass(t: scalasig.Type): Boolean = {
+//      t match {
+//        case TypeRefType(_, c@ClassSymbol(sinfo, _), _) => {
+//          // when ClassSymbol contains isModule flag, it is a constructor of the companion object
+//          sinfo.name == cl.getSimpleName && !c.isModule
+//        }
+//        case _ => false
+//      }
+//    }
+//    def findConstructorParameters(mt: MethodType): Array[ConstructorParameter] = {
+//      trace(s"constructor method type: $mt")
+//      val paramSymbols: Seq[MethodSymbol] = mt match {
+//        case MethodType(_, param: Seq[_]) => param.collect {
+//          case m: MethodSymbol => m
+//        }
+//        case _ => Seq.empty
+//      }
+//
+//      val l = for (((name, vt), index) <- toAttribute(paramSymbols, sig, cl).zipWithIndex)
+//      yield {
+//        // resolve the actual field owner
+//        val fieldOwner = findFieldOwner(name, cl)
+//
+//        // This error happens when a private val field is defined in the constructor, but never used in the class body
+//        //if (fieldOwner.isEmpty)
+//        //     throw new IllegalStateException("No field owner is found: name:%s, base class:%s".format(name, cl.getSimpleName))
+//        ConstructorParameter(cl, fieldOwner, index, name, vt)
+//      }
+//      l.toArray
+//    }
+//
+//
+//
+//    val entries = (0 until sig.table.length).map(sig.parseEntry(_))
+//    val ctors = entries.collect {
+//      case m: MethodType if isTargetClass(m.resultType) => {
+//        val params = findConstructorParameters(m)
+//        Constructor(cl, params)
+//      }
+//    }
+//    if (ctors.isEmpty)
+//      None
+//    else {
+//      trace(s"multiple constructors found:\n${ctors.mkString("\n")}")
+//      ctors.headOption
+//    }
   }
 
   private def findConstructor(cl: Class[_]): Option[Constructor] = {
     try
-      for(sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
+      for (sig <- findSignature(cl); cc <- findConstructor(cl, sig)) yield cc
     catch {
-      case e : Exception =>
+      case e: Exception =>
         error(e)
         None
     }
@@ -191,7 +215,7 @@ object ObjectSchema extends Logger {
     val i = if (cl.getInterfaces != null) cl.getInterfaces else Array.empty[Class[_]]
     val p = Seq(cl.getSuperclass) ++ i
     val filtered = p.filterNot(c => isSystemClass(c))
-    if(!filtered.isEmpty)
+    if (!filtered.isEmpty)
       trace(s"parents of ${cl.getSimpleName}: ${filtered.map(_.getName).mkString(", ")}")
     filtered
   }
@@ -206,11 +230,11 @@ object ObjectSchema extends Logger {
     val paramRefs = param.map(p => (p.name, sig.parseEntry(p.symbolInfo.info)))
     trace(s"method param refs:\n${paramRefs.mkString("\n")}")
     paramRefs.map {
-//      case (name: String, t @ TypeRefType(prefix, symbol, Seq(tp : TypeRefType))) =>
-//        (name, resolveClass(tp))
+      //      case (name: String, t @ TypeRefType(prefix, symbol, Seq(tp : TypeRefType))) =>
+      //        (name, resolveClass(tp))
       case (name: String, t: TypeRefType) =>
         (name, resolveClass(t))
-      case (name: String, ExistentialType(tref:TypeRefType, symbols)) =>
+      case (name: String, ExistentialType(tref: TypeRefType, symbols)) =>
         (name, resolveClass(tref))
     }
   }
@@ -237,7 +261,7 @@ object ObjectSchema extends Logger {
 
         val parents = findParentSchemas(cl)
         val logger = getLogger("parameter")
-        if(!parents.isEmpty)
+        if (!parents.isEmpty)
           logger.trace(s"parents: ${parents.mkString(", ")}")
         val parentParams = parents.flatMap {
           p => p.parameters
@@ -280,86 +304,88 @@ object ObjectSchema extends Logger {
   }
 
   def methodsOf(cl: Class[_]): Array[ObjectMethod] = {
-    val methods = findSignature(cl) map { sig =>
-      val entries = (0 until sig.table.length).map(sig.parseEntry(_))
+    val methods = findSignature(cl) map {
+      sig =>
+        val entries = (0 until sig.table.length).map(sig.parseEntry(_))
 
-      def isTargetMethod(m: MethodSymbol): Boolean = {
-        // synthetic is used for functions returning default values of method arguments (e.g., ping$default$1)
-        m.isMethod && !m.isPrivate && !m.isProtected && !m.isImplicit && !m.isSynthetic && !m.isAccessor && m.name != "<init>" && m.name != "$init$" && isOwnedByTargetClass(m, cl)
-      }
-
-      def resolveMethodArgTypes(params: Seq[(String, ObjectType)]) = {
-        params.map {
-          case (name, vt) if TypeUtil.isArray(vt.rawType) => {
-            val gt = vt.asInstanceOf[GenericType]
-            val t = gt.genericTypes(0)
-            val loader = Thread.currentThread.getContextClassLoader
-            Class.forName("[L%s;".format(t.rawType.getName), false, loader)
-          }
-          case (name, vt) => vt.rawType
+        def isTargetMethod(m: MethodSymbol): Boolean = {
+          // synthetic is used for functions returning default values of method arguments (e.g., ping$default$1)
+          m.isMethod && !m.isPrivate && !m.isProtected && !m.isImplicit && !m.isSynthetic && !m.isAccessor && m.name != "<init>" && m.name != "$init$" && isOwnedByTargetClass(m, cl)
         }
-      }
 
-      val targetMethodSymbol: Seq[(MethodSymbol, Any)] = entries.collect {
-        case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
-      }
-
-      def isAccessibleParams(params:Seq[MethodSymbol]) : Boolean = {
-        params.forall(p => !p.isByNameParam)
-      }
-
-
-      def resolveMethod(cl:Class[_], name:String, resultType:TypeRefType, params:Seq[(String, ObjectType)], paramTypes:Class[_]*) : Option[ObjectMethod] = {
-        try {
-          val mt = cl.getMethod(name, paramTypes:_*)
-          val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(mt, index, name, vt)
-          Some(ScMethod(cl, mt, name, mp.toArray, resolveClass(resultType)))
-        }
-        catch {
-          case e:NoSuchMethodException => {
-            // try companion object
-            try {
-              findClass(cl.getName + "$") map { co =>
-                val mt = co.getMethod(name, paramTypes:_*)
-                val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(mt, index, name, vt)
-                CompanionMethod(co, mt, name, mp.toArray, resolveClass(resultType))
-              }
+        def resolveMethodArgTypes(params: Seq[(String, ObjectType)]) = {
+          params.map {
+            case (name, vt) if TypeUtil.isArray(vt.rawType) => {
+              val gt = vt.asInstanceOf[GenericType]
+              val t = gt.genericTypes(0)
+              val loader = Thread.currentThread.getContextClassLoader
+              Class.forName("[L%s;".format(t.rawType.getName), false, loader)
             }
-            catch {
-              case e : Exception => None
-            }
+            case (name, vt) => vt.rawType
           }
         }
-      }
 
-      val mSeq : Seq[ObjectMethod] = {
-        val mOpt = targetMethodSymbol.map {
-          s =>
-            try {
-              trace(s"method: $s")
-              s match {
-                case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
-                  resolveMethod(cl, m.name, resultType, Seq.empty)
-                }
-                case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_]))
-                  if isAccessibleParams(paramSymbols.asInstanceOf[Seq[MethodSymbol]]) => {
-                  val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
-                  resolveMethod(cl, m.name, resultType, params, resolveMethodArgTypes(params): _*)
-                }
-                case _ => None
-              }
-            }
-            catch {
-              case e : Exception => {
-                warn(s"error occurred when accessing method $s : $e")
-                warn(e)
-                None
-              }
-            }
+        val targetMethodSymbol: Seq[(MethodSymbol, Any)] = entries.collect {
+          case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
         }
-        mOpt.filter(_.isDefined) map (_.get)
-      }
-      mSeq
+
+        def isAccessibleParams(params: Seq[MethodSymbol]): Boolean = {
+          params.forall(p => !p.isByNameParam)
+        }
+
+
+        def resolveMethod(cl: Class[_], name: String, resultType: TypeRefType, params: Seq[(String, ObjectType)], paramTypes: Class[_]*): Option[ObjectMethod] = {
+          try {
+            val mt = cl.getMethod(name, paramTypes: _*)
+            val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(mt, index, name, vt)
+            Some(ScMethod(cl, mt, name, mp.toArray, resolveClass(resultType)))
+          }
+          catch {
+            case e: NoSuchMethodException => {
+              // try companion object
+              try {
+                findClass(cl.getName + "$") map {
+                  co =>
+                    val mt = co.getMethod(name, paramTypes: _*)
+                    val mp = for (((name, vt), index) <- params.zipWithIndex) yield MethodParameter(mt, index, name, vt)
+                    CompanionMethod(co, mt, name, mp.toArray, resolveClass(resultType))
+                }
+              }
+              catch {
+                case e: Exception => None
+              }
+            }
+          }
+        }
+
+        val mSeq: Seq[ObjectMethod] = {
+          val mOpt = targetMethodSymbol.map {
+            s =>
+              try {
+                trace(s"method: $s")
+                s match {
+                  case (m: MethodSymbol, NullaryMethodType(resultType: TypeRefType)) => {
+                    resolveMethod(cl, m.name, resultType, Seq.empty)
+                  }
+                  case (m: MethodSymbol, MethodType(resultType: TypeRefType, paramSymbols: Seq[_]))
+                    if isAccessibleParams(paramSymbols.asInstanceOf[Seq[MethodSymbol]]) => {
+                    val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
+                    resolveMethod(cl, m.name, resultType, params, resolveMethodArgTypes(params): _*)
+                  }
+                  case _ => None
+                }
+              }
+              catch {
+                case e: Exception => {
+                  warn(s"error occurred when accessing method $s : $e")
+                  warn(e)
+                  None
+                }
+              }
+          }
+          mOpt.filter(_.isDefined) map (_.get)
+        }
+        mSeq
     }
 
     val p = parentMethodsOf(cl)
@@ -411,7 +437,7 @@ object ObjectSchema extends Logger {
           val loader = Thread.currentThread().getContextClassLoader
           try loader.loadClass(name)
           catch {
-            case _ : Throwable => {
+            case _: Throwable => {
               // When the class is defined in an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
               val parent = typeSignature.symbol.parent
               val anotherClassName = "%s$%s".format(if (parent.isDefined) parent.get.path else "", typeSignature.symbol.name)
@@ -422,7 +448,7 @@ object ObjectSchema extends Logger {
     }
 
 
-    def toObjectType(cl:Class[_]) : ObjectType = {
+    def toObjectType(cl: Class[_]): ObjectType = {
       typeSignature match {
         case TypeRefType(prefix, symbol, typeArgs) if typeArgs.isEmpty =>
           ObjectType(clazz)
@@ -479,14 +505,15 @@ class ObjectSchema(val cl: Class[_]) extends Logger {
       case None => throw new IllegalArgumentException("no constructor is found for " + cl)
     }
   }
-  def findConstructor : Option[Constructor] = ObjectSchema.findConstructor(cl)
+  def findConstructor: Option[Constructor] = ObjectSchema.findConstructor(cl)
 
   override def toString = {
-    findConstructor.map { cc =>
-      if(cc.params.isEmpty)
-        name
-      else
-        "%s(%s)".format(name, cc.params.mkString(", "))
+    findConstructor.map {
+      cc =>
+        if (cc.params.isEmpty)
+          name
+        else
+          "%s(%s)".format(name, cc.params.mkString(", "))
     } getOrElse name
   }
 }

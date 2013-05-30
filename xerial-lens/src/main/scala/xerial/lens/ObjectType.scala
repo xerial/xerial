@@ -41,13 +41,13 @@ object ObjectType extends Logger {
     obj match {
       case cl:Class[_] => of(cl)
       case t:ru.Type => of(t)
-      case _ => of(typeOf[A])
+      case _ => of(typeOf[A].asInstanceOf[ru.Type])
     }
   }
 
   def of(tpe:ru.Type) : ObjectType = {
     def resolveType = {
-      trace(f"ObjectType.of(${tpe})")
+      trace(f"ObjectType.of(${ru.showRaw(tpe)})")
       val m =
         (primitiveMatcher orElse
           textMatcher orElse
@@ -79,13 +79,30 @@ object ObjectType extends Logger {
     case t if t =:= typeOf[java.io.File] => TextType.File
   }
 
+  private def resolveClass(tpe:ru.Type) : Class[_] = {
+    try {
+      mirror.runtimeClass(tpe)
+    }
+    catch {
+      case e:NoClassDefFoundError => classOf[AnyRef]
+    }
+  }
+
   def typeRefMatcher : PartialFunction[ru.Type, ObjectType] = {
     case t if t =:= typeOf[scala.Any] => AnyRefType
     case tpe @ TypeRef(pre, symbol, typeArgs) =>
+      val cl = resolveClass(tpe)
       if(typeArgs.isEmpty)
-        of(mirror.runtimeClass(tpe))
+        of(cl)
       else
-        GenericType(mirror.runtimeClass(tpe), typeArgs.map(apply(_)))
+        GenericType(cl, typeArgs.map(apply(_)))
+    case tpe @ ExistentialType(tpeLst, TypeRef(pre, symbol, typeArgs)) =>
+      // Handle TypeName[A, ..]
+      val cl = resolveClass(tpe)
+      if(typeArgs.isEmpty)
+        of(cl)
+    else
+        GenericType(cl, typeArgs.map(x => AnyRefType))
   }
 
 
