@@ -120,7 +120,7 @@ object ObjectType extends Logger {
 
 }
 
-trait Type {
+trait Type extends Serializable {
   val name : String
 }
 
