@@ -22,6 +22,7 @@ import java.{lang => jl}
 import java.lang.{reflect => jr}
 import scala.reflect.ClassTag
 import scala.language.implicitConversions
+import scala.reflect.internal.MissingRequirementError
 
 //--------------------------------------
 //
@@ -126,7 +127,15 @@ object ObjectSchema extends Logger {
     import scala.reflect.runtime.{universe => ru}
     import ru._
     val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-    val cs = mirror.staticClass(cl.getCanonicalName)
+    val cs = try {
+      mirror.staticClass(cl.getCanonicalName)
+    }
+    catch {
+      case e:MissingRequirementError => {
+        val md = mirror.staticModule(cl.getEnclosingClass.getCanonicalName)
+        md.typeSignature.member(newTypeName(cl.getSimpleName))
+      }
+    }
     val cc = cs.typeSignature.declaration(ru.nme.CONSTRUCTOR)
     if(!cc.isMethod)
       None
