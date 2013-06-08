@@ -75,7 +75,7 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
  */
 trait Logger extends Serializable {
 
-  @transient private[this] lazy val logger : LogWriter = LoggerFactory(this.getClass)
+  private[this] def logger = LoggerFactory(this.getClass)
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.isEnabled(logLevel))
