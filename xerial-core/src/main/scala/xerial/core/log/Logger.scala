@@ -192,7 +192,7 @@ object LoggerFactory {
   def getDefaultLogLevel(loggerName:String) : LogLevel ={
     def property(key:String) : Option[String] = Option(System.getProperty(key))
     def parents : Seq[String] = {
-      val c = loggerName.split(".")
+      val c = loggerName.split("\\.")
       val p = for(i <- 1 until c.length) yield {
         c.take(i).mkString(".")
       }
@@ -200,7 +200,8 @@ object LoggerFactory {
     } 
 
     val l = Seq(loggerName, leafName(loggerName)) ++ parents
-    val ll : Option[String] = (for(k <- l.map("loglevel:%s".format(_)); prop <- property(k)) yield prop).headOption
+
+    val ll : Option[String] = (for(k <- l.map(x => s"loglevel:$x"); prop <- property(k)) yield prop).headOption
     ll.map(LogLevel(_)).getOrElse(defaultLogLevel)
   }
 
@@ -213,18 +214,12 @@ object LoggerFactory {
 
     def property(key: String) = Option(System.getProperty(key))
 
-    def getLogLevel = {
-      val l = property("loglevel:%s".format(leafName(name))) orElse {
-        property("loglevel:%s".format(leafName(name)))
-      } getOrElse defaultLogLevel.name
-      LogLevel(l)
-    }
-
     if (name.isEmpty)
       rootLogger
     else {
       synchronized {
-        loggerHolder.getOrElseUpdate(name, new ConsoleLogWriter(name, getLogLevel))
+        val dl = getDefaultLogLevel(name)
+        loggerHolder.getOrElseUpdate(name, new ConsoleLogWriter(name, dl))
       }
     }
   }
