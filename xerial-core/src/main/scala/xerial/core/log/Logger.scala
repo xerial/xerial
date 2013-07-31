@@ -299,6 +299,8 @@ object LoggerFactory {
     LoggerFactory.rootLogger.debug(s"Set the default log level to $logLevel")
   }
 
+  def getDefaultLogLevel = defaultLogLevel
+
 }
 
 import javax.management.MXBean
