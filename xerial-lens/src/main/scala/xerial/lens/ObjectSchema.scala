@@ -249,8 +249,13 @@ object ObjectSchema extends Logger {
   }
 
   def isOwnedByTargetClass(m: MethodSymbol, cl: Class[_]): Boolean = {
+    val sn = cl.getSimpleName
     m.symbolInfo.owner match {
-      case ClassSymbol(symbolInfo, _) => symbolInfo.name == cl.getSimpleName
+      case cs @ ClassSymbol(symbolInfo, _) if cs.isModule => {
+        val n = if(sn.endsWith("$")) sn.dropRight(1) else sn
+        symbolInfo.name == n
+      }
+      case cs @ ClassSymbol(symbolInfo, _) => symbolInfo.name == sn
       case _ => false
     }
   }
@@ -334,9 +339,12 @@ object ObjectSchema extends Logger {
           }
         }
 
-        val targetMethodSymbol: Seq[(MethodSymbol, Any)] = entries.collect {
+        val methods = entries.collect { case m:MethodSymbol => m }
+        //trace(s"methods:\n${methods.mkString("\n")}")
+        val targetMethodSymbol: Seq[(MethodSymbol, Any)] = methods.collect {
           case m: MethodSymbol if isTargetMethod(m) => (m, entries(m.symbolInfo.info))
         }
+        //trace(s"target methods:\n${targetMethodSymbol.mkString("\n")}")
 
         def isAccessibleParams(params: Seq[MethodSymbol]): Boolean = {
           params.forall(p => !p.isByNameParam)
