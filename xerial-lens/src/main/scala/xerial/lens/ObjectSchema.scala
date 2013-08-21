@@ -251,10 +251,10 @@ object ObjectSchema extends Logger {
   def isOwnedByTargetClass(m: MethodSymbol, cl: Class[_]): Boolean = {
     val sn = cl.getSimpleName
     m.symbolInfo.owner match {
-      case cs @ ClassSymbol(symbolInfo, _) if cs.isModule => {
-        val n = if(sn.endsWith("$")) sn.dropRight(1) else sn
-        symbolInfo.name == n
-      }
+//      case cs @ ClassSymbol(symbolInfo, _) if cs.isModule => {
+//        val n = if(sn.endsWith("$")) sn.dropRight(1) else sn
+//        symbolInfo.name == n
+//      }
       case cs @ ClassSymbol(symbolInfo, _) => symbolInfo.name == sn
       case _ => false
     }
@@ -468,7 +468,7 @@ object ObjectSchema extends Logger {
     def toObjectType(cl: Class[_]): ObjectType = {
       typeSignature match {
         case TypeRefType(prefix, symbol, typeArgs) if typeArgs.isEmpty =>
-          ObjectType(clazz)
+          ObjectType.of(clazz)
         case _ =>
           val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
             case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
