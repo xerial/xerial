@@ -90,8 +90,8 @@ import xerial.core.log.{LoggerFactory, Logger, LogLevel}
  *
  * @author leo
  */
-trait Timer {
-  private[this] val holder = new ThreadLocal[Stack[TimeReport]] {
+trait Timer extends Serializable {
+  @transient private[this] val holder = new ThreadLocal[Stack[TimeReport]] {
     override def initialValue() = new Stack[TimeReport]
   }
 
