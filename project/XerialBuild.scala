@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
+
 import java.io.File
 import sbt._
 import sbt.Keys._
-import sbt.Keys._
 import sbtrelease.ReleasePlugin._
-import scala._
-import scala.Some
-import scala.Some
-import scala.Some
-import scala.Some
 import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.10.1"
+  val SCALA_VERSION = "2.10.2"
 
 
   def releaseResolver(v: String): Resolver = {
