@@ -42,12 +42,13 @@ object XerialBuild extends Build {
     }
   }
 
-  lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.defaultSettings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
     description := "Xerial: Data Management Utiilities",
-    scalaVersion := SCALA_VERSION,
+    scalaVersion in Global := SCALA_VERSION,
+    sbtVersion in Global := "0.13.0",
     publishMavenStyle := true,
     publishArtifact in Test := false,
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
