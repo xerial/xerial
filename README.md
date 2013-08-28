@@ -45,6 +45,9 @@ Retrives object type information embeded in Scala-generated class files.
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
 # Release plan
+ * Version 3.2.1
+  * Upgrade to Scala 2.10.2, sbt 0.13.0
+
  * Version 3.2.0
   * Upgrade to Scala 2.10.1
   * Logger interface has changed. Use string-interpolation of Scala 2.10 instead of logging methods that take varialbe-length arguments.
