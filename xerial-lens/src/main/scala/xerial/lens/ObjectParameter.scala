@@ -31,7 +31,7 @@ import scala.language.existentials
  * @param name
  * @param valueType
  */
-sealed abstract class Parameter(val name: String, val valueType: ObjectType) {
+sealed abstract class Parameter(val name: String, val valueType: ObjectType) extends Serializable {
   val rawType = valueType.rawType
 
   override def toString = "%s:%s".format(name, valueType)

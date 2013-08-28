@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
+
 import java.io.File
 import sbt._
 import sbt.Keys._
-import sbt.Keys._
 import sbtrelease.ReleasePlugin._
-import scala._
-import scala.Some
-import scala.Some
-import scala.Some
-import scala.Some
 import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.10.1"
+  val SCALA_VERSION = "2.10.2"
 
 
   def releaseResolver(v: String): Resolver = {
@@ -47,12 +42,13 @@ object XerialBuild extends Build {
     }
   }
 
-  lazy val buildSettings = Defaults.defaultSettings ++ Unidoc.settings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.defaultSettings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
     description := "Xerial: Data Management Utiilities",
-    scalaVersion := SCALA_VERSION,
+    scalaVersion in Global := SCALA_VERSION,
+    sbtVersion in Global := "0.13.0",
     publishMavenStyle := true,
     publishArtifact in Test := false,
     publishTo <<= version { (v) => Some(releaseResolver(v)) },
@@ -110,7 +106,7 @@ object XerialBuild extends Build {
       publish := {},
       publishLocal := {}
     )
-  ) aggregate(core, lens, compress, macroLib)
+  ) aggregate(core, lens, compress)
 
   lazy val core = Project(
     id = "xerial-core",
@@ -136,19 +132,19 @@ object XerialBuild extends Build {
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
       libraryDependencies ++= testLib ++ Seq(
-        "org.xerial.snappy" % "snappy-java" % "1.0.5-M3"
+        "org.xerial.snappy" % "snappy-java" % "1.1.0-M4"
       )
     )
   ) dependsOn (core % dependentScope)
 
-  lazy val macroLib = Project(
-    id = "xerial-macro",
-    base = file("xerial-macro"),
-    settings = buildSettings ++ Seq(
-      description := "macro libraries for Xerial projects",
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % SCALA_VERSION
-    )
-  ) dependsOn (core % dependentScope)
+//  lazy val macroLib = Project(
+//    id = "xerial-macro",
+//    base = file("xerial-macro"),
+//    settings = buildSettings ++ Seq(
+//      description := "macro libraries for Xerial projects",
+//      libraryDependencies += "org.scala-lang" % "scala-reflect" % SCALA_VERSION
+//    )
+//  ) dependsOn (core % dependentScope)
 
 
   object Dependencies {

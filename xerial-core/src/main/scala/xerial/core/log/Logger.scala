@@ -24,7 +24,7 @@
 package xerial.core.log
 
 import collection.mutable
-import javax.management.{MBeanServerConnection, JMX, ObjectName}
+import javax.management.{InstanceAlreadyExistsException, MBeanServerConnection, JMX, ObjectName}
 import management.ManagementFactory
 import javax.management.remote.{JMXConnectorFactory, JMXServiceURL}
 import util.DynamicVariable
@@ -75,7 +75,7 @@ sealed abstract class LogLevel(val order: Int, val name: String) extends Ordered
  */
 trait Logger extends Serializable {
 
-  @transient private[this] val logger : LogWriter = LoggerFactory(this.getClass)
+  private[this] def logger = LoggerFactory(this.getClass)
 
   def log(logLevel: LogLevel, message: => Any): Unit = {
     if (logger.isEnabled(logLevel))
@@ -136,7 +136,9 @@ trait LogHelper {
  */
 trait LogWriter extends LogHelper with Serializable {
 
+  var logLevel: LogLevel
   val name: String
+
   val shortName = LoggerFactory.leafName(name)
   def tag = {
     val pos = shortName.lastIndexOf(":")
@@ -149,8 +151,6 @@ trait LogWriter extends LogHelper with Serializable {
     val pos = name.lastIndexOf(":")
     if(pos == -1) name else name.substring(0, pos)
   }
-
-  var logLevel: LogLevel
 
   def isEnabled(targetLogLevel: LogLevel): Boolean = targetLogLevel <= logLevel
 
@@ -192,7 +192,7 @@ object LoggerFactory {
   def getDefaultLogLevel(loggerName:String) : LogLevel ={
     def property(key:String) : Option[String] = Option(System.getProperty(key))
     def parents : Seq[String] = {
-      val c = loggerName.split(".")
+      val c = loggerName.split("\\.")
       val p = for(i <- 1 until c.length) yield {
         c.take(i).mkString(".")
       }
@@ -200,7 +200,8 @@ object LoggerFactory {
     } 
 
     val l = Seq(loggerName, leafName(loggerName)) ++ parents
-    val ll : Option[String] = (for(k <- l.map("loglevel:%s".format(_)); prop <- property(k)) yield prop).headOption
+
+    val ll : Option[String] = (for(k <- l.map(x => s"loglevel:$x"); prop <- property(k)) yield prop).headOption
     ll.map(LogLevel(_)).getOrElse(defaultLogLevel)
   }
 
@@ -213,18 +214,12 @@ object LoggerFactory {
 
     def property(key: String) = Option(System.getProperty(key))
 
-    def getLogLevel = {
-      val l = property("loglevel:%s".format(leafName(name))) orElse {
-        property("loglevel:%s".format(leafName(name)))
-      } getOrElse defaultLogLevel.name
-      LogLevel(l)
-    }
-
     if (name.isEmpty)
       rootLogger
     else {
       synchronized {
-        loggerHolder.getOrElseUpdate(name, new ConsoleLogWriter(name, getLogLevel))
+        val dl = getDefaultLogLevel(name)
+        loggerHolder.getOrElseUpdate(name, new ConsoleLogWriter(name, dl))
       }
     }
   }
@@ -240,6 +235,7 @@ object LoggerFactory {
         server.registerMBean(new LoggerConfigImpl, configMBeanName)
     }
     catch {
+      case e: InstanceAlreadyExistsException => // OK
       case e: Exception => e.printStackTrace()
     }
   }
@@ -302,6 +298,8 @@ object LoggerFactory {
     LoggerFactory.defaultLogLevel = logLevel
     LoggerFactory.rootLogger.debug(s"Set the default log level to $logLevel")
   }
+
+  def getDefaultLogLevel = defaultLogLevel
 
 }
 

@@ -53,4 +53,17 @@ object DataUnit {
     "%d%s".format(f._1, f._2)
   }
 
+//  implicit class DataSize(size:Long) {
+//    def K = size * KB
+//    def M = size * MB
+//    def G = size * GB
+//    def P = size * PB
+//  }
+
+  // data size unit
+  val KB = 1L << 10
+  val MB = 1L << 20
+  val GB = 1L << 30
+  val PB = 1L << 40
+
 }
