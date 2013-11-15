@@ -45,6 +45,8 @@ Retrives object type information embeded in Scala-generated class files.
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
 # Release plan
+ * Version 3.2.2
+  * Upgrace to Scala 2.10.3, snappy-java-1.1.0
  * Version 3.2.1
   * Upgrade to Scala 2.10.2, sbt 0.13.0
 

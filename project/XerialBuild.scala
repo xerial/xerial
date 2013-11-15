@@ -23,8 +23,7 @@ import xerial.sbt.Pack._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.10.2"
-
+  val SCALA_VERSION = "2.10.3"
 
   def releaseResolver(v: String): Resolver = {
     val profile = System.getProperty("xerial.profile", "default")
@@ -132,7 +131,7 @@ object XerialBuild extends Build {
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
       libraryDependencies ++= testLib ++ Seq(
-        "org.xerial.snappy" % "snappy-java" % "1.1.0-M4"
+        "org.xerial.snappy" % "snappy-java" % "1.1.0"
       )
     )
   ) dependsOn (core % dependentScope)
