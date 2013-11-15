@@ -66,16 +66,16 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.0"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.1"
     
     # When you want to use ObjectSchema and command line parser
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.2.0"
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.2.1"
 
 #### Using Snapshot version
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.1-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.2-SNAPSHOT"
 
 
 ## Scala API
