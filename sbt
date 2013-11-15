@@ -26,7 +26,7 @@ get_mem_opts () {
   (( $perm < 1024 )) || perm=1024
   local codecache=$(( $perm / 2 ))
   
-  echo "-Xms512m -Xmx${mem}m -XX:MaxPermSize=${perm}m -XX:+CMSClassUnloadingEnabled"
+  echo "-Xms512m -Xmx${mem}m -XX:MaxPermSize=${perm}m"
 }
 
 die() {
@@ -42,7 +42,7 @@ declare -r sbt_snapshot_version=0.13.0-SNAPSHOT
 declare -r sbt_snapshot_baseurl="http://typesafe.artifactoryonline.com/typesafe/ivy-snapshots/org.scala-sbt/sbt-launch/"
 
 declare default_jvm_opts="-Dfile.encoding=UTF8"
-declare -r default_sbt_opts="-XX:+CMSClassUnloadingEnabled "
+declare -r default_sbt_opts="-XX:+CMSClassUnloadingEnabled -XX:ReservedCodeCacheSize=128m"
 declare -r default_sbt_mem=1536
 declare -r noshare_opts="-Dsbt.global.base=project/.sbtboot -Dsbt.boot.directory=project/.boot -Dsbt.ivy.home=project/.ivy"
 declare -r sbt_opts_file=".sbtopts"
@@ -415,7 +415,7 @@ esac
     sbt_tmpdir=`cygpath -wa "$sbt_tmpdir"`
     extra_jvm_opts=-Djava.io.tmpdir="$sbt_tmpdir"
   fi
-  addJava "-Dsbt.global.base=$sbt_dir"
+  addJava "-Dsbt.global.base=$sbt_dir -Dsbt.boot.directory=$sbt_dir/boot/"
   echo "Using $sbt_dir as sbt dir, -sbt-dir to override."
 }
 
