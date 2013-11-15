@@ -66,10 +66,10 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.1"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.2"
     
     # When you want to use ObjectSchema and command line parser
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.2.1"
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.2.2"
 
 #### Using Snapshot version
 
@@ -82,6 +82,6 @@ Add the following settings to your sbt build file (e.g., `build.sbt`)
 
 (Unidoc of API will be prepared)
 
-* [xerial-core 3.2.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.2.0/xerial-core-3.2.0-javadoc.jar/!/index.html)
-* [xerial-lens 3.2.0 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.2.0/xerial-lens-3.2.0-javadoc.jar/!/index.html)
+* [xerial-core 3.2.2 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.2.2/xerial-core-3.2.2-javadoc.jar/!/index.html)
+* [xerial-lens 3.2.2 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.2.2/xerial-lens-3.2.2-javadoc.jar/!/index.html)
 
