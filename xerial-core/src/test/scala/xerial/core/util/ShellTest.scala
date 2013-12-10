@@ -93,6 +93,7 @@ class ShellTest extends XerialSpec {
     }
 
     "launch a remote process as a daemon" in {
+      pending // disabled because ssh cannot be used in travis CI
       Shell.launchRemoteDaemon("localhost", "sleep 5")
     }
   }
