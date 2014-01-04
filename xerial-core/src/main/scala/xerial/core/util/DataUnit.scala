@@ -49,8 +49,11 @@ object DataUnit {
         loop(index+1, next)
     }
 
-    val f = loop(0, byteSize)
-    "%d%s".format(f._1, f._2)
+    val (prefix, unit) = if(byteSize > 0)
+      loop(0, byteSize)
+    else
+      loop(0, -byteSize) match { case (p, u) => (-p, u)}
+    s"$prefix$unit"
   }
 
 //  implicit class DataSize(size:Long) {
