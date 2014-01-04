@@ -44,7 +44,10 @@ Retrives object type information embeded in Scala-generated class files.
    * You can call methods in a class by mapping command line arguments to the method arguments
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
-# Release plan
+# Release notes
+ * Version 3.2.3 (Jan 4th, 2013)
+  * Upgrade to snappy-java-1.1.0.1
+  * Fix a bug in DataUnit
  * Version 3.2.2
   * Upgrace to Scala 2.10.3, snappy-java-1.1.0
  * Version 3.2.1
