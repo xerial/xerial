@@ -26,7 +26,7 @@ object XerialBuild extends Build {
 
   val SCALA_VERSION = "2.11.1"
 
-  lazy val buildSettings = Defaults.coreDefaultSettings ++ sonatypeSettings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.coreDefaultSettings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
@@ -36,6 +36,7 @@ object XerialBuild extends Build {
     testOptions in Test <+= (target in Test) map {
       t => Tests.Argument(TestFrameworks.ScalaTest, "junitxml(directory=\"%s\")".format(t /"test-reports" ), "stdout")
     },
+    publishMavenStyle := true,
     pomIncludeRepository := {
       _ => false
     },
@@ -84,7 +85,7 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ packSettings ++ Seq(
+    settings = buildSettings ++ packSettings ++ sonatypeSettings ++ Seq(
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
       publish := {},
