@@ -50,10 +50,10 @@ class PageInputStreamTest extends XerialSpec {
       val pageSize = 10
       val r = new PageReader(new FASTAProducer, pageSize)
       val pages = r.toArray
-      pages.size must be > 0
+      pages.size should be > 0
       for (p <- pages) {
-        p.size must be >= 0
-        p.size must be <= pageSize
+        p.size should be >= 0
+        p.size should be <= pageSize
       }
 
     }

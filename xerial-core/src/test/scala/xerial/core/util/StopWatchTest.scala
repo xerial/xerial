@@ -66,7 +66,7 @@ class StopWatchTest extends XerialSpec with Timer {
         }
       }
 
-      t.executionCount must be(10)
+      t.executionCount shouldBe 10
     }
 
   }
@@ -83,9 +83,9 @@ class StopWatchTest extends XerialSpec with Timer {
         }
       }
 
-      t.executionCount must be(1)
+      t.executionCount shouldBe 1
       val a_block = t("A")
-      a_block.executionCount must be(100)
+      a_block.executionCount shouldBe 100
     }
   }
 

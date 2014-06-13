@@ -16,7 +16,7 @@
 
 package xerial.core.util
 
-import util.parsing.combinator.RegexParsers
+import scala.util.parsing.combinator.RegexParsers
 import xerial.core.log.Logger
 
 

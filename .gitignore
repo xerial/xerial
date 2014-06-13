@@ -5,6 +5,7 @@
 # IntelliJ
 .idea
 .idea_modules
+atlassian-ide-plugin.xml
 
 # sbt specific
 .lib

@@ -53,16 +53,16 @@ class ObjectSchemaTest extends XerialSpec {
       debug {
         s.toString
       }
-      s.name must be(classOf[A].getSimpleName)
-      s.fullName must be(classOf[A].getName)
+      s.name shouldBe classOf[A].getSimpleName
+      s.fullName shouldBe classOf[A].getName
 
       val attr = s.parameters
-      attr.length must be(2)
-      attr(0).name must be("id")
+      attr.length shouldBe 2
+      attr(0).name shouldBe "id"
 
-      attr(0).rawType must be(classOf[Int])
-      attr(1).name must be("name")
-      attr(1).rawType must be(classOf[String])
+      attr(0).rawType shouldBe classOf[Int]
+      attr(1).name shouldBe "name"
+      attr(1).rawType shouldBe classOf[String]
     }
 
 
@@ -94,10 +94,10 @@ class ObjectSchemaTest extends XerialSpec {
 
         //debug { p.mkString(", ") }
         val p = cc.params
-        p.size must be(4)
+        p.size shouldBe 4
 
         for (((name, t), i) <- params.zipWithIndex) {
-          p(i).name must be(name)
+          p(i).name shouldBe name
           When("type is " + t)
           p(i).rawType.isAssignableFrom(t)
         }
@@ -109,10 +109,10 @@ class ObjectSchemaTest extends XerialSpec {
         val cc = ObjectSchema(co).constructor
         //debug { p.mkString(", ") }
         val p = cc.params
-        p.size must be(4)
+        p.size shouldBe 4
 
         for (((name, t), i) <- params.zipWithIndex) {
-          p(i).name must be(name)
+          p(i).name shouldBe name
           When("type is " + t)
           p(i).rawType.isAssignableFrom(t)
         }
@@ -136,7 +136,7 @@ class ObjectSchemaTest extends XerialSpec {
       debug {
         "ValInBody: " + c.mkString(", ")
       }
-      c.size should be(3)
+      c.size shouldBe 3
     }
 
     "find methods" in {
@@ -145,7 +145,7 @@ class ObjectSchemaTest extends XerialSpec {
         c.mkString(", ")
       }
 
-      c.size must be(3)
+      c.size shouldBe 3
     }
 
     "find imported methods" in {
@@ -157,10 +157,10 @@ class ObjectSchemaTest extends XerialSpec {
 
     "find parameters defined in extended traits" in {
       val schema = ObjectSchema.of[MixinSample]
-      schema.parameters.length must be(3)
-      schema.findParameter("param1") must be('defined)
-      schema.findParameter("param2") must be('defined)
-      schema.findParameter("paramA") must be('defined)
+      schema.parameters.length shouldBe 3
+      schema.findParameter("param1") should be('defined)
+      schema.findParameter("param2") should be('defined)
+      schema.findParameter("paramA") should be('defined)
 
     }
 
@@ -170,22 +170,22 @@ class ObjectSchemaTest extends XerialSpec {
 
       val s = ObjectSchema.of[ArrayMethodSample]
       val m = s.methods
-      m.length must be(1)
-      m(0).name must be("main")
-      m(0).params.length must be(1)
-      m(0).params(0).name must be("args")
+      m.length shouldBe 1
+      m(0).name shouldBe "main"
+      m(0).params.length shouldBe 1
+      m(0).params(0).name shouldBe "args"
     }
 
     "be safe when Array[A] is passed" in {
       val s = ObjectSchema.of[Array[String]]
       debug(s"schema:$s")
-      s.name must be("String[]")
+      s.name shouldBe "String[]"
     }
 
     "be safe when Seq[A] is passed" taggedAs("opt-seq") in {
       val s = ObjectSchema.of[Seq[String]]
       debug(s"schema:$s")
-      s.name must be("Seq")
+      s.name shouldBe "Seq"
       //s.parameters.isEmpty must be (true)
       debug {
         val sigLines = Source.fromString(s.findSignature.map(_.toString).get).getLines()

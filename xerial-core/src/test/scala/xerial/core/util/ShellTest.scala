@@ -39,8 +39,8 @@ class ShellTest extends XerialSpec {
       if (OS.isWindows) {
         When("OS is windows")
         val cmd = Shell.findJavaCommand("javaw").get
-        cmd must not be (null)
-        cmd must include("javaw")
+        cmd shouldNot be (null)
+        cmd should include("javaw")
       }
     }
 

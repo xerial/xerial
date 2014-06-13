@@ -47,8 +47,8 @@ class DataProducerTest extends XerialSpec {
     "create producer" in {
       val out = new Hello()
       val lines = out.lines.toArray
-      lines.size must be(1)
-      lines(0) must be("hello world")
+      lines.size shouldBe 1
+      lines(0) shouldBe "hello world"
       out.close
     }
 

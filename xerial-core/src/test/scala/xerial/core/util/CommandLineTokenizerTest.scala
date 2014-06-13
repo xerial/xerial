@@ -18,7 +18,7 @@ class CommandLineTokenizerTest extends XerialSpec {
     "tokenize a single string into args" in {
       val args = CommandLineTokenizer.tokenize( """-c "hello world!" -f 3.432""")
 
-      args.length must be(4)
+      args.length shouldBe 4
       debug {
         args.mkString(", ")
       }

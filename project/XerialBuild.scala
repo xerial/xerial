@@ -20,45 +20,30 @@ import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin._
 import xerial.sbt.Pack._
+import xerial.sbt.Sonatype._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.10.3"
+  val SCALA_VERSION = "2.11.1"
 
-  def releaseResolver(v: String): Resolver = {
-    val profile = System.getProperty("xerial.profile", "default")
-    profile match {
-      case "default" => {
-        val nexus = "https://oss.sonatype.org/"
-        if (v.trim.endsWith("SNAPSHOT"))
-          "snapshots" at nexus + "content/repositories/snapshots"
-        else
-          "releases" at nexus + "service/local/staging/deploy/maven2"
-      }
-      case p => {
-        sys.error("unknown xerial.profile:%s".format(p))
-      }
-    }
-  }
-
-  lazy val buildSettings = Defaults.defaultSettings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.coreDefaultSettings ++ sonatypeSettings ++ releaseSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
-    description := "Xerial: Data Management Utiilities",
+    description := "Xerial: Data Management Utilities",
     scalaVersion in Global := SCALA_VERSION,
-    sbtVersion in Global := "0.13.0",
-    publishMavenStyle := true,
     publishArtifact in Test := false,
-    publishTo <<= version { (v) => Some(releaseResolver(v)) },
-    pomIncludeRepository := {
-      _ => false
-    },
     testOptions in Test <+= (target in Test) map {
       t => Tests.Argument(TestFrameworks.ScalaTest, "junitxml(directory=\"%s\")".format(t /"test-reports" ), "stdout")
     },
-    parallelExecution := true,
-    parallelExecution in Test := false,
+    pomIncludeRepository := {
+      _ => false
+    },
+    concurrentRestrictions in Global := Seq(
+      Tags.limit(Tags.Test, 1)
+    ),
+    // Since sbt-0.13.2
+    incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
     pomExtra := {
@@ -112,7 +97,7 @@ object XerialBuild extends Build {
     base = file("xerial-core"),
     settings = buildSettings ++ Seq(
       description := "Xerial core utiltiles",
-      libraryDependencies ++= testLib
+      libraryDependencies ++= testLib ++ coreLib
     )
   )
 
@@ -148,7 +133,11 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test"
+      "org.scalatest" % "scalatest_2.11" % "2.2.0" % "test"
+    )
+
+    val coreLib = Seq(
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1"
     )
 
     val lensLib = Seq(

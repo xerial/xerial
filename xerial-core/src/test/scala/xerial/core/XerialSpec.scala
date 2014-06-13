@@ -4,7 +4,7 @@ import io.Resource
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
 import xerial.core.util.Timer
 import xerial.core.log.Logger
-import org.scalatest.{Tag, OptionValues, GivenWhenThen, WordSpec}
+import org.scalatest._
 import java.io.ByteArrayOutputStream
 import scala.language.implicitConversions
 
@@ -18,7 +18,7 @@ import scala.language.implicitConversions
 /**
  * @author leo
  */
-trait XerialSpec extends WordSpec with ShouldMatchers with MustMatchers with GivenWhenThen with OptionValues with Resource with Timer with Logger {
+trait XerialSpec extends WordSpec with Matchers with GivenWhenThen with OptionValues with Resource with Timer with Logger {
 
   implicit def toTag(t:String) = Tag(t)
 
