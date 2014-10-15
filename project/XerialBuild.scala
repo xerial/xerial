@@ -47,6 +47,13 @@ object XerialBuild extends Build {
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
+    publishTo := {
+      val nexus = "https://oss.sonatype.org/"
+      if (isSnapshot.value)
+        Some("snapshots" at nexus + "content/repositories/snapshots")
+      else
+        Some("releases" at nexus + "service/local/staging/deploy/maven2")
+    },
     pomExtra := {
       <url>http://xerial.org/</url>
       <licenses>
@@ -85,11 +92,10 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ packSettings ++ sonatypeSettings ++ Seq(
+    settings = buildSettings ++ packSettings ++ Seq(
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
-      publish := {},
-      publishLocal := {}
+      publishArtifact := false
     )
   ) aggregate(core, lens, compress)
 

@@ -448,6 +448,7 @@ object ObjectSchema extends Logger {
         case "scala.package.List" => classOf[List[_]]
         case "scala.Any" => classOf[Any]
         case "scala.AnyRef" => classOf[AnyRef]
+        case "scala.Array" => classOf[Array[_]]
         case _ if typeSignature.symbol.isDeferred => classOf[AnyRef]
         case _ =>
           // Find the class using the context class loader
