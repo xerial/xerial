@@ -165,14 +165,29 @@ trait ValueObject extends ObjectType {
 object Primitive {
   object Boolean extends Primitive(classOf[Boolean]) {
     override def isBooleanType = true
+    def arrayType = Class.forName("[Z")
   }
-  object Short extends Primitive(classOf[Short])
-  object Byte extends Primitive(classOf[Byte])
-  object Char extends Primitive(classOf[Char])
-  object Int extends Primitive(classOf[Int])
-  object Float extends Primitive(classOf[Float])
-  object Long extends Primitive(classOf[Long])
-  object Double extends Primitive(classOf[Double])
+  object Short extends Primitive(classOf[Short]) {
+    def arrayType = Class.forName("[S")
+  }
+  object Byte extends Primitive(classOf[Byte]) {
+    def arrayType = Class.forName("[B")
+  }
+  object Char extends Primitive(classOf[Char]) {
+    def arrayType = Class.forName("[C")
+  }
+  object Int extends Primitive(classOf[Int]) {
+    def arrayType = Class.forName("[I")
+  }
+  object Float extends Primitive(classOf[Float]) {
+    def arrayType = Class.forName("[F")
+  }
+  object Long extends Primitive(classOf[Long]) {
+    def arrayType = Class.forName("[J")
+  }
+  object Double extends Primitive(classOf[Double]) {
+    def arrayType = Class.forName("[D")
+  }
 
   val values = Seq(Boolean, Short, Byte, Char, Int, Float, Long, Double)
 
@@ -207,6 +222,7 @@ object Primitive {
 
 sealed abstract class Primitive(cl: Class[_]) extends ObjectType(cl) with ValueObject {
   override def isPrimitive = true
+  def arrayType : Class[_]
 }
 
 /**

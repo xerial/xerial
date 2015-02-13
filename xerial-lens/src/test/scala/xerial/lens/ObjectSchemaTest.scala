@@ -164,7 +164,7 @@ class ObjectSchemaTest extends XerialSpec {
 
     }
 
-    "find method with Array type arguments" in {
+    "find method with Array type arguments" taggedAs("array") in {
 
       debug("Array[String] type name:" + classOf[Array[String]].getName)
 

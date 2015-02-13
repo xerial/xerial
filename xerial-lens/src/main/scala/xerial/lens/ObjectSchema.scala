@@ -335,7 +335,8 @@ object ObjectSchema extends Logger {
               val loader = Thread.currentThread.getContextClassLoader
               Class.forName("[L%s;".format(t.rawType.getName), false, loader)
             }
-            case (name, vt) => vt.rawType
+            case (name, vt) =>
+              vt.rawType
           }
         }
 
@@ -369,7 +370,8 @@ object ObjectSchema extends Logger {
                 }
               }
               catch {
-                case e: Exception => None
+                case e: Exception =>
+                  None
               }
             }
           }
@@ -389,7 +391,8 @@ object ObjectSchema extends Logger {
                     val params = toAttribute(paramSymbols.asInstanceOf[Seq[MethodSymbol]], sig, cl)
                     resolveMethod(cl, m.name, resultType, params, resolveMethodArgTypes(params): _*)
                   }
-                  case _ => None
+                  case _ =>
+                    None
                 }
               }
               catch {
@@ -424,7 +427,8 @@ object ObjectSchema extends Logger {
   def resolveClass(typeSignature: TypeRefType): ObjectType = {
 
     val name = typeSignature.symbol.path
-    val clazz: Class[_] = {
+
+    def findClass = {
       trace(s"resolve class: $name $typeSignature")
       name match {
         // Resolve classes of primitive types.
@@ -466,21 +470,31 @@ object ObjectSchema extends Logger {
       }
     }
 
+    def resolveTypeArg : Seq[ObjectType] = typeSignature.typeArgs.collect {
+      case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
+      case other => AnyRefType
+    }
 
     def toObjectType(cl: Class[_]): ObjectType = {
       typeSignature match {
         case TypeRefType(prefix, symbol, typeArgs) if typeArgs.isEmpty =>
-          ObjectType.of(clazz)
+          ObjectType.of(cl)
         case _ =>
-          val typeArgs: Seq[ObjectType] = typeSignature.typeArgs.collect {
-            case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
-            case other => AnyRefType
-          }
-          GenericType(clazz, typeArgs)
+          GenericType(cl, resolveTypeArg)
       }
     }
 
-    toObjectType(clazz)
+    name match {
+      case "scala.Array" =>
+        // primitive type array
+        val elementType = resolveTypeArg.head
+        val arrayType = elementType match {
+          case p:Primitive => p.arrayType
+          case _ => Class.forName(s"[L${elementType.rawType.getName};")
+        }
+        ArrayType(arrayType, elementType)
+      case _ => toObjectType(findClass)
+    }
 
   }
 
