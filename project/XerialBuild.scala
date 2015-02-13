@@ -30,7 +30,7 @@ object XerialBuild extends Build {
 
   val SCALA_VERSION = "2.11.5"
 
-  lazy val buildSettings = Defaults.coreDefaultSettings ++ releaseSettings ++ Seq[Setting[_]](
+  lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
@@ -46,29 +46,6 @@ object XerialBuild extends Build {
     },
     concurrentRestrictions in Global := Seq(
       Tags.limit(Tags.Test, 1)
-    ),
-    ReleaseKeys.tagName := { (version in ThisBuild).value },
-    ReleaseKeys.releaseProcess := Seq[ReleaseStep](
-      checkSnapshotDependencies,
-      inquireVersions,
-      runClean,
-      runTest,
-      setReleaseVersion,
-      commitReleaseVersion,
-      tagRelease,
-      ReleaseStep(
-        action = { state =>
-          val extracted = Project extract state
-          extracted.runAggregated(PgpKeys.publishSigned in Global in extracted.get(thisProjectRef), state)
-        }
-      ),
-      setNextVersion,
-      commitNextVersion,
-      ReleaseStep{ state =>
-        val extracted = Project extract state
-        extracted.runAggregated(sonatypeReleaseAll in Global in extracted.get(thisProjectRef), state)
-      },
-      pushChanges
     ),
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
@@ -119,10 +96,33 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ packSettings ++ Seq(
+    settings = buildSettings ++ packSettings ++ releaseSettings ++ Seq(
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
-      publishArtifact := false
+      publishArtifact := false,
+      ReleaseKeys.tagName := { (version in ThisBuild).value },
+      ReleaseKeys.releaseProcess := Seq[ReleaseStep](
+        checkSnapshotDependencies,
+        inquireVersions,
+        runClean,
+        runTest,
+        setReleaseVersion,
+        commitReleaseVersion,
+        tagRelease,
+        ReleaseStep(
+          action = { state =>
+            val extracted = Project extract state
+            extracted.runAggregated(PgpKeys.publishSigned in Global in extracted.get(thisProjectRef), state)
+          }
+        ),
+        setNextVersion,
+        commitNextVersion,
+        ReleaseStep{ state =>
+          val extracted = Project extract state
+          extracted.runAggregated(sonatypeReleaseAll in Global in extracted.get(thisProjectRef), state)
+        },
+        pushChanges
+      )
     )
   ) aggregate(core, lens, compress)
 
