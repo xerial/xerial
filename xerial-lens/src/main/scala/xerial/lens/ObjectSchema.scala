@@ -450,6 +450,7 @@ object ObjectSchema extends Logger {
         case "scala.package.IndexedSeq" => classOf[IndexedSeq[_]]
         case "scala.package.Seq" => classOf[Seq[_]]
         case "scala.package.List" => classOf[List[_]]
+        case "scala.package.Iterator" => classOf[Iterator[_]]
         case "scala.Any" => classOf[Any]
         case "scala.AnyRef" => classOf[AnyRef]
         case "scala.Array" => classOf[Array[_]]
