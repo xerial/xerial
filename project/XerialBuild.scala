@@ -43,6 +43,7 @@ object XerialBuild extends Build {
     concurrentRestrictions in Global := Seq(
       Tags.limit(Tags.Test, 1)
     ),
+    ReleaseKeys.tagName := {version.value},
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,
