@@ -105,7 +105,6 @@ object XerialBuild extends Build {
         checkSnapshotDependencies,
         inquireVersions,
         runClean,
-        runTest,
         setReleaseVersion,
         commitReleaseVersion,
         tagRelease,
