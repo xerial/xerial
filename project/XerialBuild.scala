@@ -15,12 +15,16 @@
  */
 
 
-import java.io.File
 import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin._
+import sbtrelease.ReleaseStep
+import com.typesafe.sbt.pgp.PgpKeys
+import sbtrelease._
+import ReleaseStateTransformations._
 import xerial.sbt.Pack._
-import xerial.sbt.Sonatype._
+import xerial.sbt.Sonatype
+import Sonatype.SonatypeKeys._
 
 object XerialBuild extends Build {
 
@@ -43,7 +47,29 @@ object XerialBuild extends Build {
     concurrentRestrictions in Global := Seq(
       Tags.limit(Tags.Test, 1)
     ),
-    ReleaseKeys.tagName := {version.value},
+    ReleaseKeys.tagName := { (version in ThisBuild).value },
+    ReleaseKeys.releaseProcess := Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      ReleaseStep(
+        action = { state =>
+          val extracted = Project extract state
+          extracted.runAggregated(PgpKeys.publishSigned in Global in extracted.get(thisProjectRef), state)
+        }
+      ),
+      setNextVersion,
+      commitNextVersion,
+      ReleaseStep{ state =>
+        val extracted = Project extract state
+        extracted.runAggregated(sonatypeReleaseAll in Global in extracted.get(thisProjectRef), state)
+      },
+      pushChanges
+    ),
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,
@@ -145,7 +171,7 @@ object XerialBuild extends Build {
     )
 
     val coreLib = Seq(
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1"
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
     )
 
     val lensLib = Seq(
