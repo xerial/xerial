@@ -74,22 +74,22 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.2"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.3.5"
     
     # When you want to use ObjectSchema and command line parser
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.2.2"
+    libraryDependencies += "org.xerial" % "xerial-lens" % "3.3.5"
 
 #### Using Snapshot version
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.2.2-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.3.6-SNAPSHOT"
 
 
 ## Scala API
 
 (Unidoc of API will be prepared)
 
-* [xerial-core 3.2.2 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.2.2/xerial-core-3.2.2-javadoc.jar/!/index.html)
-* [xerial-lens 3.2.2 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.2.2/xerial-lens-3.2.2-javadoc.jar/!/index.html)
+* [xerial-core 3.3.5 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.3.5/xerial-core-3.3.5-javadoc.jar/!/index.html)
+* [xerial-lens 3.3.5 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.3.5/xerial-lens-3.3.5-javadoc.jar/!/index.html)
 
