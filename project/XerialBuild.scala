@@ -37,9 +37,6 @@ object XerialBuild extends Build {
     description := "Xerial: Data Management Utilities",
     scalaVersion in Global := SCALA_VERSION,
     publishArtifact in Test := false,
-    testOptions in Test <+= (target in Test) map {
-      t => Tests.Argument(TestFrameworks.ScalaTest, "junitxml(directory=\"%s\")".format(t /"test-reports" ), "stdout")
-    },
     publishMavenStyle := true,
     pomIncludeRepository := {
       _ => false
@@ -47,7 +44,7 @@ object XerialBuild extends Build {
     concurrentRestrictions in Global := Seq(
       Tags.limit(Tags.Test, 1)
     ),
-  
+    logBuffered in Test := false,
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,
@@ -167,7 +164,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" % "scalatest_2.11" % "2.2.0" % "test"
+      "org.scalatest" %% "scalatest" % "2.2.4" % "test"
     )
 
     val coreLib = Seq(
@@ -175,7 +172,7 @@ object XerialBuild extends Build {
     )
 
     val lensLib = Seq(
-      "org.javassist" % "javassist" % "3.15.0-GA",
+      "org.javassist" % "javassist" % "3.19.0-GA",
       "org.scala-lang" % "scalap" % SCALA_VERSION,
       "org.scala-lang" % "scala-reflect" % SCALA_VERSION
     )
