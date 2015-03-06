@@ -85,7 +85,6 @@ object XerialBuild extends Build {
     }
   )
 
-
   import Dependencies._
 
   private val dependentScope = "test->test;compile->compile"

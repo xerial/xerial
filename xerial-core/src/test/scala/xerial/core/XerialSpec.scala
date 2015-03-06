@@ -18,7 +18,7 @@ import scala.language.implicitConversions
 /**
  * @author leo
  */
-trait XerialSpec extends WordSpec with Matchers with GivenWhenThen with OptionValues with Resource with Timer with Logger {
+trait XerialSpec extends WordSpec with BeforeAndAfterAll with Matchers with GivenWhenThen with OptionValues with Resource with Timer with Logger {
 
   implicit def toTag(t:String) = Tag(t)
 

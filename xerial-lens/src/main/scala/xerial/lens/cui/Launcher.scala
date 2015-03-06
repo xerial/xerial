@@ -129,7 +129,7 @@ trait DefaultCommand {
 class Launcher(cl:Class[_]) extends Logger {
   import Launcher._
 
-  private val schema = ClassOptionSchema(cl)
+  lazy private val schema = ClassOptionSchema(cl)
 
   def execute[A <: AnyRef](argLine:String) : A = execute(CommandLineTokenizer.tokenize(argLine))
   def execute[A <: AnyRef](args:Array[String], showHelp:Boolean=false) : A = {

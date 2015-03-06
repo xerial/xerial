@@ -75,6 +75,7 @@ object ObjectSchema extends Logger {
    * @return scala signature of the class
    */
   def findSignature(cl: Class[_]): Option[ScalaSig] = {
+    trace(s"find signature: $cl")
     // Find an enclosing object containing the target class definition
     def enclosingObject(cl: Class[_]): Option[Class[_]] = {
       val pos = cl.getName.lastIndexOf("$")
@@ -94,7 +95,9 @@ object ObjectSchema extends Logger {
         }
         catch {
           // ScalaSigParser throws NPE when noe signature for the class is found
-          case _: Exception => None
+          case e: Exception =>
+            trace(s"$cl ${e.getMessage}")
+            None
         }
       // If no signature is found, search an enclosing object
       sig.orElse(enclosingObject(cl).flatMap(findSignature(_)))
@@ -124,6 +127,7 @@ object ObjectSchema extends Logger {
   }
 
   private def findConstructor(cl: Class[_], sig: ScalaSig): Option[Constructor] = {
+    trace(s"findConstructor: $cl")
     import scala.reflect.runtime.{universe => ru}
     import ru._
     val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
@@ -423,53 +427,55 @@ object ObjectSchema extends Logger {
     }
   }
 
+  import scala.language.existentials
+
+  def findClass(name:String, typeSignature:TypeRefType) = {
+    trace(s"resolve class: $name $typeSignature")
+    name match {
+      // Resolve classes of primitive types.
+      // This special treatment is necessary because classes of primitive types, classOf[scala.Int] etc. are converted by
+      // Scala compiler into Java primitive types (e.g., int, float). So classOf[Int] is represented as classOf[int] internally.
+      case "scala.Boolean" => classOf[Boolean]
+      case "scala.Byte" => classOf[Byte]
+      case "scala.Short" => classOf[Short]
+      case "scala.Char" => classOf[Char]
+      case "scala.Int" => classOf[Int]
+      case "scala.Float" => classOf[Float]
+      case "scala.Long" => classOf[Long]
+      case "scala.Double" => classOf[Double]
+      case "scala.Predef.String" => classOf[String]
+      // Map and Set type names are defined in Scala.Predef
+      case "scala.Predef.Map" => classOf[Map[_, _]]
+      case "scala.Predef.Set" => classOf[Set[_]]
+      case "scala.Predef.Class" => classOf[Class[_]]
+      case "scala.package.IndexedSeq" => classOf[IndexedSeq[_]]
+      case "scala.package.Seq" => classOf[Seq[_]]
+      case "scala.package.List" => classOf[List[_]]
+      case "scala.package.Iterator" => classOf[Iterator[_]]
+      case "scala.Any" => classOf[Any]
+      case "scala.AnyRef" => classOf[AnyRef]
+      case "scala.Array" => classOf[Array[_]]
+      case "scala.Unit" => Unit.getClass
+      case _ if typeSignature.symbol.isDeferred => classOf[AnyRef]
+      case _ =>
+        // Find the class using the context class loader
+        val loader = Thread.currentThread().getContextClassLoader
+        try loader.loadClass(name)
+        catch {
+          case _: Throwable => {
+            // When the class is defined in an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
+            val parent = typeSignature.symbol.parent
+            val anotherClassName = "%s$%s".format(if (parent.isDefined) parent.get.path else "", typeSignature.symbol.name)
+            loader.loadClass(anotherClassName)
+          }
+        }
+    }
+  }
+
 
   def resolveClass(typeSignature: TypeRefType): ObjectType = {
 
     val name = typeSignature.symbol.path
-
-    def findClass = {
-      trace(s"resolve class: $name $typeSignature")
-      name match {
-        // Resolve classes of primitive types.
-        // This special treatment is necessary because classes of primitive types, classOf[scala.Int] etc. are converted by
-        // Scala compiler into Java primitive types (e.g., int, float). So classOf[Int] is represented as classOf[int] internally.
-        case "scala.Boolean" => classOf[Boolean]
-        case "scala.Byte" => classOf[Byte]
-        case "scala.Short" => classOf[Short]
-        case "scala.Char" => classOf[Char]
-        case "scala.Int" => classOf[Int]
-        case "scala.Float" => classOf[Float]
-        case "scala.Long" => classOf[Long]
-        case "scala.Double" => classOf[Double]
-        case "scala.Predef.String" => classOf[String]
-        // Map and Set type names are defined in Scala.Predef
-        case "scala.Predef.Map" => classOf[Map[_, _]]
-        case "scala.Predef.Set" => classOf[Set[_]]
-        case "scala.Predef.Class" => classOf[Class[_]]
-        case "scala.package.IndexedSeq" => classOf[IndexedSeq[_]]
-        case "scala.package.Seq" => classOf[Seq[_]]
-        case "scala.package.List" => classOf[List[_]]
-        case "scala.package.Iterator" => classOf[Iterator[_]]
-        case "scala.Any" => classOf[Any]
-        case "scala.AnyRef" => classOf[AnyRef]
-        case "scala.Array" => classOf[Array[_]]
-        case "scala.Unit" => Unit.getClass
-        case _ if typeSignature.symbol.isDeferred => classOf[AnyRef]
-        case _ =>
-          // Find the class using the context class loader
-          val loader = Thread.currentThread().getContextClassLoader
-          try loader.loadClass(name)
-          catch {
-            case _: Throwable => {
-              // When the class is defined in an object, its class name has suffix '$' like "xerial.silk.SomeTest$A"
-              val parent = typeSignature.symbol.parent
-              val anotherClassName = "%s$%s".format(if (parent.isDefined) parent.get.path else "", typeSignature.symbol.name)
-              loader.loadClass(anotherClassName)
-            }
-          }
-      }
-    }
 
     def resolveTypeArg : Seq[ObjectType] = typeSignature.typeArgs.collect {
       case x: TypeRefType if !(x.symbol.name.startsWith("_$")) => resolveClass(x)
@@ -494,7 +500,7 @@ object ObjectSchema extends Logger {
           case _ => Class.forName(s"[L${elementType.rawType.getName};")
         }
         ArrayType(arrayType, elementType)
-      case _ => toObjectType(findClass)
+      case _ => toObjectType(findClass(name, typeSignature))
     }
 
   }

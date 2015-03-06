@@ -35,7 +35,7 @@ object ObjectType extends Logger {
 
   private[lens] def mirror = ru.runtimeMirror(Thread.currentThread.getContextClassLoader)
 
-  private val typeTable = mutable.WeakHashMap[ru.Type, ObjectType]()
+  private[lens] val typeTable = mutable.WeakHashMap[ru.Type, ObjectType]()
 
   def apply[A : TypeTag](obj:A) : ObjectType ={
     obj match {

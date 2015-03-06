@@ -47,12 +47,12 @@ class ObjectSchemaTest extends XerialSpec {
   import ObjectSchemaTest._
 
   "ObjectSchema" should {
-    "enumerate all fields" in {
-
+    "enumerate all fields" taggedAs("schema") in {
       val s = new ObjectSchema(classOf[A])
-      debug {
-        s.toString
-      }
+      debug(s)
+      val c = s.constructor
+      c.params.length shouldBe 2
+
       s.name shouldBe classOf[A].getSimpleName
       s.fullName shouldBe classOf[A].getName
 
@@ -67,7 +67,7 @@ class ObjectSchemaTest extends XerialSpec {
 
 
     trait ClassFixture {
-      val cg = classOf[GlocalCls]
+      val cg = classOf[GlobalCls]
       val co = classOf[ScalaClassLensTest.ClsInObj]
       val params = Array(
         ("id", classOf[Int]),
@@ -124,7 +124,7 @@ class ObjectSchemaTest extends XerialSpec {
       debug {
         c1
       }
-      val c2 = ObjectSchema.of[GlocalCls].constructor
+      val c2 = ObjectSchema.of[GlobalCls].constructor
       debug {
         c2
       }
@@ -219,7 +219,7 @@ class ObjectSchemaTest extends XerialSpec {
 
 }
 
-class GlocalCls(val id: Int, val flag: Option[Int], val list: Array[String], val map: Map[String, Float])
+class GlobalCls(val id: Int, val flag: Option[Int], val list: Array[String], val map: Map[String, Float])
 
 class ValInBody(val id: Int = 1) {
   val args: Seq[String] = Seq.empty
