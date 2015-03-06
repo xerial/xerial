@@ -48,7 +48,7 @@ object JavaProcess extends Logger {
     }
     else {
       val ls = for{
-        line <- scala.sys.process.Process("%s -v".format(cmd.get)).lines.toSeq
+        line <- scala.sys.process.Process("%s -v".format(cmd.get)).lineStream.toSeq
         m <- jpsPattern.findFirstMatchIn(line)
       } yield  JProcess(m.group(1).toInt, m.group(2), m.group(3))
       ls.toIndexedSeq

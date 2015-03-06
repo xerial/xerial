@@ -28,7 +28,7 @@ import Sonatype.SonatypeKeys._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.11.5"
+  val SCALA_VERSION = "2.11.6"
 
   lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
@@ -47,6 +47,7 @@ object XerialBuild extends Build {
     concurrentRestrictions in Global := Seq(
       Tags.limit(Tags.Test, 1)
     ),
+  
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,

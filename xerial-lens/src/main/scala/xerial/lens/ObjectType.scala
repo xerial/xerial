@@ -260,11 +260,11 @@ case class StandardType[A](override val rawType:Class[A]) extends ObjectType(raw
 
     val m = ObjectType.mirror
     val classSymbol : ru.ClassSymbol = m.staticClass(rawType.getCanonicalName)
-    val cc = classSymbol.typeSignature.declaration(ru.nme.CONSTRUCTOR)
+    val cc = classSymbol.typeSignature.decl(ru.termNames.CONSTRUCTOR)
     if(cc.isMethod) {
-      val fstParen = cc.asMethod.paramss.headOption.getOrElse(Seq.empty)
+      val fstParen = cc.asMethod.paramLists.headOption.getOrElse(Seq.empty)
       for((p, i) <- fstParen.zipWithIndex) yield {
-        val name = p.name.decoded
+        val name = p.name.decodedName.toString
         val tpe = ObjectType(p.typeSignature)
         ConstructorParameter(rawType, ObjectSchema.findFieldOwner(name, rawType), i, name, tpe)
       }

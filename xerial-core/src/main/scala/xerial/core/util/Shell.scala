@@ -81,7 +81,7 @@ object Shell extends Logger {
 
     // retrieve child processes
     val pb = prepareProcessBuilder(s"ps -o pid --no-headers --ppid $pid", inheritIO=true)
-    for(line <- Process(pb).lines_!) {
+    for(line <- Process(pb).lineStream_!) {
       val childPID = line.trim.toInt
       killTree(childPID, signal)
     }

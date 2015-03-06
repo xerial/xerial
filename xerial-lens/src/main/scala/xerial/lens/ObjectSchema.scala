@@ -133,16 +133,16 @@ object ObjectSchema extends Logger {
     catch {
       case e:MissingRequirementError => {
         val md = mirror.staticModule(cl.getEnclosingClass.getCanonicalName)
-        md.typeSignature.member(newTypeName(cl.getSimpleName))
+        md.typeSignature.member(TypeName(cl.getSimpleName))
       }
     }
-    val cc = cs.typeSignature.declaration(ru.nme.CONSTRUCTOR)
+    val cc = cs.typeSignature.decl(ru.termNames.CONSTRUCTOR)
     if(!cc.isMethod)
       None
     else {
-      val fstParen = cc.asMethod.paramss.headOption.getOrElse(Seq.empty)
+      val fstParen = cc.asMethod.paramLists.headOption.getOrElse(Seq.empty)
       val ccParams = for ((p, i) <- fstParen.zipWithIndex) yield {
-          val name = p.name.decoded
+          val name = p.name.decodedName.toString
           val tpe = p.typeSignature
           ConstructorParameter(cl, findFieldOwner(name, cl), i, name, ObjectType.of(tpe))
       }
