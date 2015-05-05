@@ -37,7 +37,6 @@ object XerialBuild extends Build {
     description := "Xerial: Data Management Utilities",
     scalaVersion in Global := SCALA_VERSION,
     publishArtifact in Test := false,
-    publishMavenStyle := true,
     pomIncludeRepository := {
       _ => false
     },
@@ -48,41 +47,7 @@ object XerialBuild extends Build {
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := false,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
-    publishTo := {
-      val nexus = "https://oss.sonatype.org/"
-      if (isSnapshot.value)
-        Some("snapshots" at nexus + "content/repositories/snapshots")
-      else
-        Some("releases" at nexus + "service/local/staging/deploy/maven2")
-    },
-    pomExtra := {
-      <url>http://xerial.org/</url>
-      <licenses>
-        <license>
-          <name>Apache 2</name>
-          <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        </license>
-      </licenses>
-        <scm>
-          <connection>scm:git:github.com/xerial/xerial.git</connection>
-          <developerConnection>scm:git:git@github.com:xerial/xerial.git</developerConnection>
-          <url>github.com/xerial/xerial.git</url>
-        </scm>
-        <properties>
-          <scala.version>
-            {SCALA_VERSION}
-          </scala.version>
-          <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        </properties>
-        <developers>
-          <developer>
-            <id>leo</id>
-            <name>Taro L. Saito</name>
-            <url>http://xerial.org/leo</url>
-          </developer>
-        </developers>
-    }
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature")
   )
 
   import Dependencies._
@@ -105,18 +70,10 @@ object XerialBuild extends Build {
         setReleaseVersion,
         commitReleaseVersion,
         tagRelease,
-        ReleaseStep(
-          action = { state =>
-            val extracted = Project extract state
-            extracted.runAggregated(PgpKeys.publishSigned in Global in extracted.get(thisProjectRef), state)
-          }
-        ),
+        ReleaseStep(action = Command.process("publishSigned", _)),
         setNextVersion,
         commitNextVersion,
-        ReleaseStep{ state =>
-          val extracted = Project extract state
-          extracted.runAggregated(sonatypeReleaseAll in Global in extracted.get(thisProjectRef), state)
-        },
+        ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
         pushChanges
       )
     )
