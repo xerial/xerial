@@ -19,16 +19,14 @@ import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin._
 import sbtrelease.ReleaseStep
-import com.typesafe.sbt.pgp.PgpKeys
 import sbtrelease._
 import ReleaseStateTransformations._
 import xerial.sbt.Pack._
 import xerial.sbt.Sonatype
-import Sonatype.SonatypeKeys._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.11.6"
+  val SCALA_VERSION = "2.12.0-M1"
 
   lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
@@ -124,7 +122,7 @@ object XerialBuild extends Build {
     )
 
     val coreLib = Seq(
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
     )
 
     val lensLib = Seq(
