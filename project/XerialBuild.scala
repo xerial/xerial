@@ -101,7 +101,7 @@ object XerialBuild extends Build {
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
       libraryDependencies ++= testLib ++ Seq(
-        "org.xerial.snappy" % "snappy-java" % "1.1.1.6"
+        "org.xerial.snappy" % "snappy-java" % "1.1.1.7"
       )
     )
   ) dependsOn (core % dependentScope)
@@ -118,7 +118,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+      "org.scalatest" %% "scalatest" % "2.2.5-M1" % "test"
     )
 
     val coreLib = Seq(
