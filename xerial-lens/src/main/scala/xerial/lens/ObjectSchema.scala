@@ -401,8 +401,8 @@ object ObjectSchema extends Logger {
               }
               catch {
                 case e: Exception => {
-                  warn(s"error occurred when accessing method $s : $e")
-                  warn(e)
+                  debug(s"error occurred when accessing method $s : $e")
+                  debug(e)
                   None
                 }
               }
@@ -456,6 +456,7 @@ object ObjectSchema extends Logger {
       case "scala.AnyRef" => classOf[AnyRef]
       case "scala.Array" => classOf[Array[_]]
       case "scala.Unit" => Unit.getClass
+      case "scala$Nothing" => classOf[AnyRef]
       case _ if typeSignature.symbol.isDeferred => classOf[AnyRef]
       case _ =>
         // Find the class using the context class loader

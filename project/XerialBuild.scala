@@ -28,7 +28,7 @@ import Sonatype.SonatypeKeys._
 
 object XerialBuild extends Build {
 
-  val SCALA_VERSION = "2.11.6"
+  val SCALA_VERSION = "2.11.7"
 
   lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
@@ -103,7 +103,7 @@ object XerialBuild extends Build {
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
       libraryDependencies ++= testLib ++ Seq(
-        "org.xerial.snappy" % "snappy-java" % "1.1.1.6"
+        "org.xerial.snappy" % "snappy-java" % "1.1.1.7"
       )
     )
   ) dependsOn (core % dependentScope)
