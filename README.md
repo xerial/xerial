@@ -45,6 +45,8 @@ Retrives object type information embeded in Scala-generated class files.
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
 # Release notes
+ * 2016-03-04: release 3.5.0
+   * Support Scala 2.12.0-M3, 2.11.7, Scala 2.10.6 (except xerial-lens)
  * Version 3.3.8 (Sepmtember 2nd, 2015)
   * Scala 2.11.7 support
  * Version 3.4   (May 7th, 2015)
@@ -80,16 +82,16 @@ Retrives object type information embeded in Scala-generated class files.
 ## Usage
 Add the following settings to your sbt build file (e.g., `build.sbt`)
 
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.3.5"
+    libraryDependencies += "org.xerial" %% "xerial-core" % "3.5.0"
     
     # When you want to use ObjectSchema and command line parser
-    libraryDependencies += "org.xerial" % "xerial-lens" % "3.3.5"
+    libraryDependencies += "org.xerial" %% "xerial-lens" % "3.5.0"
 
 #### Using Snapshot version
 
     resolvers += "Sonatype snapshot repo" at "https://oss.sonatype.org/content/repositories/snapshots/"
     
-    libraryDependencies += "org.xerial" % "xerial-core" % "3.3.6-SNAPSHOT"
+    libraryDependencies += "org.xerial" % "xerial-core" % "3.5.1-SNAPSHOT"
 
 
 ## Scala API

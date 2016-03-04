@@ -12,9 +12,9 @@ releaseProcess := Seq[ReleaseStep](
   setReleaseVersion,
   commitReleaseVersion,
   tagRelease,
-  ReleaseStep(action = Command.process("publishSigned", _), enableCrossBuild = true),
+  ReleaseStep(action = Command.process("so publishSigned", _)),
   setNextVersion,
   commitNextVersion,
-  ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
+  ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
   pushChanges
 )
