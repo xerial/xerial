@@ -4,3 +4,5 @@ scala:
 branches:
   only:
     - develop
+
+script: sbt "such test"
