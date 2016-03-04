@@ -1,8 +1,10 @@
 language: scala
 scala:
-  - 2.11.6
+  - 2.11.7
 branches:
   only:
     - develop
 
-script: sbt "such test"
+sudo: false
+
+script: sbt "+ test"
