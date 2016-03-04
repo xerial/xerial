@@ -17,23 +17,16 @@
 
 import sbt._
 import sbt.Keys._
-import sbtrelease.ReleasePlugin._
-import sbtrelease.ReleaseStep
-import sbtrelease._
-import ReleaseStateTransformations._
 import xerial.sbt.Pack._
-import xerial.sbt.Sonatype
 
 object XerialBuild extends Build {
-
-  val SCALA_VERSION = "2.12.0-M1"
 
   lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq[Setting[_]](
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
+    scalaVersion := "2.12.0-M3",
     description := "Xerial: Data Management Utilities",
-    scalaVersion in Global := SCALA_VERSION,
     publishArtifact in Test := false,
     pomIncludeRepository := {
       _ => false
@@ -44,7 +37,7 @@ object XerialBuild extends Build {
     logBuffered in Test := false,
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
-    crossPaths := false,
+    crossPaths := true,
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
     pomExtra := {
         <url>http://xerial.org/</url>
@@ -61,7 +54,7 @@ object XerialBuild extends Build {
         </scm>
         <properties>
           <scala.version>
-            {SCALA_VERSION}
+            {scalaVersion.value}
           </scala.version>
           <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         </properties>
@@ -83,24 +76,10 @@ object XerialBuild extends Build {
   lazy val root = Project(
     id = "xerial",
     base = file("."),
-    settings = buildSettings ++ packSettings ++ releaseSettings ++ Seq(
+    settings = buildSettings ++ packSettings ++ Seq(
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
-      publishArtifact := false,
-      ReleaseKeys.tagName := { (version in ThisBuild).value },
-      ReleaseKeys.releaseProcess := Seq[ReleaseStep](
-        checkSnapshotDependencies,
-        inquireVersions,
-        runClean,
-        setReleaseVersion,
-        commitReleaseVersion,
-        tagRelease,
-        ReleaseStep(action = Command.process("publishSigned", _)),
-        setNextVersion,
-        commitNextVersion,
-        ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
-        pushChanges
-      )
+      publishArtifact := false
     )
   ) aggregate(core, lens, compress)
 
@@ -109,7 +88,11 @@ object XerialBuild extends Build {
     base = file("xerial-core"),
     settings = buildSettings ++ Seq(
       description := "Xerial core utiltiles",
-      libraryDependencies ++= testLib ++ coreLib
+      crossScalaVersions := Seq("2.12.0-M3", "2.11.7", "2.10.6"),
+      libraryDependencies ++= testLib ++ (scalaVersion.value match {
+        case "2.10.6" => Seq.empty
+        case _ => Seq("org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4")
+      })
     )
   )
 
@@ -118,7 +101,12 @@ object XerialBuild extends Build {
     base = file("xerial-lens"),
     settings = buildSettings ++ Seq(
       description := "Object mapping utiltiles",
-      libraryDependencies ++= testLib ++ lensLib
+      crossScalaVersions := Seq("2.12.0-M3", "2.11.7"),
+      libraryDependencies ++= testLib ++ Seq(
+        "org.scala-lang" % "scalap" % scalaVersion.value,
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        "org.javassist" % "javassist" % "3.19.0-GA"
+      )
     )
   ) dependsOn (core % dependentScope)
 
@@ -127,8 +115,9 @@ object XerialBuild extends Build {
     base = file("xerial-compress"),
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
+      crossScalaVersions := Seq("2.12.0-M3", "2.11.7", "2.10.6"),
       libraryDependencies ++= testLib ++ Seq(
-        "org.xerial.snappy" % "snappy-java" % "1.1.1.7"
+        "org.xerial.snappy" % "snappy-java" % "1.1.2.1"
       )
     )
   ) dependsOn (core % dependentScope)
@@ -145,17 +134,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.2.5-M1" % "test"
-    )
-
-    val coreLib = Seq(
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
-    )
-
-    val lensLib = Seq(
-      "org.javassist" % "javassist" % "3.19.0-GA",
-      "org.scala-lang" % "scalap" % SCALA_VERSION,
-      "org.scala-lang" % "scala-reflect" % SCALA_VERSION
+      "org.scalatest" %% "scalatest" % "2.2.+" % "test"
     )
   }
 
