@@ -38,7 +38,7 @@ object XerialBuild extends Build {
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := true,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.6", "-feature"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.8", "-feature"),
     pomExtra := {
         <url>http://xerial.org/</url>
         <licenses>
