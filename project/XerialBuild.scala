@@ -38,7 +38,7 @@ object XerialBuild extends Build {
     // Since sbt-0.13.2
     incOptions := incOptions.value.withNameHashing(true),
     crossPaths := true,
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-target:jvm-1.8", "-feature"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-feature"),
     pomExtra := {
         <url>http://xerial.org/</url>
         <licenses>
@@ -77,6 +77,7 @@ object XerialBuild extends Build {
     id = "xerial",
     base = file("."),
     settings = buildSettings ++ packSettings ++ Seq(
+      crossScalaVersions := Seq("2.12.0-M3", "2.11.7", "2.10.6"),
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
       publishArtifact := false
@@ -96,15 +97,18 @@ object XerialBuild extends Build {
     )
   )
 
+  def scalaCompilerDependency(scalaVersion: String) = Seq(
+    "org.scala-lang" % "scalap" % scalaVersion,
+    "org.scala-lang" % "scala-reflect" % scalaVersion
+  )
+
   lazy val lens = Project(
     id = "xerial-lens",
     base = file("xerial-lens"),
     settings = buildSettings ++ Seq(
       description := "Object mapping utiltiles",
       crossScalaVersions := Seq("2.12.0-M3", "2.11.7"),
-      libraryDependencies ++= testLib ++ Seq(
-        "org.scala-lang" % "scalap" % scalaVersion.value,
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      libraryDependencies ++= testLib ++ scalaCompilerDependency(scalaVersion.value) ++ Seq(
         "org.javassist" % "javassist" % "3.19.0-GA"
       )
     )
