@@ -9,4 +9,4 @@ sudo: false
 jdk:
  - oraclejdk8
 
-script: ./sbt "+ so test"
+script: ./sbt "so test"
