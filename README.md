@@ -101,3 +101,12 @@ Add the following settings to your sbt build file (e.g., `build.sbt`)
 * [xerial-core 3.3.5 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-core/3.3.5/xerial-core-3.3.5-javadoc.jar/!/index.html)
 * [xerial-lens 3.3.5 API](https://oss.sonatype.org/service/local/repositories/releases/archive/org/xerial/xerial-lens/3.3.5/xerial-lens-3.3.5-javadoc.jar/!/index.html)
 
+## For Developers
+
+```
+# Cross build
+$ ./sbt "so test"
+
+# Release 
+$ ./sbt release
+```
