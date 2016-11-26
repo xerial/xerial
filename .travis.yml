@@ -10,3 +10,8 @@ jdk:
  - oraclejdk8
 
 script: ./sbt "so test"
+
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
