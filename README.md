@@ -45,7 +45,7 @@ Retrives object type information embeded in Scala-generated class files.
    * String values are automatically converted to appropriate data types according to the information obtained by ObjectSchema
 
 # Release notes
- * 2016-03-04: release 3.6.0
+ * 2016-12-13: release 3.6.0
    * Support Scala 2.12
  * 2016-03-04: release 3.5.0
    * Support Scala 2.12.0-M3, 2.11.7, Scala 2.10.6 (except xerial-lens)
