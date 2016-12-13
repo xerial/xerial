@@ -25,7 +25,7 @@ object XerialBuild extends Build {
     organization := "org.xerial",
     organizationName := "Xerial Project",
     organizationHomepage := Some(new URL("http://xerial.org/")),
-    scalaVersion := "2.12.0-M3",
+    scalaVersion := "2.12.1",
     description := "Xerial: Data Management Utilities",
     publishArtifact in Test := false,
     pomIncludeRepository := {
@@ -77,7 +77,7 @@ object XerialBuild extends Build {
     id = "xerial",
     base = file("."),
     settings = buildSettings ++ packSettings ++ Seq(
-      crossScalaVersions := Seq("2.12.0-M3", "2.11.7", "2.10.6"),
+      crossScalaVersions := Seq("2.12.1", "2.11.8", "2.10.6"),
       packExclude := Seq("root"),
       packMain := Map("xerial" -> "xerial.lens.cui.Main"),
       publishArtifact := false
@@ -89,7 +89,7 @@ object XerialBuild extends Build {
     base = file("xerial-core"),
     settings = buildSettings ++ Seq(
       description := "Xerial core utiltiles",
-      crossScalaVersions := Seq("2.12.0-M3", "2.11.7", "2.10.6"),
+      crossScalaVersions := Seq("2.12.1", "2.11.8", "2.10.6"),
       libraryDependencies ++= testLib ++ (scalaVersion.value match {
         case "2.10.6" => Seq.empty
         case _ => Seq("org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4")
@@ -107,7 +107,7 @@ object XerialBuild extends Build {
     base = file("xerial-lens"),
     settings = buildSettings ++ Seq(
       description := "Object mapping utiltiles",
-      crossScalaVersions := Seq("2.12.0-M3", "2.11.7"),
+      crossScalaVersions := Seq("2.12.1", "2.11.8"),
       libraryDependencies ++= testLib ++ scalaCompilerDependency(scalaVersion.value) ++ Seq(
         "org.javassist" % "javassist" % "3.19.0-GA"
       )
@@ -119,7 +119,7 @@ object XerialBuild extends Build {
     base = file("xerial-compress"),
     settings = buildSettings ++ Seq(
       description := "Compression libraries",
-      crossScalaVersions := Seq("2.12.0-M3", "2.11.7", "2.10.6"),
+      crossScalaVersions := Seq("2.12.1", "2.11.8", "2.10.6"),
       libraryDependencies ++= testLib ++ Seq(
         "org.xerial.snappy" % "snappy-java" % "1.1.2.1"
       )
@@ -138,7 +138,7 @@ object XerialBuild extends Build {
 
   object Dependencies {
     val testLib = Seq(
-      "org.scalatest" %% "scalatest" % "2.2.+" % "test"
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     )
   }
 

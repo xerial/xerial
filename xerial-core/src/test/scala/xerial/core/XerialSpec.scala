@@ -1,7 +1,6 @@
 package xerial.core
 
 import io.Resource
-import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
 import xerial.core.util.Timer
 import xerial.core.log.Logger
 import org.scalatest._
